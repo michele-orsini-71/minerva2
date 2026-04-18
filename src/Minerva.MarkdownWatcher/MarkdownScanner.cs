@@ -4,7 +4,7 @@ using Minerva.Models;
 
 namespace Minerva.MarkdownWatcher;
 
-public partial class MarkdownScanner
+public partial class MarkdownScanner : IMarkdownScanner
 {
     private static readonly Regex ImageRegex = MarkdownImageRegex();
 

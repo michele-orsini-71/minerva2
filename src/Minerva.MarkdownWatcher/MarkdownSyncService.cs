@@ -9,8 +9,9 @@ namespace Minerva.MarkdownWatcher;
 
 public class MarkdownSyncService : BackgroundService
 {
-    private readonly MinervaEngine _engine;
-    private readonly MarkdownScanner _scanner;
+    private readonly IMinervaEngine _engine;
+    private readonly IMarkdownScanner _scanner;
+    private readonly MarkdownIngestionHandler _handler;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embedder;
     private readonly WatcherOptions _watcherOptions;
     private readonly MinervaOptions _minervaOptions;
@@ -20,8 +21,9 @@ public class MarkdownSyncService : BackgroundService
     private FileSystemWatcher? _fsWatcher;
 
     public MarkdownSyncService(
-        MinervaEngine engine,
-        MarkdownScanner scanner,
+        IMinervaEngine engine,
+        IMarkdownScanner scanner,
+        MarkdownIngestionHandler handler,
         IEmbeddingGenerator<string, Embedding<float>> embedder,
         IOptions<WatcherOptions> watcherOptions,
         IOptions<MinervaOptions> minervaOptions,
@@ -29,6 +31,7 @@ public class MarkdownSyncService : BackgroundService
     {
         _engine = engine;
         _scanner = scanner;
+        _handler = handler;
         _embedder = embedder;
         _watcherOptions = watcherOptions.Value;
         _minervaOptions = minervaOptions.Value;
@@ -49,7 +52,7 @@ public class MarkdownSyncService : BackgroundService
 
         _debouncer = new PathDebouncer(
             TimeSpan.FromMilliseconds(_watcherOptions.DebounceMs),
-            ProcessEventAsync);
+            _handler.OnChangedAsync);
 
         await InitialScanAsync(stoppingToken).ConfigureAwait(false);
 
@@ -109,7 +112,7 @@ public class MarkdownSyncService : BackgroundService
         foreach (var file in files)
         {
             if (ct.IsCancellationRequested) return;
-            await IngestFileAsync(file, ct).ConfigureAwait(false);
+            await _handler.OnChangedAsync(file, ct).ConfigureAwait(false);
         }
     }
 
@@ -124,57 +127,13 @@ public class MarkdownSyncService : BackgroundService
 
         _fsWatcher.Created += (_, e) => _debouncer?.Schedule(e.FullPath);
         _fsWatcher.Changed += (_, e) => _debouncer?.Schedule(e.FullPath);
-        _fsWatcher.Deleted += (_, e) => _ = HandleDeleteAsync(e.FullPath);
+        _fsWatcher.Deleted += (_, e) => _ = _handler.OnDeletedAsync(e.FullPath);
         _fsWatcher.Renamed += (_, e) =>
         {
-            _ = HandleDeleteAsync(e.OldFullPath);
+            _ = _handler.OnDeletedAsync(e.OldFullPath);
             _debouncer?.Schedule(e.FullPath);
         };
         _fsWatcher.Error += (_, e) =>
             _logger.LogError(e.GetException(), "FileSystemWatcher error");
-    }
-
-    private async Task ProcessEventAsync(string fullPath, CancellationToken ct)
-    {
-        if (!File.Exists(fullPath))
-        {
-            await HandleDeleteAsync(fullPath).ConfigureAwait(false);
-            return;
-        }
-        await IngestFileAsync(fullPath, ct).ConfigureAwait(false);
-    }
-
-    private async Task IngestFileAsync(string fullPath, CancellationToken ct)
-    {
-        if (_scanner.IsExcluded(fullPath)) return;
-
-        try
-        {
-            var doc = _scanner.ReadFile(fullPath);
-            var result = await _engine.IngestAsync(_watcherOptions.CollectionName, doc, ct)
-                .ConfigureAwait(false);
-            _logger.LogInformation(
-                "Ingested {Source}: +{Added} ~{Updated} -{Deleted} ={Unchanged}",
-                doc.SourceId, result.Added, result.Updated, result.Deleted, result.Unchanged);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to ingest {Path}", fullPath);
-        }
-    }
-
-    private async Task HandleDeleteAsync(string fullPath)
-    {
-        try
-        {
-            var sourceId = _scanner.DeriveSourceId(fullPath);
-            await _engine.RemoveAsync(_watcherOptions.CollectionName, sourceId)
-                .ConfigureAwait(false);
-            _logger.LogInformation("Removed {Source}", sourceId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to remove {Path}", fullPath);
-        }
     }
 }

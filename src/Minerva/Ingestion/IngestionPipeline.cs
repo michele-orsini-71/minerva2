@@ -8,18 +8,18 @@ namespace Minerva.Ingestion;
 
 public class IngestionPipeline
 {
-    private readonly DocumentChunker _chunker;
-    private readonly EmbeddingService _embeddingService;
-    private readonly DocumentSummarizer? _summarizer;
-    private readonly ChunkContextualizer? _contextualizer;
+    private readonly IDocumentChunker _chunker;
+    private readonly IEmbeddingService _embeddingService;
+    private readonly IDocumentSummarizer? _summarizer;
+    private readonly IChunkContextualizer? _contextualizer;
     private readonly IChunkRepository _chunkRepository;
     private readonly ILogger<IngestionPipeline> _logger;
 
     public IngestionPipeline(
-        DocumentChunker chunker,
-        EmbeddingService embeddingService,
-        DocumentSummarizer? summarizer,
-        ChunkContextualizer? contextualizer,
+        IDocumentChunker chunker,
+        IEmbeddingService embeddingService,
+        IDocumentSummarizer? summarizer,
+        IChunkContextualizer? contextualizer,
         IChunkRepository chunkRepository,
         ILogger<IngestionPipeline> logger)
     {

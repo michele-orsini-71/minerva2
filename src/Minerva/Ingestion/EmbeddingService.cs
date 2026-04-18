@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Minerva.Ingestion;
 
-public class EmbeddingService
+public class EmbeddingService : IEmbeddingService
 {
     private readonly IEmbeddingGenerator<string, Embedding<float>> _generator;
     private readonly int _batchSize;

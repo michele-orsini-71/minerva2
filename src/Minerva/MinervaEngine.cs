@@ -7,26 +7,26 @@ using Minerva.Search;
 
 namespace Minerva;
 
-public class MinervaEngine
+public class MinervaEngine : IMinervaEngine
 {
     private readonly IngestionPipeline _ingestionPipeline;
     private readonly SearchPipeline _searchPipeline;
-    private readonly CollectionManager _collections;
+    private readonly ICollectionService _collections;
     private readonly ILogger<MinervaEngine> _logger;
 
     public MinervaEngine(
         IngestionPipeline ingestionPipeline,
         SearchPipeline searchPipeline,
-        CollectionManager collectionManager,
+        ICollectionService collections,
         ILogger<MinervaEngine> logger)
     {
         _ingestionPipeline = ingestionPipeline;
         _searchPipeline = searchPipeline;
-        _collections = collectionManager;
+        _collections = collections;
         _logger = logger;
     }
 
-    public CollectionManager Collections => _collections;
+    public ICollectionService Collections => _collections;
 
     public async Task<IngestionResult> IngestAsync(
         string collectionName,

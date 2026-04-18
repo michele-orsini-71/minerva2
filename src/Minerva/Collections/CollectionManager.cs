@@ -5,20 +5,20 @@ using Minerva.Storage;
 
 namespace Minerva.Collections;
 
-public partial class CollectionManager
+public partial class CollectionManager : ICollectionService
 {
     private static readonly Regex NamePattern = CollectionNameRegex();
     private static readonly Regex LiteralKeyPattern = LiteralApiKeyRegex();
 
     private readonly ICollectionRepository _collectionRepository;
-    private readonly SchemaInitializer _schemaInitializer;
+    private readonly ICollectionProvisioner _provisioner;
 
     public CollectionManager(
         ICollectionRepository collectionRepository,
-        SchemaInitializer schemaInitializer)
+        ICollectionProvisioner provisioner)
     {
         _collectionRepository = collectionRepository;
-        _schemaInitializer = schemaInitializer;
+        _provisioner = provisioner;
     }
 
     public async Task<Collection> CreateAsync(
@@ -48,7 +48,7 @@ public partial class CollectionManager
             Metadata: metadata);
 
         await _collectionRepository.CreateAsync(collection, ct);
-        await _schemaInitializer.EnsureHnswIndexAsync(name, embeddingDimension, ct);
+        await _provisioner.EnsureHnswIndexAsync(name, embeddingDimension, ct);
 
         return (await _collectionRepository.GetAsync(name, ct)) ?? collection;
     }

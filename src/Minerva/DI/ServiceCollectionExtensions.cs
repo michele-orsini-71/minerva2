@@ -49,13 +49,15 @@ public static class ServiceCollectionExtensions
         });
 
         services.TryAddSingleton<SchemaInitializer>();
+        services.TryAddSingleton<ICollectionProvisioner>(
+            sp => sp.GetRequiredService<SchemaInitializer>());
         services.TryAddSingleton<ICollectionRepository, PostgresCollectionRepository>();
         services.TryAddSingleton<IChunkRepository, PostgresChunkRepository>();
 
-        services.TryAddSingleton(sp =>
+        services.TryAddSingleton<IDocumentChunker>(sp =>
             new DocumentChunker(sp.GetRequiredService<IOptions<MinervaOptions>>().Value.Chunking));
 
-        services.TryAddSingleton(sp => new EmbeddingService(
+        services.TryAddSingleton<IEmbeddingService>(sp => new EmbeddingService(
             sp.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>(),
             sp.GetRequiredService<IOptions<MinervaOptions>>().Value.Embedding.BatchSize,
             sp.GetRequiredService<ILogger<EmbeddingService>>()));
@@ -65,16 +67,16 @@ public static class ServiceCollectionExtensions
             var options = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
             var chatClient = options.Llm is not null ? sp.GetRequiredService<IChatClient>() : null;
 
-            DocumentSummarizer? summarizer = options.Chunking.EnableSummarization && chatClient is not null
+            IDocumentSummarizer? summarizer = options.Chunking.EnableSummarization && chatClient is not null
                 ? new DocumentSummarizer(chatClient)
                 : null;
-            ChunkContextualizer? contextualizer = options.Chunking.EnableContextualization && chatClient is not null
+            IChunkContextualizer? contextualizer = options.Chunking.EnableContextualization && chatClient is not null
                 ? new ChunkContextualizer(chatClient)
                 : null;
 
             return new IngestionPipeline(
-                sp.GetRequiredService<DocumentChunker>(),
-                sp.GetRequiredService<EmbeddingService>(),
+                sp.GetRequiredService<IDocumentChunker>(),
+                sp.GetRequiredService<IEmbeddingService>(),
                 summarizer,
                 contextualizer,
                 sp.GetRequiredService<IChunkRepository>(),
@@ -87,7 +89,11 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<SearchPipeline>();
 
         services.TryAddSingleton<CollectionManager>();
+        services.TryAddSingleton<ICollectionService>(
+            sp => sp.GetRequiredService<CollectionManager>());
         services.TryAddSingleton<MinervaEngine>();
+        services.TryAddSingleton<IMinervaEngine>(
+            sp => sp.GetRequiredService<MinervaEngine>());
 
         services.AddHostedService<MinervaStartupService>();
 

@@ -3,7 +3,7 @@ using Minerva.Models;
 
 namespace Minerva.Ingestion;
 
-public class ChunkContextualizer
+public class ChunkContextualizer : IChunkContextualizer
 {
     private const string SystemPrompt =
         """

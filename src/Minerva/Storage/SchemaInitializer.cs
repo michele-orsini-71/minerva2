@@ -1,12 +1,14 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Minerva.Storage;
 
-public class SchemaInitializer
+public partial class SchemaInitializer : ICollectionProvisioner
 {
     private const long AdvisoryLockId = 0x4D494E455256_01; // "MINERV" + 01
+    private static readonly Regex SafeCollectionNamePattern = SafeCollectionNameRegex();
     private readonly NpgsqlDataSource _dataSource;
     private readonly ILogger<SchemaInitializer> _logger;
 
@@ -72,20 +74,35 @@ public class SchemaInitializer
     public async Task EnsureHnswIndexAsync(string collectionName, int dimension,
         CancellationToken ct = default)
     {
+        // Defense-in-depth: callers should validate, but re-check here because
+        // collectionName and dimension are interpolated into DDL (identifiers
+        // and typmod can't be parameterized).
+        if (!SafeCollectionNamePattern.IsMatch(collectionName))
+            throw new ArgumentException(
+                $"Collection name '{collectionName}' contains unsafe characters for DDL.",
+                nameof(collectionName));
+        if (dimension <= 0)
+            throw new ArgumentOutOfRangeException(nameof(dimension),
+                "Embedding dimension must be positive.");
+
         var indexName = $"idx_chunks_embedding_{collectionName.Replace("-", "_")}";
         var sql = $"""
             CREATE INDEX IF NOT EXISTS "{indexName}"
             ON chunks USING hnsw ((embedding::vector({dimension})) vector_cosine_ops)
-            WHERE collection_name = '{collectionName}'
+            WHERE collection_name = @collection_name
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("collection_name", collectionName);
         await cmd.ExecuteNonQueryAsync(ct);
 
         _logger.LogInformation("Ensured HNSW index {IndexName} for collection {Collection} (dim={Dimension})",
             indexName, collectionName, dimension);
     }
+
+    [GeneratedRegex(@"^[a-zA-Z0-9][a-zA-Z0-9-]*$")]
+    private static partial Regex SafeCollectionNameRegex();
 
     private static async Task EnsureMigrationsTableAsync(NpgsqlConnection conn, CancellationToken ct)
     {

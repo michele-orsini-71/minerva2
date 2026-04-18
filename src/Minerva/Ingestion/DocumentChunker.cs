@@ -8,7 +8,7 @@ using Minerva.Utilities;
 
 namespace Minerva.Ingestion;
 
-public class DocumentChunker
+public class DocumentChunker : IDocumentChunker
 {
     private readonly ChunkingOptions _options;
 

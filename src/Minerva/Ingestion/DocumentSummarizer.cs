@@ -2,7 +2,7 @@ using Microsoft.Extensions.AI;
 
 namespace Minerva.Ingestion;
 
-public class DocumentSummarizer
+public class DocumentSummarizer : IDocumentSummarizer
 {
     private const string SystemPrompt =
         "Summarize the following document in one paragraph. Focus on the main topics, " +

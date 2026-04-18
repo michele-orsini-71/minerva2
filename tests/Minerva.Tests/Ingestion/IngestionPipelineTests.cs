@@ -1,6 +1,4 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
-using Minerva.Configuration;
 using Minerva.Ingestion;
 using Minerva.Models;
 using Minerva.Storage;
@@ -15,87 +13,94 @@ public class IngestionPipelineTests
 {
     private static readonly float[] SampleVector = [0.1f, 0.2f, 0.3f];
     private const string CollectionName = "test-collection";
+    private const string SourceId = "src1";
 
-    private static (IngestionPipeline pipeline, IChunkRepository repo) CreatePipeline(
+    private sealed record TestBed(
+        IngestionPipeline Pipeline,
+        IDocumentChunker Chunker,
+        IEmbeddingService Embedder,
+        IChunkRepository Repo,
+        IDocumentSummarizer? Summarizer,
+        IChunkContextualizer? Contextualizer);
+
+    private static TestBed CreatePipeline(
         bool withSummarizer = false,
         bool withContextualizer = false)
     {
-        var chunker = new DocumentChunker(new ChunkingOptions
-        {
-            TargetChunkSize = 1200,
-            ChunkOverlap = 200,
-            LargeDocumentThreshold = 8000,
-        });
+        var chunker = Substitute.For<IDocumentChunker>();
+        chunker.SegmentDocument(Arg.Any<string>())
+            .Returns(ci => (IReadOnlyList<string>)[ci.Arg<string>()]);
+        chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(ci => (IReadOnlyList<Chunk>)
+                [MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 0, ci.ArgAt<string>(2))]);
+        chunker.ChunkSegment(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>())
+            .Returns(ci => (IReadOnlyList<Chunk>)
+                [MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1),
+                    ci.ArgAt<int>(3), ci.ArgAt<string>(2))]);
 
-        var embeddingGenerator = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
-        embeddingGenerator.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
+        var embedder = Substitute.For<IEmbeddingService>();
+        embedder.EmbedAsync(
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<IProgress<int>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(callInfo =>
-            {
-                var texts = callInfo.Arg<IEnumerable<string>>().ToList();
-                var result = new GeneratedEmbeddings<Embedding<float>>();
-                foreach (var _ in texts)
-                    result.Add(new Embedding<float>(SampleVector));
-                return Task.FromResult(result);
-            });
+            .Returns(ci => Task.FromResult(
+                (IReadOnlyList<float[]>)ci.Arg<IReadOnlyList<string>>()
+                    .Select(_ => SampleVector).ToArray()));
 
-        var embeddingService = new EmbeddingService(
-            embeddingGenerator, batchSize: 100,
-            NullLogger<EmbeddingService>.Instance);
-
-        var chunkRepo = Substitute.For<IChunkRepository>();
-        chunkRepo.GetContentHashAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+        var repo = Substitute.For<IChunkRepository>();
+        repo.GetContentHashAsync(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((string?)null);
-        chunkRepo.UpsertChunksAsync(Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
 
-        DocumentSummarizer? summarizer = null;
-        ChunkContextualizer? contextualizer = null;
-
-        if (withSummarizer || withContextualizer)
+        IDocumentSummarizer? summarizer = null;
+        if (withSummarizer)
         {
-            var chatClient = Substitute.For<IChatClient>();
-            chatClient.GetResponseAsync(
-                    Arg.Any<IEnumerable<ChatMessage>>(),
-                    Arg.Any<ChatOptions?>(),
-                    Arg.Any<CancellationToken>())
-                .Returns(new ChatResponse(new ChatMessage(ChatRole.Assistant, "A summary.")));
+            summarizer = Substitute.For<IDocumentSummarizer>();
+            summarizer.SummarizeAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+                .Returns("A summary.");
+        }
 
-            if (withSummarizer)
-                summarizer = new DocumentSummarizer(chatClient);
-            if (withContextualizer)
-                contextualizer = new ChunkContextualizer(chatClient);
+        IChunkContextualizer? contextualizer = null;
+        if (withContextualizer)
+        {
+            contextualizer = Substitute.For<IChunkContextualizer>();
+            contextualizer.ContextualizeAsync(
+                    Arg.Any<string>(), Arg.Any<IReadOnlyList<Chunk>>(), Arg.Any<CancellationToken>())
+                .Returns(ci => (IReadOnlyList<string>)ci.Arg<IReadOnlyList<Chunk>>()
+                    .Select(_ => "ctx").ToArray());
         }
 
         var pipeline = new IngestionPipeline(
-            chunker, embeddingService, summarizer, contextualizer,
-            chunkRepo, NullLogger<IngestionPipeline>.Instance);
+            chunker, embedder, summarizer, contextualizer,
+            repo, NullLogger<IngestionPipeline>.Instance);
 
-        return (pipeline, chunkRepo);
+        return new TestBed(pipeline, chunker, embedder, repo, summarizer, contextualizer);
     }
+
+    private static Chunk MakeChunk(
+        string collection, string sourceId, int index, string content) => new(
+            Id: HashHelper.GenerateChunkId(sourceId, index),
+            SourceId: sourceId,
+            CollectionName: collection,
+            ChunkIndex: index,
+            Content: content,
+            ContentHash: HashHelper.ComputeContentHash(content));
 
     [Fact]
     public async Task IngestAsync_UnchangedDocument_ReturnsUnchanged()
     {
-        var (pipeline, repo) = CreatePipeline();
-        var doc = new Document("src1", "Title", "Some content here.");
-
-        // Simulate stored hash matching document content
+        var bed = CreatePipeline();
+        var doc = new Document(SourceId, "Title", "Some content here.");
         var contentHash = HashHelper.ComputeContentHash(doc.Text);
-        repo.GetContentHashAsync(CollectionName, "src1", Arg.Any<CancellationToken>())
+        bed.Repo.GetContentHashAsync(CollectionName, SourceId, Arg.Any<CancellationToken>())
             .Returns(contentHash);
 
-        var result = await pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
 
         Assert.Equal(1, result.Unchanged);
         Assert.Equal(0, result.Added);
         Assert.Equal(0, result.Updated);
-
-        // Should NOT call UpsertChunksAsync
-        await repo.DidNotReceive().UpsertChunksAsync(
+        await bed.Repo.DidNotReceive().UpsertChunksAsync(
             Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
     }
@@ -103,10 +108,10 @@ public class IngestionPipelineTests
     [Fact]
     public async Task IngestAsync_NewDocument_ReturnsAdded()
     {
-        var (pipeline, _) = CreatePipeline();
-        var doc = new Document("src1", "Title", "# Header\nSome content here.");
+        var bed = CreatePipeline();
+        var doc = new Document(SourceId, "Title", "Some content here.");
 
-        var result = await pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
 
         Assert.Equal(1, result.Added);
         Assert.Equal(0, result.Updated);
@@ -116,14 +121,12 @@ public class IngestionPipelineTests
     [Fact]
     public async Task IngestAsync_ChangedDocument_ReturnsUpdated()
     {
-        var (pipeline, repo) = CreatePipeline();
-        var doc = new Document("src1", "Title", "# Header\nNew content.");
-
-        // Return a different hash to simulate existing document
-        repo.GetContentHashAsync(CollectionName, "src1", Arg.Any<CancellationToken>())
+        var bed = CreatePipeline();
+        var doc = new Document(SourceId, "Title", "New content.");
+        bed.Repo.GetContentHashAsync(CollectionName, SourceId, Arg.Any<CancellationToken>())
             .Returns("old-hash-that-wont-match");
 
-        var result = await pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
 
         Assert.Equal(1, result.Updated);
         Assert.Equal(0, result.Added);
@@ -131,18 +134,16 @@ public class IngestionPipelineTests
     }
 
     [Fact]
-    public async Task IngestAsync_SkipsSummarizationWhenDisabled()
+    public async Task IngestAsync_SkipsContextualizationWhenDisabled()
     {
-        var (pipeline, repo) = CreatePipeline(withSummarizer: false, withContextualizer: false);
-        var doc = new Document("src1", "Title", "# Header\nContent.");
+        var bed = CreatePipeline(withSummarizer: false, withContextualizer: false);
+        var doc = new Document(SourceId, "Title", "Content.");
 
-        var result = await pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
 
         Assert.Equal(1, result.Added);
-
-        // Verify chunks were upserted without contextual prefixes
-        await repo.Received(1).UpsertChunksAsync(
-            CollectionName, "src1",
+        await bed.Repo.Received(1).UpsertChunksAsync(
+            CollectionName, SourceId,
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.All(c => c.ContextualPrefix == null)),
             Arg.Any<CancellationToken>());
@@ -151,56 +152,46 @@ public class IngestionPipelineTests
     [Fact]
     public async Task IngestAsync_AdjacencyPointersAreCorrect()
     {
-        var (pipeline, repo) = CreatePipeline();
+        var bed = CreatePipeline();
+        bed.Chunker.Chunk(CollectionName, SourceId, Arg.Any<string>())
+            .Returns((IReadOnlyList<Chunk>)
+            [
+                MakeChunk(CollectionName, SourceId, 0, "one"),
+                MakeChunk(CollectionName, SourceId, 1, "two"),
+                MakeChunk(CollectionName, SourceId, 2, "three"),
+            ]);
+        var doc = new Document(SourceId, "Title", "text");
 
-        // Build a document that produces multiple chunks
-        var text = "# Section 1\nContent one.\n\n# Section 2\nContent two.\n\n# Section 3\nContent three.";
-        var doc = new Document("src1", "Title", text);
+        await bed.Pipeline.IngestAsync(CollectionName, doc);
 
-        await pipeline.IngestAsync(CollectionName, doc);
-
-        await repo.Received(1).UpsertChunksAsync(
-            CollectionName, "src1",
+        await bed.Repo.Received(1).UpsertChunksAsync(
+            CollectionName, SourceId,
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(chunks =>
-                chunks.Count >= 3
+                chunks.Count == 3
                 && chunks[0].PrevChunkId == null
                 && chunks[0].NextChunkId == chunks[1].Id
                 && chunks[1].PrevChunkId == chunks[0].Id
                 && chunks[1].NextChunkId == chunks[2].Id
-                && chunks[chunks.Count - 1].NextChunkId == null),
+                && chunks[2].PrevChunkId == chunks[1].Id
+                && chunks[2].NextChunkId == null),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task IngestAsync_EmbeddingFailure_DoesNotUpsert()
     {
-        var embeddingGenerator = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
-        embeddingGenerator.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
+        var bed = CreatePipeline();
+        bed.Embedder.EmbedAsync(
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<IProgress<int>?>(),
                 Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Embedding API down"));
-
-        var chunkRepo = Substitute.For<IChunkRepository>();
-        chunkRepo.GetContentHashAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((string?)null);
-
-        var chunker = new DocumentChunker(new ChunkingOptions());
-        var embeddingService = new EmbeddingService(
-            embeddingGenerator, batchSize: 100,
-            NullLogger<EmbeddingService>.Instance);
-
-        var pipeline = new IngestionPipeline(
-            chunker, embeddingService, null, null,
-            chunkRepo, NullLogger<IngestionPipeline>.Instance);
-
-        var doc = new Document("src1", "Title", "# Header\nContent.");
+        var doc = new Document(SourceId, "Title", "Content.");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => pipeline.IngestAsync(CollectionName, doc));
+            () => bed.Pipeline.IngestAsync(CollectionName, doc));
 
-        // Old data should be preserved — UpsertChunksAsync should NOT be called
-        await chunkRepo.DidNotReceive().UpsertChunksAsync(
+        await bed.Repo.DidNotReceive().UpsertChunksAsync(
             Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
     }
@@ -208,31 +199,46 @@ public class IngestionPipelineTests
     [Fact]
     public async Task RemoveAsync_DelegatesToRepository()
     {
-        var (pipeline, repo) = CreatePipeline();
+        var bed = CreatePipeline();
 
-        await pipeline.RemoveAsync(CollectionName, "src1");
+        await bed.Pipeline.RemoveAsync(CollectionName, SourceId);
 
-        await repo.Received(1).DeleteBySourceIdAsync(CollectionName, "src1", Arg.Any<CancellationToken>());
+        await bed.Repo.Received(1).DeleteBySourceIdAsync(
+            CollectionName, SourceId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task IngestAsync_WithAttachments_IntegratesBeforeHashing()
     {
-        var (pipeline, repo) = CreatePipeline();
-
+        var bed = CreatePipeline();
         var attachments = new Dictionary<string, AttachmentDescription>
         {
             ["![[img.png]]"] = new("A photo of a cat"),
         };
-        var doc = new Document("src1", "Title", "# Header\nSee ![[img.png]] here.", Attachments: attachments);
+        var doc = new Document(
+            SourceId, "Title", "See ![[img.png]] here.", Attachments: attachments);
 
-        await pipeline.IngestAsync(CollectionName, doc);
+        await bed.Pipeline.IngestAsync(CollectionName, doc);
 
-        // Verify the upserted chunk content includes the attachment description
-        await repo.Received(1).UpsertChunksAsync(
-            CollectionName, "src1",
+        await bed.Repo.Received(1).UpsertChunksAsync(
+            CollectionName, SourceId,
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.Any(c => c.Content.Contains("A photo of a cat"))),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_WithContextualizer_AppliesPrefixes()
+    {
+        var bed = CreatePipeline(withSummarizer: true, withContextualizer: true);
+        var doc = new Document(SourceId, "Title", "Content.");
+
+        await bed.Pipeline.IngestAsync(CollectionName, doc);
+
+        await bed.Repo.Received(1).UpsertChunksAsync(
+            CollectionName, SourceId,
+            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
+                chunks => chunks.All(c => c.ContextualPrefix == "ctx")),
             Arg.Any<CancellationToken>());
     }
 }
