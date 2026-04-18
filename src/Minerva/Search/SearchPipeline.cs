@@ -1,0 +1,95 @@
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using Minerva.Models;
+
+namespace Minerva.Search;
+
+public class SearchPipeline
+{
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
+    private readonly VectorSearch _vectorSearch;
+    private readonly FullTextSearch _fullTextSearch;
+    private readonly ContextExpander _contextExpander;
+    private readonly ILogger<SearchPipeline> _logger;
+
+    public SearchPipeline(
+        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
+        VectorSearch vectorSearch,
+        FullTextSearch fullTextSearch,
+        ContextExpander contextExpander,
+        ILogger<SearchPipeline> logger)
+    {
+        _embeddingGenerator = embeddingGenerator;
+        _vectorSearch = vectorSearch;
+        _fullTextSearch = fullTextSearch;
+        _contextExpander = contextExpander;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
+        string query,
+        IReadOnlyList<string> collectionNames,
+        SearchOptions options,
+        CancellationToken ct = default)
+    {
+        if (collectionNames.Count == 0)
+            return [];
+
+        // 1. Embed the query once; reuse across all collections.
+        var embeddings = await _embeddingGenerator.GenerateAsync([query], cancellationToken: ct);
+        var queryEmbedding = embeddings[0].Vector.ToArray();
+
+        // 2. Per collection: vector + FTS in parallel, fuse.
+        var perCollectionTasks = collectionNames
+            .Select(c => SearchCollectionAsync(c, query, queryEmbedding, options, ct))
+            .ToList();
+
+        var perCollection = await Task.WhenAll(perCollectionTasks);
+
+        // 3. Merge fused results across collections by score, take top K.
+        var merged = perCollection
+            .SelectMany(r => r)
+            .OrderByDescending(r => r.Score)
+            .Take(options.TopK)
+            .ToList();
+
+        // 4. Optional context expansion.
+        if (options.ExpandContext)
+            return await _contextExpander.ExpandAsync(merged, ct);
+
+        return merged.Select(ToSearchResult).ToList();
+    }
+
+    private async Task<IReadOnlyList<FusedResult>> SearchCollectionAsync(
+        string collectionName,
+        string query,
+        float[] queryEmbedding,
+        SearchOptions options,
+        CancellationToken ct)
+    {
+        var vectorTask = _vectorSearch.SearchAsync(
+            collectionName, queryEmbedding, options.TopK, ct);
+        var ftsTask = _fullTextSearch.SearchAsync(
+            collectionName, query, options.TopK, ct);
+
+        await Task.WhenAll(vectorTask, ftsTask);
+
+        var fused = RankFusion.Fuse(
+            vectorTask.Result, ftsTask.Result, options.HybridAlpha);
+
+        _logger.LogDebug(
+            "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused",
+            collectionName, vectorTask.Result.Count, ftsTask.Result.Count, fused.Count);
+
+        return fused.Take(options.TopK).ToList();
+    }
+
+    private static SearchResult ToSearchResult(FusedResult r) =>
+        new(
+            ChunkId: r.Chunk.Id,
+            SourceId: r.Chunk.SourceId,
+            CollectionName: r.Chunk.CollectionName,
+            Content: r.Chunk.Content,
+            Score: r.Score,
+            Metadata: r.Chunk.Metadata);
+}

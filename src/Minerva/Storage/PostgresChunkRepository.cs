@@ -137,7 +137,8 @@ public class PostgresChunkRepository : IChunkRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT id, source_id, chunk_index, content, metadata,
+            SELECT id, source_id, collection_name, chunk_index, content, metadata,
+                   prev_chunk_id, next_chunk_id,
                    embedding <=> @embedding::vector AS distance
             FROM chunks
             WHERE collection_name = @coll
@@ -166,7 +167,8 @@ public class PostgresChunkRepository : IChunkRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT id, source_id, chunk_index, content, metadata,
+            SELECT id, source_id, collection_name, chunk_index, content, metadata,
+                   prev_chunk_id, next_chunk_id,
                    ts_rank(fts_vector, plainto_tsquery('english', @query)) AS rank
             FROM chunks
             WHERE collection_name = @coll AND fts_vector @@ plainto_tsquery('english', @query)
@@ -211,7 +213,7 @@ public class PostgresChunkRepository : IChunkRepository
 
     private static ChunkSearchRecord ReadSearchRecord(NpgsqlDataReader reader)
     {
-        var metadataJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+        var metadataJson = reader.IsDBNull(5) ? null : reader.GetString(5);
         var metadata = metadataJson is not null
             ? JsonSerializer.Deserialize<Dictionary<string, object>>(metadataJson)
             : null;
@@ -219,9 +221,12 @@ public class PostgresChunkRepository : IChunkRepository
         return new ChunkSearchRecord(
             Id: reader.GetString(0),
             SourceId: reader.GetString(1),
-            ChunkIndex: reader.GetInt32(2),
-            Content: reader.GetString(3),
-            Score: reader.GetDouble(5),
+            CollectionName: reader.GetString(2),
+            ChunkIndex: reader.GetInt32(3),
+            Content: reader.GetString(4),
+            Score: reader.GetDouble(8),
+            PrevChunkId: reader.IsDBNull(6) ? null : reader.GetString(6),
+            NextChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
             Metadata: metadata);
     }
 

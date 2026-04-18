@@ -28,7 +28,10 @@ public record ChunkRecord(
 public record ChunkSearchRecord(
     string Id,
     string SourceId,
+    string CollectionName,
     int ChunkIndex,
     string Content,
     double Score,
+    string? PrevChunkId = null,
+    string? NextChunkId = null,
     Dictionary<string, object>? Metadata = null);
