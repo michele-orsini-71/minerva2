@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minerva\Minerva.csproj" />
+    <ProjectReference Include="..\..\src\Minerva.Watcher\Minerva.Watcher.csproj" />
   </ItemGroup>
 
 </Project>

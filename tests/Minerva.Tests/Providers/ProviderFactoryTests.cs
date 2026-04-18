@@ -5,6 +5,7 @@ using Minerva.Providers;
 namespace Minerva.Tests.Providers;
 
 [Trait("Category", "Providers")]
+[Collection("EnvVars")]
 public class ProviderFactoryTests
 {
     private static ProviderOptions ValidOptions(string? apiKey = null) => new()

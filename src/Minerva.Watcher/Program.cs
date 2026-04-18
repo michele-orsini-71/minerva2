@@ -1,2 +1,14 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Minerva.DI;
+using Minerva.Watcher.DI;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddMinerva(options =>
+    builder.Configuration.GetSection("Minerva").Bind(options));
+
+builder.Services.AddMinervaWatcher(options =>
+    builder.Configuration.GetSection("Watcher").Bind(options));
+
+await builder.Build().RunAsync();

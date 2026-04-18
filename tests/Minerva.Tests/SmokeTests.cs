@@ -5,6 +5,7 @@ using Minerva.Utilities;
 
 namespace Minerva.Tests;
 
+[Collection("EnvVars")]
 public class SmokeTests
 {
     [Fact]
