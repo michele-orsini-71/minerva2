@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Minerva.DI;
-using Minerva.Watcher.DI;
+using Minerva.MarkdownWatcher.DI;
 
 var builder = Host.CreateApplicationBuilder(args);
 

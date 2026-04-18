@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva", "src\Minerva\Minerva.csproj", "{7A957EB8-588C-4E3B-971D-85627A154E51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Watcher", "src\Minerva.Watcher\Minerva.Watcher.csproj", "{F1C47810-2A96-4588-8411-E45E8A86DFA8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.MarkdownWatcher", "src\Minerva.MarkdownWatcher\Minerva.MarkdownWatcher.csproj", "{F1C47810-2A96-4588-8411-E45E8A86DFA8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject

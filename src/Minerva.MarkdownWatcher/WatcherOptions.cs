@@ -1,4 +1,4 @@
-namespace Minerva.Watcher;
+namespace Minerva.MarkdownWatcher;
 
 public class WatcherOptions
 {

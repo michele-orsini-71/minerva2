@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using Minerva.Watcher;
+using Minerva.MarkdownWatcher;
 
 namespace Minerva.Tests.Watcher;
 

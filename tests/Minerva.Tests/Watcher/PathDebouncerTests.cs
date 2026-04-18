@@ -1,4 +1,4 @@
-using Minerva.Watcher;
+using Minerva.MarkdownWatcher;
 
 namespace Minerva.Tests.Watcher;
 

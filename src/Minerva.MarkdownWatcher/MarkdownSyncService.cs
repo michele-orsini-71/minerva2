@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using Minerva.Configuration;
 using Minerva.Exceptions;
 
-namespace Minerva.Watcher;
+namespace Minerva.MarkdownWatcher;
 
 public class MarkdownSyncService : BackgroundService
 {
@@ -91,7 +91,7 @@ public class MarkdownSyncService : BackgroundService
             _watcherOptions.CollectionName,
             _minervaOptions.Embedding.Model,
             dimension,
-            description: $"Auto-created by Minerva.Watcher for {_watcherOptions.RootPath}",
+            description: $"Auto-created by Minerva.MarkdownWatcher for {_watcherOptions.RootPath}",
             ct: ct);
     }
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Minerva.Watcher.DI;
+namespace Minerva.MarkdownWatcher.DI;
 
 public static class ServiceCollectionExtensions
 {

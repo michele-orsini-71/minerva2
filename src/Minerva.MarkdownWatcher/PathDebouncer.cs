@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Minerva.Watcher;
+namespace Minerva.MarkdownWatcher;
 
 /// <summary>
 /// Coalesces rapid repeated events for the same path into a single delayed invocation.

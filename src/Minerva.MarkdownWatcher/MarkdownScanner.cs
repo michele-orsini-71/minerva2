@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Minerva.Models;
 
-namespace Minerva.Watcher;
+namespace Minerva.MarkdownWatcher;
 
 public partial class MarkdownScanner
 {
