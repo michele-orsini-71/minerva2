@@ -126,7 +126,9 @@ public class SchemaInitializer
         foreach (var resource in resources)
         {
             var name = resource[prefix.Length..]; // e.g. "001_initial.sql"
-            using var stream = assembly.GetManifestResourceStream(resource)!;
+            using var stream = assembly.GetManifestResourceStream(resource)
+                ?? throw new InvalidOperationException(
+                    $"Embedded migration resource '{resource}' not found.");
             using var reader = new StreamReader(stream);
             migrations.Add((name, reader.ReadToEnd()));
         }

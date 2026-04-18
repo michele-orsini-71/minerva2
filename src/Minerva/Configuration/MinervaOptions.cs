@@ -2,16 +2,16 @@ namespace Minerva.Configuration;
 
 public class MinervaOptions
 {
-    public string ConnectionString { get; set; } = string.Empty;
-    public ProviderOptions Embedding { get; set; } = new();
+    public required string ConnectionString { get; set; }
+    public required ProviderOptions Embedding { get; set; }
     public ProviderOptions? Llm { get; set; }
     public ChunkingOptions Chunking { get; set; } = new();
 }
 
 public class ProviderOptions
 {
-    public string BaseUrl { get; set; } = string.Empty;
-    public string Model { get; set; } = string.Empty;
+    public required string BaseUrl { get; set; }
+    public required string Model { get; set; }
     public string? ApiKey { get; set; }
     public int? RequestsPerMinute { get; set; }
     public int Concurrency { get; set; } = 1;

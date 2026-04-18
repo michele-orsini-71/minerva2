@@ -32,9 +32,6 @@ public class SearchPipeline
         SearchOptions options,
         CancellationToken ct = default)
     {
-        if (collectionNames.Count == 0)
-            return [];
-
         // 1. Embed the query once; reuse across all collections.
         var embeddings = await _embeddingGenerator.GenerateAsync([query], cancellationToken: ct);
         var queryEmbedding = embeddings[0].Vector.ToArray();

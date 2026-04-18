@@ -91,8 +91,8 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 
 | Field | Type | Default | Required? |
 | --- | --- | --- | --- |
-| `ConnectionString` | string | — | **required** |
-| `Embedding` | `ProviderOptions` | `new()` | **required** (fields below) |
+| `ConnectionString` | string | — | **required** (enforced by `required` keyword) |
+| `Embedding` | `ProviderOptions` | — | **required** (enforced by `required` keyword; fields below) |
 | `Llm` | `ProviderOptions?` | `null` | optional — required when any `Chunking.Enable*` flag is true |
 | `Chunking` | `ChunkingOptions` | `new()` | optional (all fields have defaults) |
 
@@ -100,8 +100,8 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 
 | Field | Type | Default | Required? |
 | --- | --- | --- | --- |
-| `BaseUrl` | string | — | **required** |
-| `Model` | string | — | **required** |
+| `BaseUrl` | string | — | **required** (enforced by `required` keyword) |
+| `Model` | string | — | **required** (enforced by `required` keyword) |
 | `ApiKey` | string? | `null` | optional (supports `env:VAR_NAME`) |
 | `RequestsPerMinute` | int? | `null` (unlimited) | optional |
 | `Concurrency` | int | `1` | optional |
