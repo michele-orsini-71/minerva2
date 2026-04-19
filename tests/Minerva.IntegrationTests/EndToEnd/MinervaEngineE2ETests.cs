@@ -20,7 +20,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     private const string CollectionName = "e2e-collection";
 
     private ServiceProvider _provider = null!;
-    private MinervaEngine _engine = null!;
+    private IMinervaEngine _engine = null!;
     private NpgsqlDataSource _dataSource = null!;
 
     public async Task InitializeAsync()
@@ -59,7 +59,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         await CleanDatabaseAsync();
         await _provider.GetRequiredService<SchemaInitializer>().InitializeAsync();
 
-        _engine = _provider.GetRequiredService<MinervaEngine>();
+        _engine = _provider.GetRequiredService<IMinervaEngine>();
     }
 
     public async Task DisposeAsync()

@@ -88,12 +88,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ContextExpander>();
         services.TryAddSingleton<SearchPipeline>();
 
-        services.TryAddSingleton<CollectionManager>();
-        services.TryAddSingleton<ICollectionService>(
-            sp => sp.GetRequiredService<CollectionManager>());
-        services.TryAddSingleton<MinervaEngine>();
-        services.TryAddSingleton<IMinervaEngine>(
-            sp => sp.GetRequiredService<MinervaEngine>());
+        services.TryAddSingleton<ICollectionService, CollectionManager>();
+        services.TryAddSingleton<IMinervaEngine, MinervaEngine>();
 
         services.AddHostedService<MinervaStartupService>();
 

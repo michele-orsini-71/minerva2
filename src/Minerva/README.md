@@ -23,7 +23,7 @@ Task<IReadOnlyList<SearchResult>> SearchAsync(
     IReadOnlyList<string> collections,
     SearchOptions? options,
     CancellationToken ct);
-CollectionManager Collections { get; }   // CreateAsync, GetAsync, DeleteAsync, ListAsync
+ICollectionService Collections { get; }   // CreateAsync, GetAsync, DeleteAsync, ListAsync
 ```
 
 Key models (`Minerva.Models`):
@@ -42,7 +42,7 @@ builder.Services.AddMinerva(options =>
     builder.Configuration.GetSection("Minerva").Bind(options));
 
 var host = builder.Build();
-var engine = host.Services.GetRequiredService<MinervaEngine>();
+var engine = host.Services.GetRequiredService<IMinervaEngine>();
 
 await engine.Collections.CreateAsync("my-notes", "nomic-embed-text", dimension: 768);
 await engine.IngestAsync("my-notes", new Document("note-1", "Hello", "World"));

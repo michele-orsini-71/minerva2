@@ -12,9 +12,7 @@ public static class ServiceCollectionExtensions
         Action<WatcherOptions> configure)
     {
         services.Configure(configure);
-        services.TryAddSingleton<MarkdownScanner>();
-        services.TryAddSingleton<IMarkdownScanner>(
-            sp => sp.GetRequiredService<MarkdownScanner>());
+        services.TryAddSingleton<IMarkdownScanner, MarkdownScanner>();
         services.TryAddSingleton(sp => new MarkdownIngestionHandler(
             sp.GetRequiredService<IMinervaEngine>(),
             sp.GetRequiredService<IMarkdownScanner>(),
