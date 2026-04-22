@@ -32,9 +32,17 @@ See the per-project READMEs for details:
 
 ```bash
 dotnet build Minerva.sln
-dotnet test tests/Minerva.Tests        # unit tests, no external deps
-./scripts/run-integration-tests.sh      # integration tests — requires local Postgres
+dotnet test                             # runs all tests — integration tests need a local Postgres
 ```
+
+Integration tests read their connection string from `MINERVA_TEST_CONNSTRING`. A default
+(`Host=localhost;Database=minerva_test;Username=postgres;Password=postgres`) is wired up
+via `tests/Minerva.IntegrationTests/.runsettings`, which `dotnet test` picks up
+automatically. To override (e.g. different local credentials, or in CI), set the env
+var in your shell — a process-level env var takes precedence over `.runsettings`.
+
+To bootstrap the test database (creates `minerva_test` with `pgvector` installed), run
+`./scripts/run-integration-tests.sh` once after starting Postgres.
 
 ## Roadmap
 

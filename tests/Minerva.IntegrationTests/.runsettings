@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <MINERVA_TEST_CONNSTRING>Host=localhost;Database=minerva_test;Username=michele;Password=</MINERVA_TEST_CONNSTRING>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

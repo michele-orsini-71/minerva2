@@ -86,15 +86,16 @@ public partial class SchemaInitializer : ICollectionProvisioner
                 "Embedding dimension must be positive.");
 
         var indexName = $"idx_chunks_embedding_{collectionName.Replace("-", "_")}";
+        // Partial-index WHERE predicates must be immutable, so parameters aren't
+        // allowed here — the validated collectionName is interpolated directly.
         var sql = $"""
             CREATE INDEX IF NOT EXISTS "{indexName}"
             ON chunks USING hnsw ((embedding::vector({dimension})) vector_cosine_ops)
-            WHERE collection_name = @collection_name
+            WHERE collection_name = '{collectionName}'
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("collection_name", collectionName);
         await cmd.ExecuteNonQueryAsync(ct);
 
         _logger.LogInformation("Ensured HNSW index {IndexName} for collection {Collection} (dim={Dimension})",
