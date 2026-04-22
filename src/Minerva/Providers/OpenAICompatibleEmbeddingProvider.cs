@@ -1,12 +1,14 @@
 using System.ClientModel;
 using Microsoft.Extensions.AI;
 using Minerva.Exceptions;
+using Minerva.Ingestion;
 using Polly;
 using Polly.Retry;
 
 namespace Minerva.Providers;
 
-public sealed class OpenAICompatibleEmbeddingProvider : IEmbeddingGenerator<string, Embedding<float>>
+public sealed class OpenAICompatibleEmbeddingProvider
+    : IEmbeddingGenerator<string, Embedding<float>>, IEmbeddingClient
 {
     private readonly OpenAI.Embeddings.EmbeddingClient _client;
     private readonly RateLimiter _rateLimiter;
@@ -91,6 +93,16 @@ public sealed class OpenAICompatibleEmbeddingProvider : IEmbeddingGenerator<stri
         float norm = MathF.Sqrt(sumSquares);
         for (int i = 0; i < vector.Length; i++)
             vector[i] /= norm;
+    }
+
+    public async Task<IReadOnlyList<float[]>> EmbedAsync(
+        IReadOnlyList<string> texts, CancellationToken ct = default)
+    {
+        var generated = await GenerateAsync(texts, options: null, ct);
+        var result = new float[generated.Count][];
+        for (int i = 0; i < generated.Count; i++)
+            result[i] = generated[i].Vector.ToArray();
+        return result;
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null)

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Minerva.Models;
-using Minerva.Storage;
 using Minerva.Utilities;
 
 namespace Minerva.Ingestion;
@@ -12,7 +11,7 @@ public class IngestionPipeline
     private readonly IEmbeddingService _embeddingService;
     private readonly IDocumentSummarizer? _summarizer;
     private readonly IChunkContextualizer? _contextualizer;
-    private readonly IChunkRepository _chunkRepository;
+    private readonly IChunkWriter _chunkWriter;
     private readonly ILogger<IngestionPipeline> _logger;
 
     public IngestionPipeline(
@@ -20,14 +19,14 @@ public class IngestionPipeline
         IEmbeddingService embeddingService,
         IDocumentSummarizer? summarizer,
         IChunkContextualizer? contextualizer,
-        IChunkRepository chunkRepository,
+        IChunkWriter chunkWriter,
         ILogger<IngestionPipeline> logger)
     {
         _chunker = chunker;
         _embeddingService = embeddingService;
         _summarizer = summarizer;
         _contextualizer = contextualizer;
-        _chunkRepository = chunkRepository;
+        _chunkWriter = chunkWriter;
         _logger = logger;
     }
 
@@ -44,7 +43,7 @@ public class IngestionPipeline
 
         // 2. Check content hash — skip if unchanged
         var contentHash = HashHelper.ComputeContentHash(text);
-        var storedHash = await _chunkRepository.GetContentHashAsync(
+        var storedHash = await _chunkWriter.GetContentHashAsync(
             collectionName, document.SourceId, ct);
 
         if (storedHash == contentHash)
@@ -95,7 +94,7 @@ public class IngestionPipeline
         }
 
         // 7. Atomic upsert
-        await _chunkRepository.UpsertChunksAsync(
+        await _chunkWriter.UpsertChunksAsync(
             collectionName, document.SourceId, chunksWithEmbeddings, ct);
 
         _logger.LogInformation(
@@ -113,7 +112,7 @@ public class IngestionPipeline
     public async Task RemoveAsync(
         string collectionName, string sourceId, CancellationToken ct = default)
     {
-        await _chunkRepository.DeleteBySourceIdAsync(collectionName, sourceId, ct);
+        await _chunkWriter.DeleteBySourceIdAsync(collectionName, sourceId, ct);
         _logger.LogInformation("Removed document {SourceId} from {Collection}",
             sourceId, collectionName);
     }

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.AI;
-
 namespace Minerva.Ingestion;
 
 public class DocumentSummarizer : IDocumentSummarizer
@@ -9,23 +7,17 @@ public class DocumentSummarizer : IDocumentSummarizer
         "key concepts, and structure. This summary will be used to provide context " +
         "when embedding individual chunks of this document.";
 
-    private readonly IChatClient _chatClient;
+    private readonly ILlmClient _llm;
 
-    public DocumentSummarizer(IChatClient chatClient)
+    public DocumentSummarizer(ILlmClient llm)
     {
-        _chatClient = chatClient;
+        _llm = llm;
     }
 
     public async Task<string?> SummarizeAsync(string text, CancellationToken ct = default)
     {
-        var messages = new ChatMessage[]
-        {
-            new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, text),
-        };
-
-        var response = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
-        return response.Text;
+        var result = await _llm.GenerateAsync(SystemPrompt, text, ct);
+        return string.IsNullOrEmpty(result) ? null : result;
     }
 
     public async Task<IReadOnlyList<string>> SummarizeSegmentsAsync(

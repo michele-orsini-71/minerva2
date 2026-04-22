@@ -1,4 +1,4 @@
-using Microsoft.Extensions.AI;
+using Minerva.Ingestion;
 
 namespace Minerva.IntegrationTests.EndToEnd;
 
@@ -7,34 +7,22 @@ namespace Minerva.IntegrationTests.EndToEnd;
 /// Same input → same vector, so semantic similarity between duplicate inputs is 1.0
 /// and between different inputs is low.
 /// </summary>
-public sealed class MockEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<float>>
+public sealed class MockEmbeddingGenerator : IEmbeddingClient
 {
     private readonly int _dimension;
 
     public MockEmbeddingGenerator(int dimension)
     {
         _dimension = dimension;
-        Metadata = new EmbeddingGeneratorMetadata(nameof(MockEmbeddingGenerator), null, "mock-embedding");
     }
 
-    public EmbeddingGeneratorMetadata Metadata { get; }
-
-    public Task<GeneratedEmbeddings<Embedding<float>>> GenerateAsync(
-        IEnumerable<string> values,
-        EmbeddingGenerationOptions? options = null,
-        CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<float[]>> EmbedAsync(
+        IReadOnlyList<string> texts, CancellationToken ct = default)
     {
-        var result = new GeneratedEmbeddings<Embedding<float>>();
-        foreach (var value in values)
-            result.Add(new Embedding<float>(DeterministicUnitVector(value, _dimension)));
-        return Task.FromResult(result);
-    }
-
-    public object? GetService(Type serviceType, object? serviceKey = null)
-    {
-        if (serviceKey is not null) return null;
-        if (serviceType == typeof(EmbeddingGeneratorMetadata)) return Metadata;
-        return serviceType.IsInstanceOfType(this) ? this : null;
+        var result = new float[texts.Count][];
+        for (int i = 0; i < texts.Count; i++)
+            result[i] = DeterministicUnitVector(texts[i], _dimension);
+        return Task.FromResult<IReadOnlyList<float[]>>(result);
     }
 
     public void Dispose() { }

@@ -1,4 +1,4 @@
-using Minerva.Storage;
+using Minerva.Models;
 
 namespace Minerva.Search;
 

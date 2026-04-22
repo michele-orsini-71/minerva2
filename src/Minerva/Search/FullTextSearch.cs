@@ -1,14 +1,12 @@
-using Minerva.Storage;
-
 namespace Minerva.Search;
 
 public class FullTextSearch
 {
-    private readonly IChunkRepository _chunkRepository;
+    private readonly IChunkQuery _chunkQuery;
 
-    public FullTextSearch(IChunkRepository chunkRepository)
+    public FullTextSearch(IChunkQuery chunkQuery)
     {
-        _chunkRepository = chunkRepository;
+        _chunkQuery = chunkQuery;
     }
 
     public async Task<IReadOnlyList<RankedChunk>> SearchAsync(
@@ -20,7 +18,7 @@ public class FullTextSearch
         if (string.IsNullOrWhiteSpace(query))
             return [];
 
-        var results = await _chunkRepository.FullTextSearchAsync(
+        var results = await _chunkQuery.FullTextSearchAsync(
             collectionName, query, topK, ct);
 
         var ranked = new List<RankedChunk>(results.Count);

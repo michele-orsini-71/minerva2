@@ -1,6 +1,6 @@
-using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Ingestion;
+using Minerva.Models;
 using Minerva.Utilities;
 
 namespace Minerva.Tests.Ingestion;

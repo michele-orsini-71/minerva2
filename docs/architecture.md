@@ -51,13 +51,8 @@ Ports (interfaces that cross a boundary) should live *with the code that uses th
 
 ## Current state
 
-As of the introduction of this document the following violations exist and the corresponding tests fail by design. They are the backlog of refactors required to reach full conformance:
+All architecture tests currently pass. The code conforms to the ring model described above. Past violations were resolved by:
 
-- `Minerva.Collections` → `Minerva.Storage` (repository interfaces misplaced in `Storage`).
-- `Minerva.Ingestion` → `Minerva.Storage` (`IChunkRepository`, `ChunkWithEmbedding` leaked into the pipeline).
-- `Minerva.Ingestion` → `Minerva.Configuration` (`DocumentChunker` takes `ChunkingOptions` directly).
-- `Minerva.Search` → `Minerva.Storage` (`ChunkSearchRecord`, `ChunkRecord` used as domain records in Search).
-- `Minerva.Providers` → `Minerva.Configuration` (`ProviderFactory` reads framework options directly).
-- `Minerva.Ingestion` and `Minerva.Search` → `Microsoft.Extensions.AI` (`IChatClient` and `IEmbeddingGenerator` used directly instead of through a Minerva port).
-
-The tests are kept red on purpose: they are the to-do list.
+- Moving shared data records (`ChunkWithEmbedding`, `ChunkRecord`, `ChunkSearchRecord`, `ChunkingOptions`, `ProviderOptions`) into `Minerva.Models`.
+- Moving repository ports inward: `ICollectionRepository` / `ICollectionProvisioner` live in `Minerva.Collections`; `IChunkRepository` was split into `IChunkWriter` (in `Minerva.Ingestion`) and `IChunkQuery` (in `Minerva.Search`). `PostgresChunkRepository` implements both.
+- Wrapping `Microsoft.Extensions.AI` behind Minerva-owned ports: `ILlmClient` and `IEmbeddingClient`, both defined in `Minerva.Ingestion` and implemented by the OpenAI-compatible adapters in `Minerva.Providers`.

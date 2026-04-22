@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Minerva.Ingestion;
 using Minerva.Models;
-using Minerva.Storage;
 using Minerva.Utilities;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -19,7 +18,7 @@ public class IngestionPipelineTests
         IngestionPipeline Pipeline,
         IDocumentChunker Chunker,
         IEmbeddingService Embedder,
-        IChunkRepository Repo,
+        IChunkWriter Repo,
         IDocumentSummarizer? Summarizer,
         IChunkContextualizer? Contextualizer);
 
@@ -47,7 +46,7 @@ public class IngestionPipelineTests
                 (IReadOnlyList<float[]>)ci.Arg<IReadOnlyList<string>>()
                     .Select(_ => SampleVector).ToArray()));
 
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkWriter>();
         repo.GetContentHashAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((string?)null);

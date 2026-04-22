@@ -1,4 +1,4 @@
-namespace Minerva.Storage;
+namespace Minerva.Models;
 
 public record ChunkWithEmbedding(
     string Id,

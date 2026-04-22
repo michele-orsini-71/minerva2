@@ -1,6 +1,6 @@
 using Minerva.Models;
 
-namespace Minerva.Storage;
+namespace Minerva.Collections;
 
 public interface ICollectionRepository
 {

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -31,47 +30,50 @@ public static class ServiceCollectionExtensions
             return builder.Build();
         });
 
-        services.TryAddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+        services.TryAddSingleton<IEmbeddingClient>(sp =>
         {
             var factory = sp.GetRequiredService<ProviderFactory>();
             var options = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
             return factory.CreateEmbeddingProvider(options.Embedding);
         });
 
-        // Chat client is optional — only registered when an LLM is configured.
-        services.TryAddSingleton<IChatClient>(sp =>
+        // LLM client is optional — only registered when an LLM is configured.
+        services.TryAddSingleton<ILlmClient>(sp =>
         {
             var factory = sp.GetRequiredService<ProviderFactory>();
             var options = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
             return factory.CreateLlmProvider(options.Llm)
                 ?? throw new InvalidOperationException(
-                    "IChatClient requested but MinervaOptions.Llm is not configured.");
+                    "ILlmClient requested but MinervaOptions.Llm is not configured.");
         });
 
         services.TryAddSingleton<SchemaInitializer>();
         services.TryAddSingleton<ICollectionProvisioner>(
             sp => sp.GetRequiredService<SchemaInitializer>());
         services.TryAddSingleton<ICollectionRepository, PostgresCollectionRepository>();
-        services.TryAddSingleton<IChunkRepository, PostgresChunkRepository>();
+
+        services.TryAddSingleton<PostgresChunkRepository>();
+        services.TryAddSingleton<IChunkWriter>(sp => sp.GetRequiredService<PostgresChunkRepository>());
+        services.TryAddSingleton<IChunkQuery>(sp => sp.GetRequiredService<PostgresChunkRepository>());
 
         services.TryAddSingleton<IDocumentChunker>(sp =>
             new DocumentChunker(sp.GetRequiredService<IOptions<MinervaOptions>>().Value.Chunking));
 
         services.TryAddSingleton<IEmbeddingService>(sp => new EmbeddingService(
-            sp.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>(),
+            sp.GetRequiredService<IEmbeddingClient>(),
             sp.GetRequiredService<IOptions<MinervaOptions>>().Value.Embedding.BatchSize,
             sp.GetRequiredService<ILogger<EmbeddingService>>()));
 
         services.TryAddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
-            var chatClient = options.Llm is not null ? sp.GetRequiredService<IChatClient>() : null;
+            var llm = options.Llm is not null ? sp.GetRequiredService<ILlmClient>() : null;
 
-            IDocumentSummarizer? summarizer = options.Chunking.EnableSummarization && chatClient is not null
-                ? new DocumentSummarizer(chatClient)
+            IDocumentSummarizer? summarizer = options.Chunking.EnableSummarization && llm is not null
+                ? new DocumentSummarizer(llm)
                 : null;
-            IChunkContextualizer? contextualizer = options.Chunking.EnableContextualization && chatClient is not null
-                ? new ChunkContextualizer(chatClient)
+            IChunkContextualizer? contextualizer = options.Chunking.EnableContextualization && llm is not null
+                ? new ChunkContextualizer(llm)
                 : null;
 
             return new IngestionPipeline(
@@ -79,7 +81,7 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<IEmbeddingService>(),
                 summarizer,
                 contextualizer,
-                sp.GetRequiredService<IChunkRepository>(),
+                sp.GetRequiredService<IChunkWriter>(),
                 sp.GetRequiredService<ILogger<IngestionPipeline>>());
         });
 

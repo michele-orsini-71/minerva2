@@ -1,20 +1,19 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace Minerva.Ingestion;
 
 public class EmbeddingService : IEmbeddingService
 {
-    private readonly IEmbeddingGenerator<string, Embedding<float>> _generator;
+    private readonly IEmbeddingClient _client;
     private readonly int _batchSize;
     private readonly ILogger<EmbeddingService> _logger;
 
     public EmbeddingService(
-        IEmbeddingGenerator<string, Embedding<float>> generator,
+        IEmbeddingClient client,
         int batchSize,
         ILogger<EmbeddingService> logger)
     {
-        _generator = generator;
+        _client = client;
         _batchSize = batchSize;
         _logger = logger;
     }
@@ -37,10 +36,10 @@ public class EmbeddingService : IEmbeddingService
 
             try
             {
-                var generated = await _generator.GenerateAsync(batch, cancellationToken: ct);
+                var generated = await _client.EmbedAsync(batch, ct);
 
                 for (int j = 0; j < generated.Count; j++)
-                    results[batchStart + j] = generated[j].Vector.ToArray();
+                    results[batchStart + j] = generated[j];
 
                 embedded += batch.Count;
                 progress?.Report(embedded);
@@ -58,9 +57,8 @@ public class EmbeddingService : IEmbeddingService
                 // Fall back to embedding each text individually
                 for (int j = 0; j < batch.Count; j++)
                 {
-                    var single = await _generator.GenerateAsync(
-                        [batch[j]], cancellationToken: ct);
-                    results[batchStart + j] = single[0].Vector.ToArray();
+                    var single = await _client.EmbedAsync([batch[j]], ct);
+                    results[batchStart + j] = single[0];
 
                     embedded++;
                     progress?.Report(embedded);

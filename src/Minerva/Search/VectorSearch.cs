@@ -1,14 +1,12 @@
-using Minerva.Storage;
-
 namespace Minerva.Search;
 
 public class VectorSearch
 {
-    private readonly IChunkRepository _chunkRepository;
+    private readonly IChunkQuery _chunkQuery;
 
-    public VectorSearch(IChunkRepository chunkRepository)
+    public VectorSearch(IChunkQuery chunkQuery)
     {
-        _chunkRepository = chunkRepository;
+        _chunkQuery = chunkQuery;
     }
 
     public async Task<IReadOnlyList<RankedChunk>> SearchAsync(
@@ -17,7 +15,7 @@ public class VectorSearch
         int topK,
         CancellationToken ct = default)
     {
-        var results = await _chunkRepository.VectorSearchAsync(
+        var results = await _chunkQuery.VectorSearchAsync(
             collectionName, queryEmbedding, topK, ct);
 
         var ranked = new List<RankedChunk>(results.Count);

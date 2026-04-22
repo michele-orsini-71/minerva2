@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Minerva.Exceptions;
 
-namespace Minerva.Configuration;
+namespace Minerva.Providers;
 
 public static partial class CredentialResolver
 {

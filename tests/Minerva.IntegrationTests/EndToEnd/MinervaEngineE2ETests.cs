@@ -1,9 +1,8 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Minerva.Configuration;
 using Minerva.DI;
+using Minerva.Ingestion;
 using Minerva.Models;
 using Minerva.Storage;
 using Npgsql;
@@ -32,8 +31,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         services.AddLogging();
 
         // Pre-register mock embedding so AddMinerva's TryAdd doesn't overwrite it.
-        services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(
-            new MockEmbeddingGenerator(EmbeddingDimension));
+        services.AddSingleton<IEmbeddingClient>(new MockEmbeddingGenerator(EmbeddingDimension));
 
         services.AddMinerva(options =>
         {

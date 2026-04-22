@@ -2,13 +2,14 @@ using System.ClientModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Minerva.Exceptions;
+using Minerva.Ingestion;
 using Polly;
 using Polly.Retry;
 using OAI = OpenAI.Chat;
 
 namespace Minerva.Providers;
 
-public sealed class OpenAICompatibleLlmProvider : IChatClient
+public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient
 {
     private readonly OAI.ChatClient _client;
     private readonly RateLimiter _rateLimiter;
@@ -136,6 +137,18 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient
         {
             _rateLimiter.Release();
         }
+    }
+
+    public async Task<string> GenerateAsync(
+        string? systemPrompt, string userPrompt, CancellationToken ct = default)
+    {
+        var messages = new List<ChatMessage>();
+        if (systemPrompt is not null)
+            messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
+        messages.Add(new ChatMessage(ChatRole.User, userPrompt));
+
+        var response = await GetResponseAsync(messages, options: null, ct);
+        return response.Text ?? string.Empty;
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null)

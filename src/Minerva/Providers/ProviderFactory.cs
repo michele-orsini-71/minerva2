@@ -1,12 +1,12 @@
 using System.ClientModel;
-using Microsoft.Extensions.AI;
-using Minerva.Configuration;
+using Minerva.Ingestion;
+using Minerva.Models;
 
 namespace Minerva.Providers;
 
 public class ProviderFactory
 {
-    public IEmbeddingGenerator<string, Embedding<float>> CreateEmbeddingProvider(ProviderOptions options)
+    public IEmbeddingClient CreateEmbeddingProvider(ProviderOptions options)
     {
         var (client, endpoint) = CreateOpenAIClient(options);
         var embeddingClient = client.GetEmbeddingClient(options.Model);
@@ -14,7 +14,7 @@ public class ProviderFactory
         return new OpenAICompatibleEmbeddingProvider(embeddingClient, rateLimiter, options.Model, endpoint);
     }
 
-    public IChatClient? CreateLlmProvider(ProviderOptions? options)
+    public ILlmClient? CreateLlmProvider(ProviderOptions? options)
     {
         if (options is null) return null;
 

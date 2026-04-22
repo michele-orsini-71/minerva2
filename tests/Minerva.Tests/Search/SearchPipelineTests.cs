@@ -1,8 +1,7 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minerva.Ingestion;
 using Minerva.Models;
 using Minerva.Search;
-using Minerva.Storage;
 using NSubstitute;
 
 namespace Minerva.Tests.Search;
@@ -12,19 +11,14 @@ public class SearchPipelineTests
 {
     private static readonly float[] QueryVector = [0.1f, 0.2f, 0.3f];
 
-    private static IEmbeddingGenerator<string, Embedding<float>> MockEmbedder()
+    private static IEmbeddingService MockEmbedder()
     {
-        var embedder = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
-        embedder.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
+        var embedder = Substitute.For<IEmbeddingService>();
+        embedder.EmbedAsync(
+                Arg.Any<IReadOnlyList<string>>(),
+                Arg.Any<IProgress<int>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var result = new GeneratedEmbeddings<Embedding<float>>();
-                result.Add(new Embedding<float>(QueryVector));
-                return Task.FromResult(result);
-            });
+            .Returns(Task.FromResult((IReadOnlyList<float[]>)new[] { QueryVector }));
         return embedder;
     }
 
@@ -37,7 +31,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_RunsVectorAndFtsAndReturnsFusedResults()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.VectorSearchAsync("c", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new[] { MakeRecord("a"), MakeRecord("b") });
         repo.FullTextSearchAsync("c", "hello", Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -71,7 +65,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_SkipsContextExpansionWhenDisabled()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new[] { MakeRecord("a", prev: "p", next: "n") });
         repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -98,7 +92,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_ExpandsContextWhenEnabled()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new[] { MakeRecord("a", prev: "p", next: "n") });
         repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -128,7 +122,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_MultiCollection_MergesAcrossCollections()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.VectorSearchAsync("c1", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new[] { MakeRecord("c1-a", collection: "c1") });
         repo.VectorSearchAsync("c2", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -155,7 +149,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_EmptyCollections_ReturnsEmpty()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         var pipeline = new SearchPipeline(
             MockEmbedder(),
             new VectorSearch(repo),
@@ -171,7 +165,7 @@ public class SearchPipelineTests
     [Fact]
     public async Task SearchAsync_RespectsTopK()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Enumerable.Range(0, 20).Select(i => MakeRecord($"v{i}")).ToArray());
         repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())

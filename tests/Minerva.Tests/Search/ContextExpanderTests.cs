@@ -1,5 +1,5 @@
+using Minerva.Models;
 using Minerva.Search;
-using Minerva.Storage;
 using NSubstitute;
 
 namespace Minerva.Tests.Search;
@@ -26,7 +26,7 @@ public class ContextExpanderTests
     [Fact]
     public async Task ExpandAsync_FetchesPrevAndNextInSingleBatchCall()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.GetAdjacentChunksAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(new[]
             {
@@ -60,7 +60,7 @@ public class ContextExpanderTests
     [Fact]
     public async Task ExpandAsync_HandlesEdgeChunksGracefully()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.GetAdjacentChunksAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(new[] { MakeChunk("n1", "after-1") });
 
@@ -79,7 +79,7 @@ public class ContextExpanderTests
     [Fact]
     public async Task ExpandAsync_EmptyResults_ReturnsEmpty()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         var expander = new ContextExpander(repo);
 
         var expanded = await expander.ExpandAsync([]);
@@ -93,7 +93,7 @@ public class ContextExpanderTests
     [Fact]
     public async Task ExpandAsync_NoAdjacentIds_DoesNotCallRepository()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         var expander = new ContextExpander(repo);
 
         var results = new[] { MakeResult("only", prev: null, next: null) };
@@ -111,7 +111,7 @@ public class ContextExpanderTests
     [Fact]
     public async Task ExpandAsync_CarriesMetadataAndCollection()
     {
-        var repo = Substitute.For<IChunkRepository>();
+        var repo = Substitute.For<IChunkQuery>();
         repo.GetAdjacentChunksAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<ChunkRecord>());
 

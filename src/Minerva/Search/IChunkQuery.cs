@@ -1,16 +1,9 @@
-namespace Minerva.Storage;
+using Minerva.Models;
 
-public interface IChunkRepository
+namespace Minerva.Search;
+
+public interface IChunkQuery
 {
-    Task UpsertChunksAsync(string collectionName, string sourceId,
-        IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default);
-
-    Task DeleteBySourceIdAsync(string collectionName, string sourceId,
-        CancellationToken ct = default);
-
-    Task<string?> GetContentHashAsync(string collectionName, string sourceId,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(
         IReadOnlyList<string> chunkIds, CancellationToken ct = default);
 

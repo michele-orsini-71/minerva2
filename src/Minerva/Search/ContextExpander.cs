@@ -1,15 +1,14 @@
 using Minerva.Models;
-using Minerva.Storage;
 
 namespace Minerva.Search;
 
 public class ContextExpander
 {
-    private readonly IChunkRepository _chunkRepository;
+    private readonly IChunkQuery _chunkQuery;
 
-    public ContextExpander(IChunkRepository chunkRepository)
+    public ContextExpander(IChunkQuery chunkQuery)
     {
-        _chunkRepository = chunkRepository;
+        _chunkQuery = chunkQuery;
     }
 
     public async Task<IReadOnlyList<SearchResult>> ExpandAsync(
@@ -33,7 +32,7 @@ public class ContextExpander
         }
         else
         {
-            var adjacent = await _chunkRepository.GetAdjacentChunksAsync(
+            var adjacent = await _chunkQuery.GetAdjacentChunksAsync(
                 adjacentIds.ToArray(), ct);
             contentById = adjacent.ToDictionary(c => c.Id, c => c.Content);
         }

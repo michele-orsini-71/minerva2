@@ -1,11 +1,10 @@
-using Microsoft.Extensions.AI;
 using Minerva.Models;
 
 namespace Minerva.Ingestion;
 
 public class ChunkContextualizer : IChunkContextualizer
 {
-    private const string SystemPrompt =
+    private const string PromptTemplate =
         """
         <document>
         {0}
@@ -19,11 +18,11 @@ public class ChunkContextualizer : IChunkContextualizer
         Answer only with the succinct context and nothing else.
         """;
 
-    private readonly IChatClient _chatClient;
+    private readonly ILlmClient _llm;
 
-    public ChunkContextualizer(IChatClient chatClient)
+    public ChunkContextualizer(ILlmClient llm)
     {
-        _chatClient = chatClient;
+        _llm = llm;
     }
 
     public async Task<IReadOnlyList<string>> ContextualizeAsync(
@@ -35,15 +34,8 @@ public class ChunkContextualizer : IChunkContextualizer
 
         for (int i = 0; i < chunks.Count; i++)
         {
-            var prompt = string.Format(SystemPrompt, documentSummary, chunks[i].Content);
-
-            var messages = new ChatMessage[]
-            {
-                new(ChatRole.User, prompt),
-            };
-
-            var response = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
-            prefixes[i] = response.Text ?? string.Empty;
+            var prompt = string.Format(PromptTemplate, documentSummary, chunks[i].Content);
+            prefixes[i] = await _llm.GenerateAsync(systemPrompt: null, prompt, ct);
         }
 
         return prefixes;

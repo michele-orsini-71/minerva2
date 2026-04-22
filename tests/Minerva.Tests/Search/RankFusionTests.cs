@@ -1,5 +1,5 @@
+using Minerva.Models;
 using Minerva.Search;
-using Minerva.Storage;
 
 namespace Minerva.Tests.Search;
 

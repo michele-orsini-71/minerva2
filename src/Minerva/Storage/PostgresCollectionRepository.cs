@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minerva.Collections;
 using Minerva.Models;
 using Npgsql;
 using NpgsqlTypes;

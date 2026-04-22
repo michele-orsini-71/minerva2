@@ -1,4 +1,4 @@
-namespace Minerva.Storage;
+namespace Minerva.Collections;
 
 public interface ICollectionProvisioner
 {

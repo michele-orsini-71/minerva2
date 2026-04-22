@@ -1,25 +1,25 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Minerva.Ingestion;
 using Minerva.Models;
 
 namespace Minerva.Search;
 
 public class SearchPipeline
 {
-    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
+    private readonly IEmbeddingService _embeddingService;
     private readonly VectorSearch _vectorSearch;
     private readonly FullTextSearch _fullTextSearch;
     private readonly ContextExpander _contextExpander;
     private readonly ILogger<SearchPipeline> _logger;
 
     public SearchPipeline(
-        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
+        IEmbeddingService embeddingService,
         VectorSearch vectorSearch,
         FullTextSearch fullTextSearch,
         ContextExpander contextExpander,
         ILogger<SearchPipeline> logger)
     {
-        _embeddingGenerator = embeddingGenerator;
+        _embeddingService = embeddingService;
         _vectorSearch = vectorSearch;
         _fullTextSearch = fullTextSearch;
         _contextExpander = contextExpander;
@@ -33,8 +33,8 @@ public class SearchPipeline
         CancellationToken ct = default)
     {
         // 1. Embed the query once; reuse across all collections.
-        var embeddings = await _embeddingGenerator.GenerateAsync([query], cancellationToken: ct);
-        var queryEmbedding = embeddings[0].Vector.ToArray();
+        var embeddings = await _embeddingService.EmbedAsync([query], ct: ct);
+        var queryEmbedding = embeddings[0];
 
         // 2. Per collection: vector + FTS in parallel, fuse.
         var perCollectionTasks = collectionNames

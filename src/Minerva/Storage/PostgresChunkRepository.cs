@@ -1,11 +1,14 @@
 using System.Text.Json;
+using Minerva.Ingestion;
+using Minerva.Models;
+using Minerva.Search;
 using Npgsql;
 using NpgsqlTypes;
 using Pgvector;
 
 namespace Minerva.Storage;
 
-public class PostgresChunkRepository : IChunkRepository
+public class PostgresChunkRepository : IChunkWriter, IChunkQuery
 {
     private readonly NpgsqlDataSource _dataSource;
 

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using Minerva.Ingestion;
 using NSubstitute;
@@ -11,31 +10,26 @@ public class EmbeddingServiceTests
 {
     private static readonly float[] SampleVector = [0.1f, 0.2f, 0.3f];
 
-    private static IEmbeddingGenerator<string, Embedding<float>> CreateMockGenerator()
+    private static IEmbeddingClient CreateMockClient()
     {
-        var generator = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
+        var client = Substitute.For<IEmbeddingClient>();
 
-        generator.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
-                Arg.Any<CancellationToken>())
+        client.EmbedAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
-                var texts = callInfo.Arg<IEnumerable<string>>().ToList();
-                var result = new GeneratedEmbeddings<Embedding<float>>();
-                foreach (var _ in texts)
-                    result.Add(new Embedding<float>(SampleVector));
-                return Task.FromResult(result);
+                var texts = callInfo.Arg<IReadOnlyList<string>>();
+                return Task.FromResult(
+                    (IReadOnlyList<float[]>)texts.Select(_ => SampleVector).ToArray());
             });
 
-        return generator;
+        return client;
     }
 
     [Fact]
     public async Task EmbedAsync_EmptyInput_ReturnsEmpty()
     {
-        var generator = CreateMockGenerator();
-        var service = new EmbeddingService(generator, batchSize: 10,
+        var client = CreateMockClient();
+        var service = new EmbeddingService(client, batchSize: 10,
             NullLogger<EmbeddingService>.Instance);
 
         var result = await service.EmbedAsync([]);
@@ -46,8 +40,8 @@ public class EmbeddingServiceTests
     [Fact]
     public async Task EmbedAsync_BatchesCorrectly()
     {
-        var generator = CreateMockGenerator();
-        var service = new EmbeddingService(generator, batchSize: 2,
+        var client = CreateMockClient();
+        var service = new EmbeddingService(client, batchSize: 2,
             NullLogger<EmbeddingService>.Instance);
 
         var texts = new[] { "a", "b", "c", "d", "e" };
@@ -56,39 +50,30 @@ public class EmbeddingServiceTests
         Assert.Equal(5, result.Count);
 
         // Should have been called 3 times: [a,b], [c,d], [e]
-        await generator.Received(3).GenerateAsync(
-            Arg.Any<IEnumerable<string>>(),
-            Arg.Any<EmbeddingGenerationOptions?>(),
-            Arg.Any<CancellationToken>());
+        await client.Received(3).EmbedAsync(
+            Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task EmbedAsync_FallsBackToIndividualOnBatchFailure()
     {
-        var generator = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
+        var client = Substitute.For<IEmbeddingClient>();
         var callCount = 0;
 
-        generator.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
-                Arg.Any<CancellationToken>())
+        client.EmbedAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
-                var texts = callInfo.Arg<IEnumerable<string>>().ToList();
+                var texts = callInfo.Arg<IReadOnlyList<string>>();
                 callCount++;
 
                 // First call (batch of 3) fails, subsequent individual calls succeed
                 if (texts.Count > 1)
                     throw new InvalidOperationException("Batch failed");
 
-                var result = new GeneratedEmbeddings<Embedding<float>>
-                {
-                    new(SampleVector),
-                };
-                return Task.FromResult(result);
+                return Task.FromResult((IReadOnlyList<float[]>)new[] { SampleVector });
             });
 
-        var service = new EmbeddingService(generator, batchSize: 3,
+        var service = new EmbeddingService(client, batchSize: 3,
             NullLogger<EmbeddingService>.Instance);
 
         var result = await service.EmbedAsync(new[] { "a", "b", "c" });
@@ -101,8 +86,8 @@ public class EmbeddingServiceTests
     [Fact]
     public async Task EmbedAsync_ReportsProgressAccurately()
     {
-        var generator = CreateMockGenerator();
-        var service = new EmbeddingService(generator, batchSize: 2,
+        var client = CreateMockClient();
+        var service = new EmbeddingService(client, batchSize: 2,
             NullLogger<EmbeddingService>.Instance);
 
         var progressValues = new List<int>();
@@ -119,15 +104,12 @@ public class EmbeddingServiceTests
     [Fact]
     public async Task EmbedAsync_PropagatesCancellation()
     {
-        var generator = Substitute.For<IEmbeddingGenerator<string, Embedding<float>>>();
+        var client = Substitute.For<IEmbeddingClient>();
 
-        generator.GenerateAsync(
-                Arg.Any<IEnumerable<string>>(),
-                Arg.Any<EmbeddingGenerationOptions?>(),
-                Arg.Any<CancellationToken>())
+        client.EmbedAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync<OperationCanceledException>();
 
-        var service = new EmbeddingService(generator, batchSize: 10,
+        var service = new EmbeddingService(client, batchSize: 10,
             NullLogger<EmbeddingService>.Instance);
 
         await Assert.ThrowsAsync<OperationCanceledException>(

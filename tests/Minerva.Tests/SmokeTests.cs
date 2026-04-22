@@ -1,6 +1,6 @@
-using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Models;
+using Minerva.Providers;
 using Minerva.Utilities;
 
 namespace Minerva.Tests;

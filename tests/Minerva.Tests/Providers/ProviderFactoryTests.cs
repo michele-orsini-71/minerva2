@@ -1,5 +1,5 @@
-using Minerva.Configuration;
 using Minerva.Exceptions;
+using Minerva.Models;
 using Minerva.Providers;
 
 namespace Minerva.Tests.Providers;
