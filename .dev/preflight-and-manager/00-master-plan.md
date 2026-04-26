@@ -1,8 +1,8 @@
 # Minerva Preflight Readiness Checks - Master Plan
 
-**Status**: Not Started
+**Status**: In Progress
 **Created**: 2026-04-25
-**Last Updated**: 2026-04-25
+**Last Updated**: 2026-04-26
 
 ---
 
@@ -107,7 +107,7 @@ Program.cs:
 
 | Sub-PRD | Title | Dependency | Status | Document |
 |---------|-------|------------|--------|----------|
-| **1** | Readiness Core | None | Not Started | [01-readiness-core.md](./01-readiness-core.md) |
+| **1** | Readiness Core | None | Done | [01-readiness-core.md](./01-readiness-core.md) |
 | **2** | Embedding Dimension Provider | 1 | Not Started | [02-embedding-dimension-provider.md](./02-embedding-dimension-provider.md) |
 | **3** | Options Relaxation | 1 | Not Started | [03-options-relaxation.md](./03-options-relaxation.md) |
 | **4** | Built-in Library Checks | 2, 3 | Not Started | [04-builtin-library-checks.md](./04-builtin-library-checks.md) |
@@ -122,15 +122,15 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### Phase 1: Readiness Core (Sub-PRD 01)
 **Goal**: Establish contracts and machinery; no checks yet, no library auto-registration.
 
-1. ⬜ Add contracts and result types
-2. ⬜ Add `Redact` helper, `IReadinessProbeMarker`, `ReadinessChecker` impl
-3. ⬜ Add `ReadinessReportFormatter`, DI extension, safety-net warning in `MinervaStartupService`
-4. ⬜ Update architecture tests for the `Minerva.Readiness` namespace; add unit tests
+1. ✅ Add contracts and result types
+2. ✅ Add `Redact` helper, `IReadinessProbeMarker`, `ReadinessChecker` impl
+3. ✅ Add `ReadinessReportFormatter`, DI extension, safety-net warning in `MinervaStartupService`
+4. ✅ Update architecture tests for the `Minerva.Readiness` namespace; add unit tests
 
 **Verification**:
-- [ ] `dotnet build src/Minerva/Minerva.csproj`
-- [ ] `dotnet test tests/Minerva.UnitTests --filter Readiness`
-- [ ] `dotnet test tests/Minerva.ArchitectureTests`
+- [x] `dotnet build src/Minerva/Minerva.csproj` — clean
+- [x] `dotnet test tests/Minerva.Tests --filter Category=Readiness` — 17 passed
+- [x] `dotnet test tests/Minerva.ArchitectureTests` — 12 passed
 
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 

@@ -5,7 +5,7 @@ namespace Minerva.ArchitectureTests;
 
 // Clean Architecture layer model (see docs/architecture.md):
 //   ENTITIES   : Minerva.Models, Minerva.Exceptions, Minerva.Utilities
-//   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search
+//   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search, Minerva.Readiness
 //   ADAPTERS   : Minerva.Storage, Minerva.Providers
 //   FRAMEWORK  : Minerva.Configuration, Minerva.DI
 //
@@ -24,7 +24,7 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Models")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
                 "Minerva.Storage", "Minerva.Providers",
                 "Minerva.Configuration", "Minerva.DI")
             .GetResult();
@@ -39,7 +39,7 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Exceptions")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
                 "Minerva.Storage", "Minerva.Providers",
                 "Minerva.Configuration", "Minerva.DI",
                 "Minerva.Models", "Minerva.Utilities")
@@ -55,7 +55,7 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Utilities")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
                 "Minerva.Storage", "Minerva.Providers",
                 "Minerva.Configuration", "Minerva.DI",
                 "Minerva.Models", "Minerva.Exceptions")
@@ -112,6 +112,22 @@ public class LayerDependencyTests
         ArchAssert.Passes(result, "Minerva.Search (Use Cases) must not depend on Adapters or Framework rings.");
     }
 
+    [Fact]
+    public void Readiness_DoesNotDependOnAdaptersOrFramework()
+    {
+        // why: Readiness contracts and the sequential checker live in the use-case ring.
+        // Concrete checks (PRDs 04/05) live elsewhere; nothing under Minerva.Readiness should
+        // reach into Storage/Providers/Configuration/DI.
+        var result = Types.InAssembly(Minerva)
+            .That().ResideInNamespace("Minerva.Readiness")
+            .Should().NotHaveDependencyOnAny(
+                "Minerva.Storage", "Minerva.Providers",
+                "Minerva.Configuration", "Minerva.DI")
+            .GetResult();
+
+        ArchAssert.Passes(result, "Minerva.Readiness (Use Cases) must not depend on Adapters or Framework rings.");
+    }
+
     // --- ADAPTERS ring ---------------------------------------------------
 
     [Fact]
@@ -152,7 +168,7 @@ public class LayerDependencyTests
         // IEmbeddingGenerator, ChatMessage, ChatRole). Use cases must talk to
         // Minerva-defined ports; provider adapters should wrap the MS.AI types.
         var result = Types.InAssembly(Minerva)
-            .That().ResideInNamespaceMatching(@"^Minerva(\.Collections|\.Ingestion|\.Search)?$")
+            .That().ResideInNamespaceMatching(@"^Minerva(\.Collections|\.Ingestion|\.Search|\.Readiness)?$")
             .Should().NotHaveDependencyOn("Microsoft.Extensions.AI")
             .GetResult();
 

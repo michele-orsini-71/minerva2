@@ -22,6 +22,7 @@ public class NamespaceCoverageTests
             ["Minerva.Collections"] = "USE_CASES",
             ["Minerva.Ingestion"] = "USE_CASES",
             ["Minerva.Search"] = "USE_CASES",
+            ["Minerva.Readiness"] = "USE_CASES",
             ["Minerva.Storage"] = "ADAPTERS",
             ["Minerva.Providers"] = "ADAPTERS",
             ["Minerva.Configuration"] = "FRAMEWORK",

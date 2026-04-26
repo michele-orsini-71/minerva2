@@ -1,7 +1,7 @@
 # Sub-PRD: Readiness Core
 
 **Parent**: [00-master-plan.md](./00-master-plan.md)
-**Status**: Not Started
+**Status**: Done
 **Dependency**: None
 **Last Updated**: 2026-04-25
 
@@ -11,10 +11,10 @@
 
 | Step | Description | Status |
 |------|-------------|--------|
-| **1** | Contracts and result types | ⬜ Not Started |
-| **2** | `Redact` helper, `IReadinessProbeMarker`, `ReadinessChecker` impl | ⬜ Not Started |
-| **3** | `ReadinessReportFormatter`, DI extension, safety-net warning | ⬜ Not Started |
-| **4** | Architecture-test partition + unit tests | ⬜ Not Started |
+| **1** | Contracts and result types | ✅ Done |
+| **2** | `Redact` helper, `IReadinessProbeMarker`, `ReadinessChecker` impl | ✅ Done |
+| **3** | `ReadinessReportFormatter`, DI extension, safety-net warning | ✅ Done |
+| **4** | Architecture-test partition + unit tests | ✅ Done |
 
 ---
 
@@ -235,11 +235,11 @@ Unit-test coverage:
 
 ## Verification Checklist
 
-- [ ] `dotnet build src/Minerva/Minerva.csproj` succeeds with no new warnings
-- [ ] `dotnet test tests/Minerva.UnitTests --filter Readiness` is green
-- [ ] `dotnet test tests/Minerva.UnitTests --filter MinervaStartupServiceWarning` is green
-- [ ] `dotnet test tests/Minerva.ArchitectureTests` is green
-- [ ] No file in `src/Minerva/Readiness/` references `Npgsql` or any provider type
-- [ ] `MarkProbed` is idempotent (asserted by test)
+- [x] `dotnet build src/Minerva/Minerva.csproj` succeeds with no new warnings
+- [x] `dotnet test tests/Minerva.UnitTests --filter Readiness` is green
+- [x] `dotnet test tests/Minerva.UnitTests --filter MinervaStartupServiceWarning` is green
+- [x] `dotnet test tests/Minerva.ArchitectureTests` is green
+- [x] No file in `src/Minerva/Readiness/` references `Npgsql` or any provider type
+- [x] `MarkProbed` is idempotent (asserted by test)
 
 ⏸️ **GATE**: Sub-PRD complete. Continue to next sub-PRD or `/dev-checkpoint`.
