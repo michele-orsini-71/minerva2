@@ -1,8 +1,8 @@
 ---
 branch: main
-last_commit: f03f469 checkpoint saved
+last_commit: '3e98002 preflight and manager plan: phase 2: Embedding Dimension Provider'
 uncommitted_changes: true
-checkpointed: '2026-04-26T07:44:23.896Z'
+checkpointed: '2026-04-26T14:19:37.731Z'
 ---
 Read the following PRD files in order:
 
@@ -10,76 +10,80 @@ Read the following PRD files in order:
 2. 01-readiness-core.md
 3. 02-embedding-dimension-provider.md
 4. 03-options-relaxation.md
-5. 04-library-checks.md
-6. 05-watcher-checks.md
-7. 2026-04-21-preflight-and-manager.md
+5. 04-builtin-library-checks.md
+6. 05-watcher-checks-and-program.md
 
 <context>
 ## Context
 
 **Goal**: Add a uniform `IReadinessCheck` pipeline to the Minerva core library so any client (today: `Minerva.MarkdownWatcher`; tomorrow: `minerva doctor` CLI / orchestrator GUI) can probe Postgres, pgvector, embedder, LLM, watched-folder, and embedding-dimension consistency *before* `host.RunAsync()`.
 
-**Phase 1 (Readiness Core, Sub-PRD 01) — DONE** prior session.
+**Phase 1 (Readiness Core, Sub-PRD 01) — DONE** in earlier session.
+**Phase 2 (Embedding Dimension Provider, Sub-PRD 02) — DONE** in prior session and committed (`3e98002`).
+**Phase 3 (Options Relaxation, Sub-PRD 03) — DONE this session, uncommitted**: `MinervaOptions.ConnectionString` and `MinervaOptions.Embedding` are now nullable (joining `Llm`); `AddMinerva()` registers storage / embedding / LLM / engine blocks conditionally on the corresponding options being non-null; `MarkdownSyncService.EnsureCollectionAsync` throws `ConfigurationException` if `Embedding` is null. Six new DI tests cover no-config, storage-only, embedding-only, LLM-only, storage+embedding, and full-config builds.
 
-**Phase 2 (Embedding Dimension Provider, Sub-PRD 02) — DONE this session**: introduced `IEmbeddingDimensionProvider` port; implemented on `OpenAICompatibleEmbeddingProvider` with a `Lazy<Task<int>>` field whose factory uses `CT.None` (caller cancellation composes via `.WaitAsync(ct)`); routed the dimension probe through an internal `IEmbeddingProbeFacade` seam that calls the OpenAI SDK directly — bypassing both `_resiliencePipeline` (Polly) and `_rateLimiter`; SDK exceptions translate to `ProviderUnavailableException`; `OperationCanceledException` rethrows as-is. DI now registers the concrete provider as singleton with forwarding registrations for both `IEmbeddingClient` and `IEmbeddingDimensionProvider`. `MarkdownSyncService` switched to inject `IEmbeddingDimensionProvider`; deleted the local `ProbeEmbeddingDimensionAsync` helper and the never-registered `IEmbeddingGenerator<string, Embedding<float>>` parameter (latent DI bug fixed incidentally).
-
-**Verification (all green)**: `dotnet build Minerva.sln` clean (0 warnings, 0 errors); `dotnet test tests/Minerva.Tests` 141 passed (6 new dimension-provider tests covering cancellation-poisoning, failure-caching, success-caching, Polly-bypass, ClientResultException translation, and DI lifetime alignment); `dotnet test tests/Minerva.ArchitectureTests` 12 passed.
+**Verification (all green)**: `dotnet build Minerva.sln` clean (0 warnings, 0 errors); `dotnet test tests/Minerva.Tests` 147 passed (+6 new); `dotnet test tests/Minerva.ArchitectureTests` 12 passed; `dotnet test tests/Minerva.IntegrationTests` 16 passed (auto-wired via `.runsettings` against local Postgres).
 </context>
 
 <current_state>
 ## Current Progress
 
-- ✅ Phase 1: Readiness Core (Sub-PRD 01) — 4/4
-- ✅ Phase 2: Embedding Dimension Provider (Sub-PRD 02) — 3/3
-- ⬜ Phase 3: Options Relaxation (Sub-PRD 03) — 0/3 — NEXT
-- ⬜ Phase 4: Built-in Library Checks (Sub-PRD 04) — 0/4
-- ⬜ Phase 5: Watcher Checks and Program.cs (Sub-PRD 05) — 0/4
+- ✅ Phase 1: Readiness Core (Sub-PRD 01)
+- ✅ Phase 2: Embedding Dimension Provider (Sub-PRD 02) — committed at 3e98002
+- ✅ Phase 3: Options Relaxation (Sub-PRD 03) — uncommitted on main
+- ⬜ Phase 4: Built-in Library Checks (Sub-PRD 04)
+- ⬜ Phase 5: Watcher Checks and Program.cs (Sub-PRD 05)
 
-**Overall**: 7/18 (39%). At gate between Phase 2 and Phase 3.
+Overall: 10/18 (56%).
 </current_state>
 
 <next_action>
 ## Next Steps
 
-1. **Start Phase 3 (Sub-PRD 03)** — Options Relaxation. Read `03-options-relaxation.md` first. Build with nullable warnings as errors during this phase to catch every NPE site mechanically — known affected sites are `ServiceCollectionExtensions.cs` lines 28, 33-37, 62-64 and (after Phase 2) re-validate `MarkdownSyncService.cs`.
-2. Phase 3 is independent of Phase 2 conceptually but the codebase has changed; re-run `grep -n` for `options.Embedding\|options.ConnectionString\|options.Llm` to enumerate touch sites before editing.
-3. Phases 4 and 5 are sequential and depend on 2 + 3.
-4. **PRD-test-path drift continues**: every remaining sub-PRD says `tests/Minerva.UnitTests/...`. Disk has `tests/Minerva.Tests/`. Translate paths.
+1. **Commit Phase 3** — uncommitted files are: `MinervaOptions.cs`, `ServiceCollectionExtensions.cs`, `MarkdownSyncService.cs`, the new `tests/Minerva.Tests/DI/AddMinervaConditionalRegistrationTests.cs`, and the master-plan / sub-PRD 03 status updates.
+2. **Start Phase 4 (Sub-PRD 04, Built-in Library Checks)** — read `04-builtin-library-checks.md` first. This phase adds `OpenAICompatibleLlmProvider.CheckAvailabilityAsync()` (one-shot, bypass Polly + RateLimiter, `MaxOutputTokenCount = 5`, HTTP 400 → passes) and the five library checks (`ConnectionStringParseCheck`, `PostgresConnectivityCheck`, `PgVectorExtensionCheck`, `EmbeddingCallCheck`, `LlmCallCheck`).
+3. Reuse the Polly-bypass discipline from Phase 2 — call `_client` directly, also skipping `_rateLimiter`. The dimension probe in `OpenAICompatibleEmbeddingProvider` is the reference implementation.
+4. Each library check must short-circuit when its config block is null (now achievable thanks to Phase 3 relaxation).
+5. Register the checks from `AddMinerva()`, gated on the same conditions used in `ServiceCollectionExtensions.cs` from this session.
+6. **PRD-test-path drift continues**: Phase 4 PRD says `tests/Minerva.UnitTests/...`; disk has `tests/Minerva.Tests/`. Translate paths.
+7. **Use `status-update --phase --step --marker done`** for progress markers from now on — manual ✅ edits in markdown do not satisfy the parser used by `progress-summary` / `gate-check`.
 </next_action>
 
 <key_files>
 ## Key Files
 
 - Master PRD: `.dev/preflight-and-manager/00-master-plan.md`
-- Phase 3 PRD: `.dev/preflight-and-manager/03-options-relaxation.md`
-- Design brief: `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md`
-- Modified this session:
-  - `src/Minerva/Ingestion/IEmbeddingDimensionProvider.cs` (new)
-  - `src/Minerva/Providers/OpenAICompatibleEmbeddingProvider.cs` (implements provider; internal `IEmbeddingProbeFacade` seam)
-  - `src/Minerva/DI/ServiceCollectionExtensions.cs` (concrete-singleton + forwarding registrations)
-  - `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` (injects `IEmbeddingDimensionProvider`; dead injection removed)
-  - `tests/Minerva.Tests/Providers/EmbeddingDimensionProviderTests.cs` (new, 6 tests)
-- Phase-3 touch-points to verify: `src/Minerva/DI/ServiceCollectionExtensions.cs:28,33-37,62-64`
+- Phase 4 PRD: `.dev/preflight-and-manager/04-builtin-library-checks.md`
+- Design brief (non-negotiable inputs): `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md`
+- DI registration (now conditional): `src/Minerva/DI/ServiceCollectionExtensions.cs`
+- Options (now nullable): `src/Minerva/Configuration/MinervaOptions.cs`
+- Watcher guard added: `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs:82-105`
+- New tests: `tests/Minerva.Tests/DI/AddMinervaConditionalRegistrationTests.cs`
+- Polly-bypass reference (for Phase 4 LLM check): `src/Minerva/Embedding/OpenAICompatibleEmbeddingProvider.cs` — `ProbeDimensionCoreAsync` / `IEmbeddingProbeFacade`
+- Existing LLM provider (Phase 4 will add `CheckAvailabilityAsync` here): `src/Minerva/Llm/OpenAICompatibleLlmProvider.cs`
+- Architecture-test rules (extend for any new namespace): `tests/Minerva.ArchitectureTests/LayerDependencyTests.cs`
+- Integration-test fixture (reuse for Postgres-touching checks): `tests/Minerva.IntegrationTests/Storage/StorageTestFixture.cs`
 </key_files>
 
 <decisions>
-- `IEmbeddingDimensionProvider` lives in `src/Minerva/Ingestion/` (the existing ports namespace alongside `IEmbeddingClient`), NOT in `src/Minerva/Embedding/` as the PRD suggested. Reason: matches port-vs-adapter convention, avoids registering a new namespace in `NamespaceCoverageTests.ClassifiedNamespaces`.
-- Test seam shape: an `internal IEmbeddingProbeFacade` interface with a single method `EmbedAndCountDimensionsAsync(string, CancellationToken)`. Default impl `SdkEmbeddingProbeFacade` wraps `_client.GenerateEmbeddingsAsync` directly. A private internal ctor on `OpenAICompatibleEmbeddingProvider` accepts a facade override; tests use it. The OpenAI SDK `EmbeddingClient` is sealed and has no virtual surface — this is the minimum abstraction needed.
-- DI pattern is concrete-singleton + forwarding: `TryAddSingleton<OpenAICompatibleEmbeddingProvider>(sp => factory.CreateEmbeddingProvider(...))` then `TryAddSingleton<IEmbeddingClient>(sp => sp.GetRequiredService<OpenAICompatibleEmbeddingProvider>())` and the same for `IEmbeddingDimensionProvider`. Verified single-instance via `Assert.Same` test.
-- `ProbeDimensionCoreAsync` translates `ClientResultException` and generic `Exception` to `ProviderUnavailableException`. `OperationCanceledException` rethrows untouched so callers distinguish cancellation from probe failure.
-- Test file path: `tests/Minerva.Tests/Providers/EmbeddingDimensionProviderTests.cs` — PRD said `tests/Minerva.UnitTests/Embedding/...`. Honoring prior session decision: translate paths, do not rename the test project.
-- `OpenAICompatibleEmbeddingProvider` now implements three interfaces: `IEmbeddingGenerator<string, Embedding<float>>`, `IEmbeddingClient`, `IEmbeddingDimensionProvider`. The `IEmbeddingGenerator<,>` implementation is preserved unchanged for backwards compatibility — not used by `MarkdownSyncService` anymore but remains part of the public surface.
+- `AddMinerva()` eagerly evaluates the user's `Action<MinervaOptions>` once at the top of the method to drive registration-time conditionals (`var options = new MinervaOptions(); configure(options);`). It then ALSO calls `services.Configure(configure)` so `IOptions<MinervaOptions>` is available at resolution time. Both calls are necessary — the eager one gates DI registration; the IOptions one feeds runtime factories.
+- Four conditional registration blocks, not three: storage (`ConnectionString != null`), embedding (`Embedding != null`), LLM (`Llm != null`), and `ConnectionString != null && Embedding != null` (which gates `IngestionPipeline` and `IMinervaEngine`, since both require services from both feature blocks).
+- `ProviderFactory` and `IDocumentChunker` remain unconditional — they have no feature-block dependency. `IDocumentChunker` only consumes `MinervaOptions.Chunking`, which is non-nullable.
+- `MarkdownSyncService.EnsureCollectionAsync` reads `_minervaOptions.Embedding` once and throws `ConfigurationException` if null, with a message pointing at the preflight invariant. The throw is defensive — once Phase 5 lands, preflight blocks startup before this code runs — but it documents the dependency and keeps the watcher's contract explicit.
+- PRD instruction 'build with nullable warnings as errors during this PRD' was already in effect via `Directory.Build.props` (global `<Nullable>enable</Nullable>` + `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`). No per-project or per-phase toggle was added.
+- Test file path: `tests/Minerva.Tests/DI/AddMinervaConditionalRegistrationTests.cs` — PRD said `tests/Minerva.UnitTests/DI/...`. Honoring prior session's translation rule.
+- `Trait("Category", "DI")` for the new test class, parallel to the existing `Trait("Category", "Readiness")` and `Trait("Category", "Providers")` conventions.
 </decisions>
 
 <notes>
-- Polly+RateLimiter bypass is real for `ProbeDimensionCoreAsync` — `_resiliencePipeline.ExecuteAsync` is NOT involved on this path; the facade calls `_client.GenerateEmbeddingsAsync` directly. The `Polly bypass` test asserts `CallCount == 1` after a transient `HttpRequestException`, which Polly's retry strategy WOULD have retried 3 more times.
-- Failure caching is by design (Decision 12 in the brief). The `Lazy<Task<int>>` caches a faulted Task — subsequent `GetDimensionAsync` calls rethrow without re-invoking the facade. The `FailureIsCachedAcrossCalls` test asserts call count stays at 1 across two sequential failures.
-- Cancellation-poisoning test gates the facade with a `TaskCompletionSource<int>` (RunContinuationsAsynchronously) — caller A awaits with a 50ms cancelling CT and throws; caller B awaits with `CancellationToken.None`; when the gate is set, B observes the dimension. `CallCount == 1` confirms the underlying probe ran exactly once across both callers.
-- DI registration order in `ServiceCollectionExtensions.cs` matters: concrete singleton MUST be registered before the two forwarding registrations, otherwise the forwarders trigger the (missing) factory and either fail or produce a second instance.
-- PRD-vs-disk drift continues: all remaining sub-PRDs reference `tests/Minerva.UnitTests/...`. Translate to `tests/Minerva.Tests/...` for every future phase.
-- Phase 3 (Options Relaxation) will need nullable-warnings-as-errors during the build to catch every NPE site mechanically — `ServiceCollectionExtensions.cs:28,33-37,62-64` were called out in the prior session.
+- After Step 1 (`MinervaOptions` relaxation) only TWO nullability errors surfaced, not the four the PRD predicted: `NpgsqlDataSourceBuilder(string?)` accepts a nullable string, so the `options.ConnectionString` dereference on line 28 of `ServiceCollectionExtensions.cs` did not fail compilation. It still needed wrapping in the conditional block — for runtime correctness (no-config containers were building bogus data sources), not for build success. The MarkdownWatcher dereference also did not surface in the first build because the core project failed first.
+- The `progress-summary` / `gate-check` CLI parsers do NOT recognize manually-edited `✅` markers in master-plan step lists. Updating the markdown by hand left `progress-summary` reporting Phase 3 as 0/3 not-started. The `status-update --phase N --step M --marker done` CLI is the only supported writer — it produces a different on-disk shape than my hand edit. For Phase 4+, skip the manual edit entirely.
+- Integration tests auto-wire `MINERVA_TEST_CONNSTRING` via `tests/Minerva.IntegrationTests/.runsettings` (declared in the `<RunConfiguration><EnvironmentVariables>` block) and `Directory.Build.props:9` (`<RunSettingsFilePath Condition="Exists('$(MSBuildProjectDirectory)\.runsettings')">...`). `dotnet test tests/Minerva.IntegrationTests` Just Works against a local Postgres at `localhost:5432` with database `minerva_test` and role `michele`. No shell export needed.
+- LSP false-positive: `using Minerva.Models;` in `AddMinervaConditionalRegistrationTests.cs` flagged as CS8019 (unnecessary), but removing it actually breaks compilation because `ProviderOptions` lives there. The build (with TreatWarningsAsErrors) succeeds with the using in place, so the LSP analyzer disagrees with the compiler. Trust the compiler.
+- User preference (saved to memory): no XML-doc `///` comments on options/config classes — Clean Code self-documenting style. When I added prose summaries to the relaxed `MinervaOptions` properties, the user removed them.
+- Phase 4 entry: the LLM `CheckAvailabilityAsync` Polly+RateLimiter bypass should mirror `OpenAICompatibleEmbeddingProvider`'s `IEmbeddingProbeFacade` pattern from Phase 2 — internal facade interface, default SDK-wrapping impl, internal ctor for test override. The OpenAI SDK `ChatClient` is also sealed (mirrors `EmbeddingClient`).
 </notes>
 
 ---
 
-Resume Phase 3 (Sub-PRD 03 — Options Relaxation) of the preflight-and-manager feature. Read `.dev/preflight-and-manager/03-options-relaxation.md` first, then enumerate NPE sites with `grep -n 'options\.\(Embedding\|ConnectionString\|Llm\)' src/`. Build with nullable warnings as errors to catch every site mechanically. Phase 3 is independent of Phase 2; Phase 4 and 5 depend on 3. Translate `tests/Minerva.UnitTests/...` paths in any sub-PRD to `tests/Minerva.Tests/...`.
+Resume the Minerva preflight feature at Phase 4 (Built-in Library Checks). Phase 3 is complete and uncommitted on `main`. First commit Phase 3, then read `.dev/preflight-and-manager/04-builtin-library-checks.md`. Phase 4 adds `OpenAICompatibleLlmProvider.CheckAvailabilityAsync()` (Polly+RateLimiter bypass, mirror Phase 2's `IEmbeddingProbeFacade` pattern) plus five library checks: `ConnectionStringParseCheck`, `PostgresConnectivityCheck`, `PgVectorExtensionCheck`, `EmbeddingCallCheck`, `LlmCallCheck`. Register them from `AddMinerva()` gated on the same conditions established in this session. Use `status-update --phase N --step M --marker done` for progress markers — manual ✅ edits do not satisfy the parser. Translate `tests/Minerva.UnitTests/...` paths to `tests/Minerva.Tests/...`.

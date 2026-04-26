@@ -1,7 +1,7 @@
 # Sub-PRD: Options Relaxation and Conditional DI Registration
 
 **Parent**: [00-master-plan.md](./00-master-plan.md)
-**Status**: Not Started
+**Status**: Done
 **Dependency**: [01-readiness-core.md](./01-readiness-core.md) (independent of 02; can be done in parallel)
 **Last Updated**: 2026-04-25
 
@@ -11,9 +11,9 @@
 
 | Step | Description | Status |
 |------|-------------|--------|
-| **1** | Relax `MinervaOptions` (drop `required`; nullable) | ⬜ Not Started |
-| **2** | Conditional `AddMinerva()` registration; null-guard call sites | ⬜ Not Started |
-| **3** | Tests for no-config / partial-config / full-config DI | ⬜ Not Started |
+| **1** | Relax `MinervaOptions` (drop `required`; nullable) | ✅ Done |
+| **2** | Conditional `AddMinerva()` registration; null-guard call sites | ✅ Done |
+| **3** | Tests for no-config / partial-config / full-config DI | ✅ Done |
 
 ---
 

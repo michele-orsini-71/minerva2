@@ -108,8 +108,8 @@ Program.cs:
 | Sub-PRD | Title | Dependency | Status | Document |
 |---------|-------|------------|--------|----------|
 | **1** | Readiness Core | None | Done | [01-readiness-core.md](./01-readiness-core.md) |
-| **2** | Embedding Dimension Provider | 1 | Not Started | [02-embedding-dimension-provider.md](./02-embedding-dimension-provider.md) |
-| **3** | Options Relaxation | 1 | Not Started | [03-options-relaxation.md](./03-options-relaxation.md) |
+| **2** | Embedding Dimension Provider | 1 | Done | [02-embedding-dimension-provider.md](./02-embedding-dimension-provider.md) |
+| **3** | Options Relaxation | 1 | Done | [03-options-relaxation.md](./03-options-relaxation.md) |
 | **4** | Built-in Library Checks | 2, 3 | Not Started | [04-builtin-library-checks.md](./04-builtin-library-checks.md) |
 | **5** | Watcher Checks and Program.cs | 4 | Not Started | [05-watcher-checks-and-program.md](./05-watcher-checks-and-program.md) |
 
@@ -142,22 +142,22 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 3. ✅ Add unit tests including cancellation-poisoning + failure-caching
 
 **Verification**:
-- [ ] `dotnet build`
-- [ ] No remaining references to `ProbeEmbeddingDimensionAsync`
-- [ ] `dotnet test tests/Minerva.UnitTests`
+- [x] `dotnet build` — clean
+- [x] No remaining references to `ProbeEmbeddingDimensionAsync`
+- [x] `dotnet test tests/Minerva.Tests` — 141 passed
 
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 3: Options Relaxation (Sub-PRD 03)
 **Goal**: Make `MinervaOptions.Embedding` and `ConnectionString` nullable; conditional DI registration.
 
-1. ⬜ Drop `required`; mark `Embedding` and `ConnectionString` nullable
-2. ⬜ Conditional registration in `AddMinerva()` (storage iff `ConnectionString != null`; embedding iff `Embedding != null`); guard remaining call sites
-3. ⬜ Tests for no-config, partial-config, and full-config DI builds
+1. ✅ Drop `required`; mark `Embedding` and `ConnectionString` nullable
+2. ✅ Conditional registration in `AddMinerva()` (storage iff `ConnectionString != null`; embedding iff `Embedding != null`); guard remaining call sites
+3. ✅ Tests for no-config, partial-config, and full-config DI builds
 
 **Verification**:
-- [ ] `services.AddMinerva(_ => { }).BuildServiceProvider()` does not throw
-- [ ] `dotnet test tests/Minerva.UnitTests`
+- [x] `services.AddMinerva(_ => { }).BuildServiceProvider()` does not throw
+- [x] `dotnet test tests/Minerva.Tests` — 147 passed (6 new DI tests)
 
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 

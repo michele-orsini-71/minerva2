@@ -85,14 +85,19 @@ public class MarkdownSyncService : BackgroundService
         if (existing is not null)
             return;
 
+        var embedding = _minervaOptions.Embedding
+            ?? throw new ConfigurationException(
+                "MinervaOptions.Embedding is not configured; the watcher requires it. " +
+                "Run preflight before host start to surface this earlier.");
+
         var dimension = await _dimensionProvider.GetDimensionAsync(ct);
         _logger.LogInformation(
             "Creating collection '{Collection}' with model '{Model}' ({Dim} dims)",
-            _watcherOptions.CollectionName, _minervaOptions.Embedding.Model, dimension);
+            _watcherOptions.CollectionName, embedding.Model, dimension);
 
         await _engine.Collections.CreateAsync(
             _watcherOptions.CollectionName,
-            _minervaOptions.Embedding.Model,
+            embedding.Model,
             dimension,
             description: $"Auto-created by Minerva.MarkdownWatcher for {_watcherOptions.RootPath}",
             ct: ct);
