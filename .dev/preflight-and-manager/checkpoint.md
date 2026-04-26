@@ -1,8 +1,8 @@
 ---
 branch: main
-last_commit: f302a14 refactors interfaces to make architecture tests pass
+last_commit: 1e1f3f0 changes preflight and manager plan
 uncommitted_changes: true
-checkpointed: '2026-04-25T15:27:45.178Z'
+checkpointed: '2026-04-26T07:01:30.750Z'
 ---
 Read the following PRD files in order:
 
@@ -16,81 +16,64 @@ Read the following PRD files in order:
 <context>
 ## Context
 
-**Goal**: Add a uniform `IReadinessCheck` pipeline to the Minerva core library so any client (today: `Minerva.MarkdownWatcher`; tomorrow: `minerva doctor` CLI / orchestrator GUI) can probe Postgres, pgvector, embedder, LLM, watched-folder, and embedding-dimension consistency *before* `host.RunAsync()`. Replaces today's hard crash inside `MinervaStartupService.StartAsync()` with a structured `ReadinessReport` carrying remediation hints, and exit code 2 from `Program.cs` when not ready.
+**Goal**: Add a uniform `IReadinessCheck` pipeline to the Minerva core library so any client (today: `Minerva.MarkdownWatcher`; tomorrow: a `minerva doctor` CLI / orchestrator GUI) can probe Postgres, pgvector, embedder, LLM, watched-folder, and embedding-dimension consistency *before* `host.RunAsync()`.
 
-**Design brief**: `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md` (12 numbered design decisions; non-negotiable inputs).
+**Phase 1 (Readiness Core, Sub-PRD 01) — DONE**: contracts, sequential `ReadinessChecker` with per-check timeout, `Redact` helper, `ReadinessProbeMarker`, `ReadinessReportFormatter`, DI extension, and a safety-net warning in `MinervaStartupService` when the marker exists but `Probed == false`. Architecture tests updated for the new `Minerva.Readiness` use-case-ring partition.
 
-**Current phase**: Phase 1 — Readiness Core (Sub-PRD 01). Not yet started.
-
-**Key completions this session**: PRD authored — `00-master-plan.md` and five sub-PRDs covering core, dimension provider, options relaxation, library checks, and watcher checks + Program.cs. Three parallel research agents verified the brief against live code and surfaced new findings. User-confirmed five open questions, resulting in concrete architectural decisions captured in the master plan.
+**Verification (all green this session)**: `dotnet build Minerva.sln` clean; `dotnet test Minerva.Tests --filter Category=Readiness` 17 passed; `dotnet test Minerva.ArchitectureTests` 12 passed (including the new `Readiness_DoesNotDependOnAdaptersOrFramework` rule and `NamespaceCoverageTests` classification).
 </context>
 
 <current_state>
 ## Current Progress
 
-**Overall**: 0/18 steps complete (0%).
+- ✅ Phase 1 (Sub-PRD 01) — Readiness Core (4/4 steps; gate reached)
+- ⬜ Phase 2 (Sub-PRD 02) — Embedding Dimension Provider (0/3)
+- ⬜ Phase 3 (Sub-PRD 03) — Options Relaxation (0/3)
+- ⬜ Phase 4 (Sub-PRD 04) — Built-in Library Checks (0/4)
+- ⬜ Phase 5 (Sub-PRD 05) — Watcher Checks and Program.cs (0/4)
 
-- ⬜ Phase 1: Readiness Core (Sub-PRD 01) — 0/4
-- ⬜ Phase 2: Embedding Dimension Provider (Sub-PRD 02) — 0/3
-- ⬜ Phase 3: Options Relaxation (Sub-PRD 03) — 0/3
-- ⬜ Phase 4: Built-in Library Checks (Sub-PRD 04) — 0/4
-- ⬜ Phase 5: Watcher Checks and Program.cs (Sub-PRD 05) — 0/4
-
-No implementation has started. The PRD is committed-ready but currently untracked.
+Overall: 4/18 (22%). Phases 2 and 3 are independent and may be done in either order or in parallel after Phase 1.
 </current_state>
 
 <next_action>
 ## Next Steps
 
-1. **Start Phase 1 (Sub-PRD 01)** — Readiness Core. First step: add the contracts and result types under `src/Minerva/Readiness/` (`ReadinessCategory`, `ReadinessCheckResult`, `ReadinessReport`, `IReadinessCheck`, `IReadinessChecker`). See `01-readiness-core.md` Step 1.
-2. After Phase 1 lands, Phases 2 and 3 are independent and can be implemented in either order (or in parallel by separate workstreams).
+1. **Start Phase 2 (Sub-PRD 02)** — Embedding Dimension Provider. First step: introduce `IEmbeddingDimensionProvider` and implement on `OpenAICompatibleEmbeddingProvider` with a `Lazy<Task<int>>` (factory uses `CT.None`; callers compose via `_lazy.Value.WaitAsync(ct)`). Bypass Polly + RateLimiter on the SDK call. See `02-embedding-dimension-provider.md` Step 1.
+2. After Phase 2 lands, also do Phase 3 (Options Relaxation) — these are independent of each other.
 3. Phases 4 and 5 are sequential and depend on 2 + 3.
-4. The brief itself — `2026-04-21-preflight-and-manager.md` — should remain in the directory as a reference; do not modify it.
+4. **PRD-test-path drift**: every remaining sub-PRD says `tests/Minerva.UnitTests/...`. The actual project on disk is `tests/Minerva.Tests/`. Translate paths when implementing.
 </next_action>
 
 <key_files>
 ## Key Files
 
-### PRD documents
 - Master PRD: `.dev/preflight-and-manager/00-master-plan.md`
-- Sub-PRD 01: `.dev/preflight-and-manager/01-readiness-core.md`
-- Sub-PRD 02: `.dev/preflight-and-manager/02-embedding-dimension-provider.md`
-- Sub-PRD 03: `.dev/preflight-and-manager/03-options-relaxation.md`
-- Sub-PRD 04: `.dev/preflight-and-manager/04-builtin-library-checks.md`
-- Sub-PRD 05: `.dev/preflight-and-manager/05-watcher-checks-and-program.md`
-- Design brief (read-only reference): `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md`
-
-### Source files that will be touched
-- `src/Minerva/DI/MinervaStartupService.cs` — current crash path; will gain log-only safety-net warning (PRD 01)
-- `src/Minerva/DI/ServiceCollectionExtensions.cs` — `AddMinerva()`; will become conditional on options (PRD 03), and register the readiness core + checks (PRD 04)
-- `src/Minerva/Configuration/MinervaOptions.cs` — `Embedding` and `ConnectionString` become nullable (PRD 03)
-- `src/Minerva/Embedding/OpenAICompatibleEmbeddingProvider.cs` — implements `IEmbeddingDimensionProvider` with `Lazy<Task<int>>` shape; bypasses Polly + RateLimiter (PRD 02)
-- `src/Minerva/Llm/OpenAICompatibleLlmProvider.cs` — adds `CheckAvailabilityAsync()`; bypasses Polly + RateLimiter (PRD 04)
-- `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` — deletes `ProbeEmbeddingDimensionAsync` and dead `IEmbeddingGenerator` injection (PRD 02); null-guards `Embedding.Model` access (PRD 03)
-- `src/Minerva.MarkdownWatcher/Program.cs` — current 4-line entry; rewrite as `async Task<int>` with pre-host preflight snippet (PRD 05)
-- `tests/Minerva.IntegrationTests/Storage/StorageTestFixture.cs` — reuse pattern for new readiness integration tests (PRDs 04 + 05)
-- `tests/Minerva.ArchitectureTests/LayerDependencyTests.cs` — add `Minerva.Readiness` (use-case ring) and `Minerva.Readiness.Checks` (adapter ring) partitions
+- Phase 1 (done): `.dev/preflight-and-manager/01-readiness-core.md`
+- Phase 2 (next): `.dev/preflight-and-manager/02-embedding-dimension-provider.md`
+- Design brief (reference, do not modify): `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md`
+- Readiness contracts/impl shipped this session: `src/Minerva/Readiness/*.cs`
+- Modified safety-net: `src/Minerva/DI/MinervaStartupService.cs`
+- Architecture tests updated: `tests/Minerva.ArchitectureTests/LayerDependencyTests.cs`, `tests/Minerva.ArchitectureTests/NamespaceCoverageTests.cs`
+- Phase-1 tests added: `tests/Minerva.Tests/Readiness/`, `tests/Minerva.Tests/DI/MinervaStartupServiceWarningTests.cs`
+- Reference for Phase 2: `src/Minerva/Providers/OpenAICompatibleEmbeddingProvider.cs` (Polly site at line 44), `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` (`ProbeEmbeddingDimensionAsync` to delete; latent `IEmbeddingGenerator` injection bug)
 </key_files>
 
 <decisions>
-- Integration tests reuse the existing `StorageTestFixture` env-var pattern (`MINERVA_TEST_CONNSTRING`); do NOT add Testcontainers.
-- LLM availability probe uses `MaxOutputTokenCount = 5`; HTTP 400 from reasoning models that reject the params is treated as 'reachable, params rejected' → check still passes (reachability is the signal).
-- DI registration becomes conditional when a feature's config block is null: `Embedding == null` skips embedding services; `ConnectionString == null` skips storage services; `Llm == null` already conditional today.
-- `Redact` helper lives at `src/Minerva/Readiness/Redact.cs` (internal static; co-located with its only consumers).
-- Feature is split into 5 sub-PRDs (compressed from initial 7) with tests distributed within each sub-PRD rather than aggregated.
+- Tests live in the existing `Minerva.Tests` project (not `Minerva.UnitTests` as the PRD wrote) — matches `InternalsVisibleTo` and existing convention. Filtered via `[Trait("Category", "Readiness")]`.
+- `Redact` uses plain compiled `Regex` (`RegexOptions.Compiled`), not `[GeneratedRegex]` partial methods. Reason: the IDE language server did not run the source generator and reported false 'partial method must have an implementation part' errors. Behavior is identical; the analyzer hint suggesting `[GeneratedRegex]` is intentionally ignored.
+- Hand-rolled `RecordingLogger<T>` (in `tests/Minerva.Tests/Readiness/`) is the project's first ILogger test double — used for `ReadinessReportFormatter` and `MinervaStartupService` warning assertions because no prior NSubstitute-on-`Log<TState>` pattern exists in the repo and intercepting the generic state is awkward.
+- `MinervaStartupService` constructor params became `IReadinessProbeMarker? marker = null, ILogger<MinervaStartupService>? logger = null` (defaults to `NullLogger`) so any future direct-construction call site keeps working. Today there are no such sites — verified via grep.
+- `MinervaStartupServiceWarningTests` builds a `SchemaInitializer` over `Host=localhost;Port=1` and never awaits the returned `Task` from `StartAsync`. The warning is logged synchronously in `StartAsync` before `_schemaInitializer.InitializeAsync(ct)` is invoked, so the assertion is observable without a live Postgres.
+- Architecture tests required two updates beyond what the PRD specified: (a) a new `Readiness_DoesNotDependOnAdaptersOrFramework` test in `LayerDependencyTests.cs`; (b) `Minerva.Readiness` registered in `NamespaceCoverageTests.ClassifiedNamespaces` as `USE_CASES` — discovered when the coverage test failed on the first arch-test run. Existing inner-ring `NotHaveDependencyOnAny` lists were also extended to forbid Models/Exceptions/Utilities from depending on `Minerva.Readiness`.
 </decisions>
 
 <notes>
-- Polly bypass is NOT a flag or config — both `OpenAICompatibleEmbeddingProvider` (line 44) and `OpenAICompatibleLlmProvider` (line 43) wrap every call in `_resiliencePipeline.ExecuteAsync(...)`. The bypass methods (`GetDimensionAsync`, `CheckAvailabilityAsync`) must call the OpenAI SDK `_client` directly, also skipping the `RateLimiter`. This is a new code path, not a configurable behaviour.
-- Live DI bug to fix: `MarkdownSyncService` constructor injects `IEmbeddingGenerator<string, Embedding<float>>` which is never registered in DI today. Deletion in PRD 02 (replacing with `IEmbeddingDimensionProvider`) resolves the latent failure incidentally.
-- PRD 03's options relaxation will NPE three sites in `ServiceCollectionExtensions.cs` (lines 28, 33-37, 62-64) plus `MarkdownSyncService.cs:95` unless guarded simultaneously. Build with nullable warnings as errors during PRD 03 to catch every site mechanically.
-- Architecture tests (`tests/Minerva.ArchitectureTests/LayerDependencyTests.cs`) cover the `Minerva` assembly only — `Minerva.MarkdownWatcher` has no arch-test safety net for ring violations. Watcher checks must still respect the dependency direction, but no test will catch a regression there.
-- The `^[a-zA-Z0-9][a-zA-Z0-9-]*$` regex now exists in three places: `CollectionManager.cs:84`, `SchemaInitializer.cs:106` (deliberate DDL-injection guard), and the upcoming `CollectionNameValidCheck`. Per design, this is NOT centralised — keep all three in sync manually.
-- OpenAI SDK 2.10.0 — `ChatCompletionOptions.MaxOutputTokenCount` (not `MaxTokens`); `EmbeddingClient.GenerateEmbeddingsAsync(IEnumerable<string>, options, ct)`; both accept `CancellationToken`.
-- `pg_available_extensions` may return empty rows on Azure / RDS for non-admin roles — the `PgVectorExtensionCheck` 'NOT_AVAILABLE' remediation must phrase it as 'either not installed OR your role cannot see it', not 'not installed' definitively.
-- `Lazy<Task<int>>` cancellation discipline: factory uses `CancellationToken.None`; callers compose via `_lazy.Value.WaitAsync(ct)`. Factory must never throw synchronously — wrap as `async () => { … }` to ensure a Task is always returned. The wrong shape (capturing the first caller's CT in the factory) would let a transient first-caller timeout poison the cache permanently.
+- PRD-vs-disk drift: every sub-PRD references `tests/Minerva.UnitTests/...`, but the project is `tests/Minerva.Tests/`. Translate paths in every future phase rather than renaming the test project.
+- IDE C# language server can show false errors that `dotnet build` doesn't reproduce (source-generator scenarios). Treat the CLI build as the source of truth.
+- Phase 2 must use the Polly+RateLimiter bypass discipline noted in the prior checkpoint: `OpenAICompatibleEmbeddingProvider` line 44 wraps every call in `_resiliencePipeline.ExecuteAsync(...)`. The dimension lookup must call the OpenAI SDK `_client` directly, also skipping the `RateLimiter`.
+- Phase 2 will incidentally fix the live DI bug where `MarkdownSyncService` injects an unregistered `IEmbeddingGenerator<string, Embedding<float>>`.
 </notes>
 
 ---
 
-Continue work on the Minerva preflight readiness-checks feature. Read `.dev/preflight-and-manager/checkpoint.md` for full context, then start Phase 1 (Sub-PRD 01 — Readiness Core) by following `.dev/preflight-and-manager/01-readiness-core.md`. The PRD is authored but no implementation has started. The design brief at `.dev/preflight-and-manager/2026-04-21-preflight-and-manager.md` is the non-negotiable input — do not modify it.
+Resume the preflight-and-manager feature. Phase 1 (Readiness Core) is complete and at the gate. Begin Phase 2 (Sub-PRD 02 — Embedding Dimension Provider) starting with Step 1: add `IEmbeddingDimensionProvider` and implement on `OpenAICompatibleEmbeddingProvider` with a `Lazy<Task<int>>` (factory uses `CT.None`; callers compose via `_lazy.Value.WaitAsync(ct)`). The SDK call must bypass both Polly and the RateLimiter. Translate any `tests/Minerva.UnitTests/...` paths in the PRD to `tests/Minerva.Tests/...`.
