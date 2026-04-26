@@ -9,23 +9,43 @@ using OAI = OpenAI.Chat;
 
 namespace Minerva.Providers;
 
-public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient
+internal interface IChatClientFacade
+{
+    Task CompleteChatAsync(
+        IList<OAI.ChatMessage> messages,
+        OAI.ChatCompletionOptions options,
+        CancellationToken ct);
+}
+
+public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmAvailabilityProbe
 {
     private readonly OAI.ChatClient _client;
     private readonly RateLimiter _rateLimiter;
     private readonly ResiliencePipeline _resiliencePipeline;
+    private readonly IChatClientFacade _probeFacade;
 
     public OpenAICompatibleLlmProvider(
         OAI.ChatClient client,
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint)
+        : this(client, rateLimiter, modelId, endpoint, probeFacade: null)
+    {
+    }
+
+    internal OpenAICompatibleLlmProvider(
+        OAI.ChatClient client,
+        RateLimiter rateLimiter,
+        string modelId,
+        Uri endpoint,
+        IChatClientFacade? probeFacade)
     {
         _client = client;
         _rateLimiter = rateLimiter;
         Metadata = new ChatClientMetadata(
             nameof(OpenAICompatibleLlmProvider), endpoint, modelId);
         _resiliencePipeline = BuildResiliencePipeline();
+        _probeFacade = probeFacade ?? new SdkChatClientFacade(_client);
     }
 
     public ChatClientMetadata Metadata { get; }
@@ -139,6 +159,20 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient
         }
     }
 
+    public async Task CheckAvailabilityAsync(CancellationToken ct = default)
+    {
+        var options = new OAI.ChatCompletionOptions { MaxOutputTokenCount = 5 };
+        var messages = new List<OAI.ChatMessage> { new OAI.UserChatMessage("ping") };
+        try
+        {
+            await _probeFacade.CompleteChatAsync(messages, options, ct);
+        }
+        catch (ClientResultException ex) when (ex.Status == 400)
+        {
+            // A reasoning model rejecting our probe params is still demonstrably reachable.
+        }
+    }
+
     public async Task<string> GenerateAsync(
         string? systemPrompt, string userPrompt, CancellationToken ct = default)
     {
@@ -182,6 +216,21 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient
         if (options.TopP.HasValue)
             result.TopP = options.TopP.Value;
         return result;
+    }
+
+    private sealed class SdkChatClientFacade : IChatClientFacade
+    {
+        private readonly OAI.ChatClient _client;
+
+        public SdkChatClientFacade(OAI.ChatClient client) => _client = client;
+
+        public async Task CompleteChatAsync(
+            IList<OAI.ChatMessage> messages,
+            OAI.ChatCompletionOptions options,
+            CancellationToken ct)
+        {
+            await _client.CompleteChatAsync(messages, options, ct);
+        }
     }
 
     private static ResiliencePipeline BuildResiliencePipeline() =>

@@ -1,9 +1,9 @@
 # Sub-PRD: Built-in Library Checks
 
 **Parent**: [00-master-plan.md](./00-master-plan.md)
-**Status**: Not Started
+**Status**: Done
 **Dependency**: [02-embedding-dimension-provider.md](./02-embedding-dimension-provider.md), [03-options-relaxation.md](./03-options-relaxation.md)
-**Last Updated**: 2026-04-25
+**Last Updated**: 2026-04-26
 
 ---
 
@@ -11,10 +11,10 @@
 
 | Step | Description | Status |
 |------|-------------|--------|
-| **1** | `OpenAICompatibleLlmProvider.CheckAvailabilityAsync` | ⬜ Not Started |
-| **2** | Five library checks with timeouts and short-circuit branches | ⬜ Not Started |
-| **3** | Register from `AddMinerva()` | ⬜ Not Started |
-| **4** | Unit + integration tests | ⬜ Not Started |
+| **1** | `OpenAICompatibleLlmProvider.CheckAvailabilityAsync` | ✅ Done |
+| **2** | Five library checks with timeouts and short-circuit branches | ✅ Done |
+| **3** | Register from `AddMinerva()` | ✅ Done |
+| **4** | Unit + integration tests | ✅ Done |
 
 ---
 

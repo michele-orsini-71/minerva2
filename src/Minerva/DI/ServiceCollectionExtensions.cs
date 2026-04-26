@@ -6,6 +6,8 @@ using Minerva.Collections;
 using Minerva.Configuration;
 using Minerva.Ingestion;
 using Minerva.Providers;
+using Minerva.Readiness;
+using Minerva.Readiness.Checks;
 using Minerva.Search;
 using Minerva.Storage;
 using Npgsql;
@@ -75,14 +77,16 @@ public static class ServiceCollectionExtensions
 
         if (options.Llm is not null)
         {
-            services.TryAddSingleton<ILlmClient>(sp =>
+            services.TryAddSingleton<OpenAICompatibleLlmProvider>(sp =>
             {
                 var factory = sp.GetRequiredService<ProviderFactory>();
                 var opts = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
-                return factory.CreateLlmProvider(opts.Llm)
+                return (OpenAICompatibleLlmProvider)(factory.CreateLlmProvider(opts.Llm)
                     ?? throw new InvalidOperationException(
-                        "ILlmClient requested but MinervaOptions.Llm is not configured.");
+                        "ILlmClient requested but MinervaOptions.Llm is not configured."));
             });
+            services.TryAddSingleton<ILlmClient>(sp => sp.GetRequiredService<OpenAICompatibleLlmProvider>());
+            services.TryAddSingleton<ILlmAvailabilityProbe>(sp => sp.GetRequiredService<OpenAICompatibleLlmProvider>());
         }
 
         if (options.ConnectionString is not null && options.Embedding is not null)
@@ -110,6 +114,13 @@ public static class ServiceCollectionExtensions
 
             services.TryAddSingleton<IMinervaEngine, MinervaEngine>();
         }
+
+        services.AddMinervaReadinessCore();
+        services.AddMinervaReadinessCheck<ConnectionStringParseCheck>();
+        services.AddMinervaReadinessCheck<PostgresConnectivityCheck>();
+        services.AddMinervaReadinessCheck<PgVectorExtensionCheck>();
+        services.AddMinervaReadinessCheck<EmbeddingCallCheck>();
+        services.AddMinervaReadinessCheck<LlmCallCheck>();
 
         return services;
     }

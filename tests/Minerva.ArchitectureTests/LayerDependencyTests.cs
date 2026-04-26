@@ -6,7 +6,7 @@ namespace Minerva.ArchitectureTests;
 // Clean Architecture layer model (see docs/architecture.md):
 //   ENTITIES   : Minerva.Models, Minerva.Exceptions, Minerva.Utilities
 //   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search, Minerva.Readiness
-//   ADAPTERS   : Minerva.Storage, Minerva.Providers
+//   ADAPTERS   : Minerva.Storage, Minerva.Providers, Minerva.Readiness.Checks
 //   FRAMEWORK  : Minerva.Configuration, Minerva.DI
 //
 // Source-code dependencies must point INWARD only (ENTITIES <- USE_CASES <- ADAPTERS <- FRAMEWORK).
@@ -116,10 +116,11 @@ public class LayerDependencyTests
     public void Readiness_DoesNotDependOnAdaptersOrFramework()
     {
         // why: Readiness contracts and the sequential checker live in the use-case ring.
-        // Concrete checks (PRDs 04/05) live elsewhere; nothing under Minerva.Readiness should
-        // reach into Storage/Providers/Configuration/DI.
+        // Concrete checks live in Minerva.Readiness.Checks (adapter ring) — see the
+        // ReadinessChecks_DoesNotDependOnFramework test below. Nothing under the
+        // exact Minerva.Readiness namespace should reach into Storage/Providers/Configuration/DI.
         var result = Types.InAssembly(Minerva)
-            .That().ResideInNamespace("Minerva.Readiness")
+            .That().ResideInNamespaceMatching(@"^Minerva\.Readiness$")
             .Should().NotHaveDependencyOnAny(
                 "Minerva.Storage", "Minerva.Providers",
                 "Minerva.Configuration", "Minerva.DI")
@@ -143,6 +144,21 @@ public class LayerDependencyTests
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Providers (Adapters) must not depend on the Framework ring.");
+    }
+
+    [Fact]
+    public void ReadinessChecks_DoesNotDependOnDi()
+    {
+        // why: Concrete readiness checks (Minerva.Readiness.Checks) sit in the Adapters
+        // ring — they may consume Npgsql, the OpenAI SDK, the use-case ports, and the
+        // central MinervaOptions (so they can detect feature-off and short-circuit) — but
+        // they must not couple to Minerva.DI's composition root.
+        var result = Types.InAssembly(Minerva)
+            .That().ResideInNamespace("Minerva.Readiness.Checks")
+            .Should().NotHaveDependencyOn("Minerva.DI")
+            .GetResult();
+
+        ArchAssert.Passes(result, "Minerva.Readiness.Checks (Adapters) must not depend on Minerva.DI.");
     }
 
     [Fact]

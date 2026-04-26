@@ -164,10 +164,10 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### Phase 4: Built-in Library Checks (Sub-PRD 04)
 **Goal**: Five library checks + LLM probe; auto-registered by `AddMinerva()`.
 
-1. ⬜ Add `OpenAICompatibleLlmProvider.CheckAvailabilityAsync()` (one-shot, bypass Polly + RateLimiter, `MaxOutputTokenCount = 5`, HTTP 400 → passes)
-2. ⬜ Implement `ConnectionStringParseCheck`, `PostgresConnectivityCheck`, `PgVectorExtensionCheck`, `EmbeddingCallCheck`, `LlmCallCheck` with per-check timeouts and short-circuit branches
-3. ⬜ Register from `AddMinerva()`
-4. ⬜ Unit tests + integration tests against `StorageTestFixture`
+1. ✅ Add `OpenAICompatibleLlmProvider.CheckAvailabilityAsync()` (one-shot, bypass Polly + RateLimiter, `MaxOutputTokenCount = 5`, HTTP 400 → passes)
+2. ✅ Implement `ConnectionStringParseCheck`, `PostgresConnectivityCheck`, `PgVectorExtensionCheck`, `EmbeddingCallCheck`, `LlmCallCheck` with per-check timeouts and short-circuit branches
+3. ✅ Register from `AddMinerva()`
+4. ✅ Unit tests + integration tests against `StorageTestFixture`
 
 **Verification**:
 - [ ] `dotnet test tests/Minerva.UnitTests`
