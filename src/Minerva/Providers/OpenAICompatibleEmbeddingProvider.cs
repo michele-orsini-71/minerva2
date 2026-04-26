@@ -7,24 +7,45 @@ using Polly.Retry;
 
 namespace Minerva.Providers;
 
+internal interface IEmbeddingProbeFacade
+{
+    Task<int> EmbedAndCountDimensionsAsync(string input, CancellationToken ct);
+}
+
 public sealed class OpenAICompatibleEmbeddingProvider
-    : IEmbeddingGenerator<string, Embedding<float>>, IEmbeddingClient
+    : IEmbeddingGenerator<string, Embedding<float>>, IEmbeddingClient, IEmbeddingDimensionProvider
 {
     private readonly OpenAI.Embeddings.EmbeddingClient _client;
     private readonly RateLimiter _rateLimiter;
     private readonly ResiliencePipeline _resiliencePipeline;
+    private readonly IEmbeddingProbeFacade _probeFacade;
+    private readonly Lazy<Task<int>> _dimensionLazy;
 
     public OpenAICompatibleEmbeddingProvider(
         OpenAI.Embeddings.EmbeddingClient client,
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint)
+        : this(client, rateLimiter, modelId, endpoint, probeFacade: null)
+    {
+    }
+
+    internal OpenAICompatibleEmbeddingProvider(
+        OpenAI.Embeddings.EmbeddingClient client,
+        RateLimiter rateLimiter,
+        string modelId,
+        Uri endpoint,
+        IEmbeddingProbeFacade? probeFacade)
     {
         _client = client;
         _rateLimiter = rateLimiter;
         Metadata = new EmbeddingGeneratorMetadata(
             nameof(OpenAICompatibleEmbeddingProvider), endpoint, modelId);
         _resiliencePipeline = BuildResiliencePipeline();
+        _probeFacade = probeFacade ?? new SdkEmbeddingProbeFacade(_client);
+        _dimensionLazy = new Lazy<Task<int>>(
+            () => ProbeDimensionCoreAsync(CancellationToken.None),
+            LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public EmbeddingGeneratorMetadata Metadata { get; }
@@ -105,6 +126,31 @@ public sealed class OpenAICompatibleEmbeddingProvider
         return result;
     }
 
+    public Task<int> GetDimensionAsync(CancellationToken ct = default) =>
+        _dimensionLazy.Value.WaitAsync(ct);
+
+    private async Task<int> ProbeDimensionCoreAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await _probeFacade.EmbedAndCountDimensionsAsync("preflight", ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (ClientResultException ex)
+        {
+            throw new ProviderUnavailableException(
+                $"Embedding dimension probe failed (HTTP {ex.Status}): {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new ProviderUnavailableException(
+                $"Embedding dimension probe failed: {ex.Message}", ex);
+        }
+    }
+
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
         if (serviceKey is not null) return null;
@@ -128,4 +174,21 @@ public sealed class OpenAICompatibleEmbeddingProvider
                 UseJitter = true,
             })
             .Build();
+
+    private sealed class SdkEmbeddingProbeFacade : IEmbeddingProbeFacade
+    {
+        private readonly OpenAI.Embeddings.EmbeddingClient _client;
+
+        public SdkEmbeddingProbeFacade(OpenAI.Embeddings.EmbeddingClient client) => _client = client;
+
+        public async Task<int> EmbedAndCountDimensionsAsync(string input, CancellationToken ct)
+        {
+            OpenAI.Embeddings.OpenAIEmbeddingCollection embeddings =
+                await _client.GenerateEmbeddingsAsync(new[] { input }, cancellationToken: ct);
+            if (embeddings.Count == 0)
+                throw new ProviderUnavailableException(
+                    "Embedding dimension probe returned no embeddings.");
+            return embeddings[0].ToFloats().Length;
+        }
+    }
 }

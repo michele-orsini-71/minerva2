@@ -30,12 +30,14 @@ public static class ServiceCollectionExtensions
             return builder.Build();
         });
 
-        services.TryAddSingleton<IEmbeddingClient>(sp =>
+        services.TryAddSingleton<OpenAICompatibleEmbeddingProvider>(sp =>
         {
             var factory = sp.GetRequiredService<ProviderFactory>();
             var options = sp.GetRequiredService<IOptions<MinervaOptions>>().Value;
-            return factory.CreateEmbeddingProvider(options.Embedding);
+            return (OpenAICompatibleEmbeddingProvider)factory.CreateEmbeddingProvider(options.Embedding);
         });
+        services.TryAddSingleton<IEmbeddingClient>(sp => sp.GetRequiredService<OpenAICompatibleEmbeddingProvider>());
+        services.TryAddSingleton<IEmbeddingDimensionProvider>(sp => sp.GetRequiredService<OpenAICompatibleEmbeddingProvider>());
 
         // LLM client is optional — only registered when an LLM is configured.
         services.TryAddSingleton<ILlmClient>(sp =>

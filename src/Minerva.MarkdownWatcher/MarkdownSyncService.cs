@@ -1,9 +1,9 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minerva.Configuration;
 using Minerva.Exceptions;
+using Minerva.Ingestion;
 
 namespace Minerva.MarkdownWatcher;
 
@@ -12,7 +12,7 @@ public class MarkdownSyncService : BackgroundService
     private readonly IMinervaEngine _engine;
     private readonly IMarkdownScanner _scanner;
     private readonly MarkdownIngestionHandler _handler;
-    private readonly IEmbeddingGenerator<string, Embedding<float>> _embedder;
+    private readonly IEmbeddingDimensionProvider _dimensionProvider;
     private readonly WatcherOptions _watcherOptions;
     private readonly MinervaOptions _minervaOptions;
     private readonly ILogger<MarkdownSyncService> _logger;
@@ -24,7 +24,7 @@ public class MarkdownSyncService : BackgroundService
         IMinervaEngine engine,
         IMarkdownScanner scanner,
         MarkdownIngestionHandler handler,
-        IEmbeddingGenerator<string, Embedding<float>> embedder,
+        IEmbeddingDimensionProvider dimensionProvider,
         IOptions<WatcherOptions> watcherOptions,
         IOptions<MinervaOptions> minervaOptions,
         ILogger<MarkdownSyncService> logger)
@@ -32,7 +32,7 @@ public class MarkdownSyncService : BackgroundService
         _engine = engine;
         _scanner = scanner;
         _handler = handler;
-        _embedder = embedder;
+        _dimensionProvider = dimensionProvider;
         _watcherOptions = watcherOptions.Value;
         _minervaOptions = minervaOptions.Value;
         _logger = logger;
@@ -85,7 +85,7 @@ public class MarkdownSyncService : BackgroundService
         if (existing is not null)
             return;
 
-        var dimension = await ProbeEmbeddingDimensionAsync(ct);
+        var dimension = await _dimensionProvider.GetDimensionAsync(ct);
         _logger.LogInformation(
             "Creating collection '{Collection}' with model '{Model}' ({Dim} dims)",
             _watcherOptions.CollectionName, _minervaOptions.Embedding.Model, dimension);
@@ -96,12 +96,6 @@ public class MarkdownSyncService : BackgroundService
             dimension,
             description: $"Auto-created by Minerva.MarkdownWatcher for {_watcherOptions.RootPath}",
             ct: ct);
-    }
-
-    private async Task<int> ProbeEmbeddingDimensionAsync(CancellationToken ct)
-    {
-        var result = await _embedder.GenerateAsync(["minerva"], cancellationToken: ct);
-        return result[0].Vector.Length;
     }
 
     private async Task InitialScanAsync(CancellationToken ct)

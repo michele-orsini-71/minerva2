@@ -137,9 +137,9 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### Phase 2: Embedding Dimension Provider (Sub-PRD 02)
 **Goal**: Lift dimension into a memoized provider accessor; remove duplicate runtime probe.
 
-1. ⬜ Add `IEmbeddingDimensionProvider`; implement on `OpenAICompatibleEmbeddingProvider` with `Lazy<Task<int>>` (factory uses `CT.None`); bypass Polly + RateLimiter
-2. ⬜ Switch `MarkdownSyncService` to inject the provider; delete `ProbeEmbeddingDimensionAsync`; remove dead `IEmbeddingGenerator` injection
-3. ⬜ Add unit tests including cancellation-poisoning + failure-caching
+1. ✅ Add `IEmbeddingDimensionProvider`; implement on `OpenAICompatibleEmbeddingProvider` with `Lazy<Task<int>>` (factory uses `CT.None`); bypass Polly + RateLimiter
+2. ✅ Switch `MarkdownSyncService` to inject the provider; delete `ProbeEmbeddingDimensionAsync`; remove dead `IEmbeddingGenerator` injection
+3. ✅ Add unit tests including cancellation-poisoning + failure-caching
 
 **Verification**:
 - [ ] `dotnet build`
