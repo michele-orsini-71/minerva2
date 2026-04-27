@@ -101,3 +101,38 @@
 </notes>
 
 ---
+
+## Session 4 — 2026-04-26T14:19:37.731Z
+
+<context>
+## Context
+
+**Goal**: Add a uniform `IReadinessCheck` pipeline to the Minerva core library so any client (today: `Minerva.MarkdownWatcher`; tomorrow: `minerva doctor` CLI / orchestrator GUI) can probe Postgres, pgvector, embedder, LLM, watched-folder, and embedding-dimension consistency *before* `host.RunAsync()`.
+
+**Phase 1 (Readiness Core, Sub-PRD 01) — DONE** in earlier session.
+**Phase 2 (Embedding Dimension Provider, Sub-PRD 02) — DONE** in prior session and committed (`3e98002`).
+**Phase 3 (Options Relaxation, Sub-PRD 03) — DONE this session, uncommitted**: `MinervaOptions.ConnectionString` and `MinervaOptions.Embedding` are now nullable (joining `Llm`); `AddMinerva()` registers storage / embedding / LLM / engine blocks conditionally on the corresponding options being non-null; `MarkdownSyncService.EnsureCollectionAsync` throws `ConfigurationException` if `Embedding` is null. Six new DI tests cover no-config, storage-only, embedding-only, LLM-only, storage+embedding, and full-config builds.
+
+**Verification (all green)**: `dotnet build Minerva.sln` clean (0 warnings, 0 errors); `dotnet test tests/Minerva.Tests` 147 passed (+6 new); `dotnet test tests/Minerva.ArchitectureTests` 12 passed; `dotnet test tests/Minerva.IntegrationTests` 16 passed (auto-wired via `.runsettings` against local Postgres).
+</context>
+
+<decisions>
+- `AddMinerva()` eagerly evaluates the user's `Action<MinervaOptions>` once at the top of the method to drive registration-time conditionals (`var options = new MinervaOptions(); configure(options);`). It then ALSO calls `services.Configure(configure)` so `IOptions<MinervaOptions>` is available at resolution time. Both calls are necessary — the eager one gates DI registration; the IOptions one feeds runtime factories.
+- Four conditional registration blocks, not three: storage (`ConnectionString != null`), embedding (`Embedding != null`), LLM (`Llm != null`), and `ConnectionString != null && Embedding != null` (which gates `IngestionPipeline` and `IMinervaEngine`, since both require services from both feature blocks).
+- `ProviderFactory` and `IDocumentChunker` remain unconditional — they have no feature-block dependency. `IDocumentChunker` only consumes `MinervaOptions.Chunking`, which is non-nullable.
+- `MarkdownSyncService.EnsureCollectionAsync` reads `_minervaOptions.Embedding` once and throws `ConfigurationException` if null, with a message pointing at the preflight invariant. The throw is defensive — once Phase 5 lands, preflight blocks startup before this code runs — but it documents the dependency and keeps the watcher's contract explicit.
+- PRD instruction 'build with nullable warnings as errors during this PRD' was already in effect via `Directory.Build.props` (global `<Nullable>enable</Nullable>` + `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`). No per-project or per-phase toggle was added.
+- Test file path: `tests/Minerva.Tests/DI/AddMinervaConditionalRegistrationTests.cs` — PRD said `tests/Minerva.UnitTests/DI/...`. Honoring prior session's translation rule.
+- `Trait("Category", "DI")` for the new test class, parallel to the existing `Trait("Category", "Readiness")` and `Trait("Category", "Providers")` conventions.
+</decisions>
+
+<notes>
+- After Step 1 (`MinervaOptions` relaxation) only TWO nullability errors surfaced, not the four the PRD predicted: `NpgsqlDataSourceBuilder(string?)` accepts a nullable string, so the `options.ConnectionString` dereference on line 28 of `ServiceCollectionExtensions.cs` did not fail compilation. It still needed wrapping in the conditional block — for runtime correctness (no-config containers were building bogus data sources), not for build success. The MarkdownWatcher dereference also did not surface in the first build because the core project failed first.
+- The `progress-summary` / `gate-check` CLI parsers do NOT recognize manually-edited `✅` markers in master-plan step lists. Updating the markdown by hand left `progress-summary` reporting Phase 3 as 0/3 not-started. The `status-update --phase N --step M --marker done` CLI is the only supported writer — it produces a different on-disk shape than my hand edit. For Phase 4+, skip the manual edit entirely.
+- Integration tests auto-wire `MINERVA_TEST_CONNSTRING` via `tests/Minerva.IntegrationTests/.runsettings` (declared in the `<RunConfiguration><EnvironmentVariables>` block) and `Directory.Build.props:9` (`<RunSettingsFilePath Condition="Exists('$(MSBuildProjectDirectory)\.runsettings')">...`). `dotnet test tests/Minerva.IntegrationTests` Just Works against a local Postgres at `localhost:5432` with database `minerva_test` and role `michele`. No shell export needed.
+- LSP false-positive: `using Minerva.Models;` in `AddMinervaConditionalRegistrationTests.cs` flagged as CS8019 (unnecessary), but removing it actually breaks compilation because `ProviderOptions` lives there. The build (with TreatWarningsAsErrors) succeeds with the using in place, so the LSP analyzer disagrees with the compiler. Trust the compiler.
+- User preference (saved to memory): no XML-doc `///` comments on options/config classes — Clean Code self-documenting style. When I added prose summaries to the relaxed `MinervaOptions` properties, the user removed them.
+- Phase 4 entry: the LLM `CheckAvailabilityAsync` Polly+RateLimiter bypass should mirror `OpenAICompatibleEmbeddingProvider`'s `IEmbeddingProbeFacade` pattern from Phase 2 — internal facade interface, default SDK-wrapping impl, internal ctor for test override. The OpenAI SDK `ChatClient` is also sealed (mirrors `EmbeddingClient`).
+</notes>
+
+---
