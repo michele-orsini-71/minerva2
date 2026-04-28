@@ -179,9 +179,9 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### Phase 5: Watcher Checks and Program.cs (Sub-PRD 05)
 **Goal**: Three watcher checks + explicit pre-host snippet; end-to-end exit-2 path works.
 
-1. ⬜ Implement `RootPathExistsCheck`, `CollectionNameValidCheck`, `CollectionDimensionMatchCheck` (four Decision-10 branches)
-2. ⬜ Register from `AddMinervaWatcher()`
-3. ⬜ Rewrite `Program.cs` as `async Task<int>` with the explicit pre-host snippet (return 0/1/2)
+1. ✅ Implement `RootPathExistsCheck`, `CollectionNameValidCheck`, `CollectionDimensionMatchCheck` (four Decision-10 branches)
+2. ✅ Register from `AddMinervaWatcher()`
+3. ✅ Rewrite `Program.cs` as `async Task<int>` with the explicit pre-host snippet (return 0/1/2)
 4. ⬜ Unit + integration tests; manual end-to-end exit-code verification
 
 **Verification**:

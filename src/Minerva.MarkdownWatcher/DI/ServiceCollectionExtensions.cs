@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Minerva.MarkdownWatcher.Readiness;
+using Minerva.Readiness;
 
 namespace Minerva.MarkdownWatcher.DI;
 
@@ -19,6 +21,11 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IOptions<WatcherOptions>>().Value.CollectionName,
             sp.GetRequiredService<ILogger<MarkdownIngestionHandler>>()));
         services.AddHostedService<MarkdownSyncService>();
+
+        services.AddMinervaReadinessCheck<RootPathExistsCheck>();
+        services.AddMinervaReadinessCheck<CollectionNameValidCheck>();
+        services.AddMinervaReadinessCheck<CollectionDimensionMatchCheck>();
+
         return services;
     }
 }

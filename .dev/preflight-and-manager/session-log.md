@@ -136,3 +136,38 @@
 </notes>
 
 ---
+
+## Session 5 — 2026-04-26T16:17:03.987Z
+
+<context>
+## Context
+
+**Goal**: Add a uniform `IReadinessCheck` pipeline to the Minerva core library so any client (today: `Minerva.MarkdownWatcher`; tomorrow: `minerva doctor` CLI / orchestrator GUI) can probe Postgres, pgvector, embedder, LLM, watched-folder, and embedding-dimension consistency *before* `host.RunAsync()`.
+
+**Phases 1–3 — DONE** (prior sessions; committed).
+**Phase 4 (Sub-PRD 04, Built-in Library Checks) — DONE this session and committed (`1f297c1`)**: `OpenAICompatibleLlmProvider.CheckAvailabilityAsync` (Polly + RateLimiter bypass via internal `IChatClientFacade`, HTTP 400 → reachable), new `ILlmAvailabilityProbe` port, five library checks (`ConnectionStringParseCheck`, `PostgresConnectivityCheck`, `PgVectorExtensionCheck`, `EmbeddingCallCheck`, `LlmCallCheck`) with per-check timeouts (2s/5s/30s) and short-circuit branches, registered unconditionally from `AddMinerva()`. DI now registers `OpenAICompatibleLlmProvider` as concrete singleton with forwarding to both `ILlmClient` and `ILlmAvailabilityProbe` (symmetric with Phase 2's embedding pattern). Architecture tests rescoped: `Minerva.Readiness` rule now exact-match (`ResideInNamespaceMatching(@"^Minerva\.Readiness$")`) and a new `ReadinessChecks_DoesNotDependOnDi` rule places `Minerva.Readiness.Checks` in the adapter ring (allowed to consume Npgsql, OpenAI SDK, and `Minerva.Configuration.MinervaOptions`).
+
+**Verification (all green)**: `dotnet build Minerva.sln` clean (0 warnings, 0 errors); `dotnet test tests/Minerva.Tests` 175 passed (28 new); `dotnet test tests/Minerva.IntegrationTests` 19 passed (3 new); `dotnet test tests/Minerva.ArchitectureTests` 13 passed (1 new). `gate-check` reports `atGate: true` for Phase 4.
+</context>
+
+<decisions>
+- Internal probe-interface seam pattern reused for every SDK-touching check (`IPostgresConnectivityProbe`, `IPgVectorExtensionProbe`, `IChatClientFacade`) — mirrors Phase 2's `IEmbeddingProbeFacade`. Default impls are `private sealed` nested classes wrapping `NpgsqlDataSource` / `OAI.ChatClient`; tests inject fakes via `internal` ctors.
+- `OpenAICompatibleLlmProvider` now implements `ILlmAvailabilityProbe` (third interface alongside `IChatClient` + `ILlmClient`). DI registers concrete singleton with forwarding registrations for both `ILlmClient` and `ILlmAvailabilityProbe`, fully symmetric with Phase 2's embedding-side pattern (concrete + two forwardings). Verified single-instance via DI activation tests.
+- `ILlmAvailabilityProbe` port lives in `src/Minerva/Ingestion/` (alongside `ILlmClient`, `IEmbeddingDimensionProvider`, `IEmbeddingClient`) — NOT in `Minerva.Readiness`. Reason: matches the established port-namespace convention; avoids registering a new namespace in `NamespaceCoverageTests.ClassifiedNamespaces`.
+- `Minerva.Readiness.Checks` placed in the adapter ring. Existing `Readiness_DoesNotDependOnAdaptersOrFramework` arch rule rescoped from `ResideInNamespace("Minerva.Readiness")` (which is a starts-with match in NetArchTest) to `ResideInNamespaceMatching(@"^Minerva\.Readiness$")` so it no longer captures `.Checks`. New `ReadinessChecks_DoesNotDependOnDi` rule forbids only `Minerva.DI` — checks legitimately need `Minerva.Configuration.MinervaOptions` for feature-off short-circuiting, so the Configuration-ring restriction is intentionally relaxed for this adapter only.
+- Optional services (`NpgsqlDataSource`, `IEmbeddingDimensionProvider`, `ILlmAvailabilityProbe`) are resolved via `IServiceProvider.GetService<>()` inside the check constructors (not direct constructor injection). Reason: Phase-3 conditional registration may leave any feature block unregistered; constructor injection of an unregistered type would throw at DI activation, before the check could short-circuit.
+- Postgres SQLSTATE-to-Code mapping (3D000 → DATABASE_MISSING, 28P01 → AUTH_FAILED, NpgsqlException/TimeoutException → UNREACHABLE) is unit-tested by fabricating `PostgresException` via its public ctor `(messageText, severity, invariantSeverity, sqlState)` — no DB needed. Network/unreachable branch is also covered live in integration tests against `localhost:1`.
+- `ClientResultException` 400-passes test (the LLM-probe key invariant) constructs the exception via the 3-arg ctor `(message, PipelineResponse, innerException)` with a hand-rolled `FakePipelineResponse : System.ClientModel.Primitives.PipelineResponse` and nested `EmptyHeaders : PipelineResponseHeaders` — the abstract pipeline types have no public test helpers.
+- Test paths translated to `tests/Minerva.Tests/Readiness/Checks/` (PRD said `tests/Minerva.UnitTests/...`). Honoring prior-session translation rule.
+- `status-update --phase --step --marker done` updates only the master plan (which `gate-check`/`progress-summary` consume). The sub-PRD's own step table was hand-edited (`⬜ Not Started` → `✅ Done`) for human readability; this is fine because the parser does not read sub-PRD step tables.
+</decisions>
+
+<notes>
+- `Minerva.Readiness.Checks` as a sub-namespace is treated by `NamespaceCoverageTests.TopLevel()` as `Minerva.Readiness` (truncates after second segment), so the existing USE_CASES classification in `ClassifiedNamespaces` still satisfies the coverage test. The layer-model comment in `LayerDependencyTests.cs` documents `Minerva.Readiness.Checks` separately as ADAPTERS for human readers.
+- `PostgresException` has a public ctor `(string messageText, string severity, string invariantSeverity, string sqlState)` in Npgsql 10.0.2 — confirmed via reflection probe. This is what makes the SQLSTATE unit tests possible without a live DB.
+- Integration tests for `PostgresConnectivityCheck` cover both the live-pass branch (against `StorageTestFixture.DataSource`) and the unreachable-fail branch (creating an ad-hoc `NpgsqlDataSource` against `localhost:1` with `Timeout=2;Command Timeout=2`). The unreachable branch is what proves the host:port substitution in the remediation actually works on real `NpgsqlException` messages.
+- Phase 5 entry: the watcher's preflight invocation needs to mark the `IReadinessProbeMarker` (already wired in Phase 1) and exit with code 2 on `IsReady = false`. The `ReadinessReportFormatter` from Phase 1 is the output formatter; do not duplicate its logic in `Program.cs`.
+- User feedback this session (saved to memory): when bash commands address paths inside the workspace, prefer relative paths (e.g. `src/Minerva/...`) over absolute (`/Users/michele/my-code/minerva2/src/Minerva/...`) — absolute paths under the workspace trigger permission prompts on every invocation. Reserve absolute paths for genuinely external locations (`~/.nuget`, `~/.claude`, `/tmp`).
+</notes>
+
+---
