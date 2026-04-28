@@ -56,6 +56,11 @@ The `Minerva` section is the full core-library config (see [`src/Minerva/README.
 
 `ExcludeDirectories` defaults cover the common cases (Obsidian internals + git metadata). Override it for other workflows.
 
+> **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise the watcher will trigger model swaps in and out of VRAM whenever it alternates between embedding and summarization/contextualization.
+>
+> - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
+> - **LM Studio**: load both models in the *Models* panel before starting the watcher.
+
 ## Files
 
 | File | Role |

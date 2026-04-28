@@ -83,6 +83,11 @@ var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(Top
 - API keys may be inlined or referenced via `env:VAR_NAME` (resolved by `CredentialResolver`).
 - Embedding / LLM providers are any OpenAI-compatible HTTP endpoint.
 
+> **Local-runtime tip.** When both `Embedding` and `Llm` point at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise every ingestion alternates between embedding and summarization/contextualization calls and the runtime swaps models in and out of VRAM on each switch.
+>
+> - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
+> - **LM Studio**: load both models in the *Models* panel before starting the client.
+
 ### Configuration reference
 
 Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the source of truth.
