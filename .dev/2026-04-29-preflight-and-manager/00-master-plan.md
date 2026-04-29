@@ -170,9 +170,9 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 4. ✅ Unit tests + integration tests against `StorageTestFixture`
 
 **Verification**:
-- [ ] `dotnet test tests/Minerva.UnitTests`
-- [ ] `MINERVA_TEST_CONNSTRING=… dotnet test tests/Minerva.IntegrationTests`
-- [ ] `dotnet test tests/Minerva.ArchitectureTests`
+- [x] `dotnet test tests/Minerva.UnitTests`
+- [x] `MINERVA_TEST_CONNSTRING=… dotnet test tests/Minerva.IntegrationTests`
+- [x] `dotnet test tests/Minerva.ArchitectureTests`
 
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
@@ -182,12 +182,12 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 1. ✅ Implement `RootPathExistsCheck`, `CollectionNameValidCheck`, `CollectionDimensionMatchCheck` (four Decision-10 branches)
 2. ✅ Register from `AddMinervaWatcher()`
 3. ✅ Rewrite `Program.cs` as `async Task<int>` with the explicit pre-host snippet (return 0/1/2)
-4. ⬜ Unit + integration tests; manual end-to-end exit-code verification
+4. ✅ Unit + integration tests; manual end-to-end exit-code verification
 
 **Verification**:
-- [ ] Healthy environment: watcher starts and runs as today
-- [ ] Postgres unreachable: watcher exits with `$?` = 2 and logs the report
-- [ ] `dotnet test` across all test projects
+- [x] Healthy environment: watcher starts and runs as today
+- [x] Postgres unreachable: watcher exits with `$?` = 2 and logs the report
+- [x] `dotnet test` across all test projects
 
 ⏸️ **GATE**: Feature complete. `/dev-checkpoint` or merge.
 
