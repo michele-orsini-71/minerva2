@@ -7,7 +7,7 @@ using Minerva.Search;
 
 namespace Minerva;
 
-public class MinervaEngine : IMinervaEngine
+internal class MinervaEngine : IMinervaEngine
 {
     private readonly IngestionPipeline _ingestionPipeline;
     private readonly SearchPipeline _searchPipeline;

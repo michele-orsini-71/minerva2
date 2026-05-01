@@ -6,11 +6,6 @@ public class MinervaException : Exception
     public MinervaException(string message, Exception inner) : base(message, inner) { }
 }
 
-public class ConfigurationException : MinervaException
-{
-    public ConfigurationException(string message) : base(message) { }
-    public ConfigurationException(string message, Exception inner) : base(message, inner) { }
-}
 
 public class IngestionException : MinervaException
 {
