@@ -6,7 +6,7 @@ This doesn't mean abdicating to Clean Architecture principles, we'll still keep 
 
 We have to keep in mind that most of the code is already written, but it must be reorganized, so we are going to glue it differently.
 
-You have to keep in mind that you are assisting and suggesting, not writing code.
+**IMPORTANT** You have remember that you are assisting and suggesting most of the times and writing code only if and when I ask.
 
 - we'll start from Minerva Library and then we'll move to Minerva.MarkdownWatcher and finally we'll fix tests
 - previously, Minerva had a instance creation phase through extensions and then the code inside startAsync method was executed (which performs migrations and initializes db schema)
@@ -102,7 +102,6 @@ catch (ArgumentException ex)   // Npgsql's shape failures
 #### Workflows that do not completely fit
 
 Providers: Resolve() of Credentials will be done before creating providers, that's a preflight-like check (environment, like a db connection) during construction but there is not a valid alternative
-
 
 ## Still TODO
 
