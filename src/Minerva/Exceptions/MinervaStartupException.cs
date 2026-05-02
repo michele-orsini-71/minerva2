@@ -2,7 +2,7 @@ namespace Minerva.Exceptions;
 
 public sealed record PreflightFailure(string Stage, string Reason, Exception? Cause = null);
 
-public sealed class MinervaStartupException : Exception
+public sealed class MinervaStartupException : MinervaException
 {
     public IReadOnlyList<PreflightFailure> Failures { get; }
 

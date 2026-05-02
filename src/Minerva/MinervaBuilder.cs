@@ -50,8 +50,17 @@ public static class MinervaBuilder
         IChunkWriter chunkWriter = chunkRepository;
         IChunkQuery chunkQuery = chunkRepository;
 
-        var embeddingProvider = (OpenAICompatibleEmbeddingProvider)
-            providerFactory.CreateEmbeddingProvider();
+        OpenAICompatibleEmbeddingProvider embeddingProvider;
+        try {
+            embeddingProvider = (OpenAICompatibleEmbeddingProvider)
+                providerFactory.CreateEmbeddingProvider();
+        }
+        catch (ConfigurationException ex)
+        {
+            throw new MinervaStartupException(
+                [new PreflightFailure("Embedding.Credentials", ex.Message, ex)]);
+        }
+        
         IEmbeddingClient embeddingClient = embeddingProvider;
         IEmbeddingDimensionProvider dimensionProvider = embeddingProvider;
         IEmbeddingService embeddingService = new EmbeddingService(
@@ -63,9 +72,16 @@ public static class MinervaBuilder
         ILlmAvailabilityProbe? llmProbe = null;
         if (providerFactory.HasLlm)
         {
-            var llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
+            try {
+                var llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
             llmClient = llmProvider;
             llmProbe = llmProvider;
+            }
+            catch (ConfigurationException ex)
+            {
+                throw new MinervaStartupException(
+                    [new PreflightFailure("Llm.Credentials", ex.Message, ex)]);
+            }
         }
 
         IDocumentSummarizer? summarizer =

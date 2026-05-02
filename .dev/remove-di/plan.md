@@ -6,7 +6,8 @@ This doesn't mean abdicating to Clean Architecture principles, we'll still keep 
 
 We have to keep in mind that most of the code is already written, but it must be reorganized, so we are going to glue it differently.
 
-**IMPORTANT** You have remember that you are assisting and suggesting most of the times and writing code only if and when I ask.
+**IMPORTANT** The AI Agent is mostly assisting and suggesting, writing code only if and when the user asks.
+
 
 - we'll start from Minerva Library and then we'll move to Minerva.MarkdownWatcher and finally we'll fix tests
 - previously, Minerva had a instance creation phase through extensions and then the code inside startAsync method was executed (which performs migrations and initializes db schema)
@@ -22,6 +23,9 @@ We have to keep in mind that most of the code is already written, but it must be
 - every failure is collected with the information that are pertinent to inform the builder calee: what failed and why
 - at the end of the chain we have, either a minerva instance to be used or a list of failures to be notified
 
+### About Exceptions of this phase
+
+Skip `AggregateException` — it reads as "something went wrong in parallel work" and people will reach for `InnerExceptions` expecting `Exception` instances, not your `PreflightFailure` records. A bespoke type tells the right story.
 
 ## Useful Snippets
 
@@ -105,5 +109,5 @@ Providers: Resolve() of Credentials will be done before creating providers, that
 
 ## Still TODO
 
-- Create MinervaBuilder phase 2: objects
-- MinervaBuilder preflight calls
+- TODO MinervaBuilder preflight calls
+- TODO Minerva Initialization, we have schema initializer InitializeAsync, is there anything alse we should add?
