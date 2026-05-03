@@ -22,7 +22,4 @@ public interface ICollectionService
         string? description = null,
         Dictionary<string, object>? metadata = null,
         CancellationToken ct = default);
-
-    Task<PreflightFailure?> CheckCompatibilityAsync(
-        string collectionName, CancellationToken ct = default);
 }

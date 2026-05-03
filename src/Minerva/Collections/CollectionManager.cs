@@ -82,27 +82,6 @@ public partial class CollectionManager : ICollectionService
         return await CreateAsync(name, _configuredEmbeddingModel, dimension, description, metadata, ct);
     }
 
-    public async Task<PreflightFailure?> CheckCompatibilityAsync(
-        string collectionName, CancellationToken ct = default)
-    {
-        var collection = await _collectionRepository.GetAsync(collectionName, ct);
-        if (collection is null)
-            return null;
-
-        var configuredDimension = await _dimensionProvider.GetDimensionAsync(ct);
-
-        if (collection.EmbeddingModel == _configuredEmbeddingModel
-            && collection.EmbeddingDimension == configuredDimension)
-            return null;
-
-        return new PreflightFailure(
-            "Collection.Compatibility",
-            $"Collection '{collectionName}' was created with embedder " +
-            $"'{collection.EmbeddingModel}' (dim {collection.EmbeddingDimension}), " +
-            $"but engine is configured with '{_configuredEmbeddingModel}' " +
-            $"(dim {configuredDimension}).");
-    }
-
     private static void ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
