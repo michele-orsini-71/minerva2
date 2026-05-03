@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Minerva.MarkdownWatcher": {
+    "Minerva.MarkdownIndexer": {
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"

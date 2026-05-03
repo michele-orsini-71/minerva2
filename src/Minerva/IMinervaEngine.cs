@@ -1,15 +1,13 @@
-using Minerva.Collections;
 using Minerva.Models;
 
 namespace Minerva;
 
 public interface IMinervaEngine
 {
-    ICollectionService Collections { get; }
-
     Task<IngestionResult> IngestAsync(
         string collectionName,
         IAsyncEnumerable<Document> documents,
+        bool forceRecreate = false,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<SearchResult>> SearchAsync(

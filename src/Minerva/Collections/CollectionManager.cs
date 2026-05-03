@@ -68,6 +68,20 @@ public partial class CollectionManager : ICollectionService
     public Task DeleteAsync(string name, CancellationToken ct = default) =>
         _collectionRepository.DeleteAsync(name, ct);
 
+    public async Task<Collection> EnsureAsync(
+        string name,
+        string? description = null,
+        Dictionary<string, object>? metadata = null,
+        CancellationToken ct = default)
+    {
+        var existing = await _collectionRepository.GetAsync(name, ct);
+        if (existing is not null)
+            return existing;
+
+        var dimension = await _dimensionProvider.GetDimensionAsync(ct);
+        return await CreateAsync(name, _configuredEmbeddingModel, dimension, description, metadata, ct);
+    }
+
     public async Task<PreflightFailure?> CheckCompatibilityAsync(
         string collectionName, CancellationToken ct = default)
     {

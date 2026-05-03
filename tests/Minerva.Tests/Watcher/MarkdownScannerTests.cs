@@ -1,5 +1,4 @@
-using Microsoft.Extensions.Options;
-using Minerva.MarkdownWatcher;
+using Minerva.MarkdownIndexer;
 
 namespace Minerva.Tests.Watcher;
 
@@ -20,12 +19,12 @@ public class MarkdownScannerTests : IDisposable
     }
 
     private MarkdownScanner MakeScanner(string[]? excludes = null) =>
-        new(Options.Create(new WatcherOptions
+        new(new IndexerOptions
         {
             RootPath = _root,
             CollectionName = "test",
             ExcludeDirectories = excludes ?? [".obsidian", ".trash", ".git"],
-        }));
+        });
 
     private string WriteFile(string relativePath, string content)
     {
@@ -43,7 +42,7 @@ public class MarkdownScannerTests : IDisposable
         WriteFile("notes/daily/two.md", "c");
         WriteFile("ignored.txt", "not markdown");
 
-        var files = MakeScanner().ScanFiles();
+        var files = MakeScanner().ScanFiles().ToList();
 
         Assert.Equal(3, files.Count);
         Assert.All(files, f => Assert.EndsWith(".md", f));
@@ -58,7 +57,7 @@ public class MarkdownScannerTests : IDisposable
         WriteFile(".git/config.md", "drop");
         WriteFile("deep/.obsidian/nested.md", "drop");
 
-        var files = MakeScanner().ScanFiles();
+        var files = MakeScanner().ScanFiles().ToList();
 
         Assert.Single(files);
         Assert.EndsWith("note.md", files[0]);

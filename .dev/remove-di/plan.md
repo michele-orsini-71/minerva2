@@ -306,6 +306,10 @@ logger.LogInformation(
 
 Exit codes: 0 = success, 2 = preflight failure, 1 = unexpected.
 
+### Update
+
+To match the features of minerva v1, all the collection management went inside MinervaEngine, the indexer simply calls `IngestAsync`
+
 ## Future clients (out of scope)
 
 ### Live watcher

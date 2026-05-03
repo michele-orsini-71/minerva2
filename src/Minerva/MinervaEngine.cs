@@ -36,26 +36,15 @@ internal class MinervaEngine : IMinervaEngine
         _logger = logger;
     }
 
-    public ICollectionService Collections => _collections;
-
     public async Task<IngestionResult> IngestAsync(
         string collectionName,
         IAsyncEnumerable<Document> documents,
+        bool forceRecreate = false,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
 
-        // Runtime guardrail: collection must match engine's configured embedder.
-        var collection = await RequireCollectionAsync(collectionName, ct);
-        var configuredDimension = await _dimensionProvider.GetDimensionAsync(ct);
-        if (collection.EmbeddingModel != _configuredEmbeddingModel
-            || collection.EmbeddingDimension != configuredDimension)
-        {
-            throw new CollectionEmbedderMismatchException(
-                collectionName,
-                collection.EmbeddingModel, collection.EmbeddingDimension,
-                _configuredEmbeddingModel, configuredDimension);
-        }
+        await PrepareCollectionAsync(collectionName, forceRecreate, ct);
 
         var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
@@ -93,16 +82,44 @@ internal class MinervaEngine : IMinervaEngine
             throw new ConfigurationException("At least one collection name must be provided.");
 
         foreach (var name in collectionNames)
-            _ = await RequireCollectionAsync(name, ct);
+        {
+            _ = await _collections.GetAsync(name, ct)
+                ?? throw new ConfigurationException($"Collection '{name}' does not exist.");
+        }
 
         return await _searchPipeline.SearchAsync(
             query, collectionNames, options ?? new SearchOptions(), ct);
     }
 
-    private async Task<Collection> RequireCollectionAsync(string name, CancellationToken ct)
+    private async Task PrepareCollectionAsync(string collectionName, bool forceRecreate, CancellationToken ct)
     {
-        var collection = await _collections.GetAsync(name, ct)
-            ?? throw new ConfigurationException($"Collection '{name}' does not exist.");
-        return collection;
+        var existing = await _collections.GetAsync(collectionName, ct);
+
+        if (existing is null)
+        {
+            await _collections.EnsureAsync(collectionName, description: null, metadata: null, ct);
+            return;
+        }
+
+        var configuredDimension = await _dimensionProvider.GetDimensionAsync(ct);
+        if (existing.EmbeddingModel == _configuredEmbeddingModel
+            && existing.EmbeddingDimension == configuredDimension)
+        {
+            return;
+        }
+
+        if (!forceRecreate)
+        {
+            throw new CollectionEmbedderMismatchException(
+                collectionName,
+                existing.EmbeddingModel, existing.EmbeddingDimension,
+                _configuredEmbeddingModel, configuredDimension);
+        }
+
+        _logger.LogWarning(
+            "Collection '{Collection}' embedder mismatch and forceRecreate=true; dropping all data and recreating",
+            collectionName);
+        await _collections.DeleteAsync(collectionName, ct);
+        await _collections.EnsureAsync(collectionName, description: null, metadata: null, ct);
     }
 }

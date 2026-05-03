@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minerva\Minerva.csproj" />
-    <ProjectReference Include="..\..\src\Minerva.MarkdownWatcher\Minerva.MarkdownWatcher.csproj" />
+    <ProjectReference Include="..\..\src\Minerva.MarkdownIndexer\Minerva.MarkdownIndexer.csproj" />
   </ItemGroup>
 
 </Project>

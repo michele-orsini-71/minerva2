@@ -1,37 +1,33 @@
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
 using Minerva.Models;
 
-namespace Minerva.MarkdownWatcher;
+namespace Minerva.MarkdownIndexer;
 
-public partial class MarkdownScanner : IMarkdownScanner
+public partial class MarkdownScanner
 {
     private static readonly Regex ImageRegex = MarkdownImageRegex();
 
-    private readonly WatcherOptions _options;
+    private readonly IndexerOptions _options;
 
-    public MarkdownScanner(IOptions<WatcherOptions> options)
+    public MarkdownScanner(IndexerOptions options)
     {
-        _options = options.Value;
+        _options = options;
     }
 
-    public IReadOnlyList<string> ScanFiles()
+    public IEnumerable<string> ScanFiles()
     {
         if (!Directory.Exists(_options.RootPath))
-            return Array.Empty<string>();
+            yield break;
 
         var excludeSet = new HashSet<string>(_options.ExcludeDirectories, StringComparer.OrdinalIgnoreCase);
-        var results = new List<string>();
 
         foreach (var path in Directory.EnumerateFiles(
             _options.RootPath, _options.FilePattern, SearchOption.AllDirectories))
         {
             if (IsExcluded(path, excludeSet))
                 continue;
-            results.Add(path);
+            yield return path;
         }
-
-        return results;
     }
 
     public Document ReadFile(string filePath)
@@ -55,13 +51,7 @@ public partial class MarkdownScanner : IMarkdownScanner
             Attachments: attachments.Count > 0 ? attachments : null);
     }
 
-    public bool IsExcluded(string filePath)
-    {
-        var excludeSet = new HashSet<string>(_options.ExcludeDirectories, StringComparer.OrdinalIgnoreCase);
-        return IsExcluded(filePath, excludeSet);
-    }
-
-    public string DeriveSourceId(string filePath)
+    private string DeriveSourceId(string filePath)
     {
         var relative = Path.GetRelativePath(_options.RootPath, filePath);
         return relative.Replace(Path.DirectorySeparatorChar, '/');
