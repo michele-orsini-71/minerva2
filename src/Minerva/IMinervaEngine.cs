@@ -9,12 +9,7 @@ public interface IMinervaEngine
 
     Task<IngestionResult> IngestAsync(
         string collectionName,
-        Document document,
-        CancellationToken ct = default);
-
-    Task RemoveAsync(
-        string collectionName,
-        string sourceId,
+        IAsyncEnumerable<Document> documents,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<SearchResult>> SearchAsync(

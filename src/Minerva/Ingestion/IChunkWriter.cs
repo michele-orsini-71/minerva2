@@ -12,4 +12,7 @@ public interface IChunkWriter
 
     Task<string?> GetContentHashAsync(string collectionName, string sourceId,
         CancellationToken ct = default);
+
+    Task<IReadOnlyDictionary<string, string>> GetSourceIdsAndHashesAsync(
+        string collectionName, CancellationToken ct = default);
 }

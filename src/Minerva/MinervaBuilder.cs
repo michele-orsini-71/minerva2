@@ -123,7 +123,8 @@ public static class MinervaBuilder
             contextExpander,
             loggerFactory.CreateLogger<SearchPipeline>());
 
-        ICollectionService collections = new CollectionManager(collectionRepository, provisioner);
+        ICollectionService collections = new CollectionManager(
+            collectionRepository, provisioner, options.Embedding.Model, embeddingProvider);
 
         // Phase 3: preflight — environmental checks, aggregate failures.
         var preflightFailures = await RunPreflightAsync(
@@ -138,6 +139,9 @@ public static class MinervaBuilder
             ingestionPipeline,
             searchPipeline,
             collections,
+            chunkWriter,
+            options.Embedding.Model,
+            embeddingProvider,
             loggerFactory.CreateLogger<MinervaEngine>());
     }
 

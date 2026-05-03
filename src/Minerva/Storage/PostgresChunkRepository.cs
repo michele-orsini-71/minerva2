@@ -113,6 +113,25 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery
         return result as string;
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> GetSourceIdsAndHashesAsync(
+        string collectionName, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT source_id, content_hash FROM chunks
+            WHERE collection_name = @coll AND chunk_index = 0
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("coll", collectionName);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var result = new Dictionary<string, string>();
+        while (await reader.ReadAsync(ct))
+            result[reader.GetString(0)] = reader.GetString(1);
+        return result;
+    }
+
     public async Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(
         IReadOnlyList<string> chunkIds, CancellationToken ct = default)
     {

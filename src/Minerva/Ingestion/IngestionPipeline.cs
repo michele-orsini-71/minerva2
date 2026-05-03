@@ -33,6 +33,7 @@ public class IngestionPipeline
     public async Task<IngestionResult> IngestAsync(
         string collectionName,
         Document document,
+        string? storedContentHash,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
@@ -41,18 +42,16 @@ public class IngestionPipeline
         var text = AttachmentIntegrator.Integrate(
             document.Text, document.Attachments ?? new Dictionary<string, AttachmentDescription>());
 
-        // 2. Check content hash — skip if unchanged
+        // 2. Compare against caller-provided hash — skip if unchanged
         var contentHash = HashHelper.ComputeContentHash(text);
-        var storedHash = await _chunkWriter.GetContentHashAsync(
-            collectionName, document.SourceId, ct);
 
-        if (storedHash == contentHash)
+        if (storedContentHash == contentHash)
         {
             _logger.LogDebug("Document {SourceId} unchanged, skipping ingestion", document.SourceId);
             return new IngestionResult(0, 0, 0, Unchanged: 1, sw.Elapsed);
         }
 
-        bool isUpdate = storedHash is not null;
+        bool isUpdate = storedContentHash is not null;
 
         // 3. Segment, summarize, chunk, contextualize
         var (allChunks, contextPrefixes) = await ProcessDocumentAsync(

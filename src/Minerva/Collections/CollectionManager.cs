@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Minerva.Exceptions;
+using Minerva.Ingestion;
 using Minerva.Models;
 
 namespace Minerva.Collections;
@@ -11,13 +12,19 @@ public partial class CollectionManager : ICollectionService
 
     private readonly ICollectionRepository _collectionRepository;
     private readonly ICollectionProvisioner _provisioner;
+    private readonly string _configuredEmbeddingModel;
+    private readonly IEmbeddingDimensionProvider _dimensionProvider;
 
     public CollectionManager(
         ICollectionRepository collectionRepository,
-        ICollectionProvisioner provisioner)
+        ICollectionProvisioner provisioner,
+        string configuredEmbeddingModel,
+        IEmbeddingDimensionProvider dimensionProvider)
     {
         _collectionRepository = collectionRepository;
         _provisioner = provisioner;
+        _configuredEmbeddingModel = configuredEmbeddingModel;
+        _dimensionProvider = dimensionProvider;
     }
 
     public async Task<Collection> CreateAsync(
@@ -60,6 +67,27 @@ public partial class CollectionManager : ICollectionService
 
     public Task DeleteAsync(string name, CancellationToken ct = default) =>
         _collectionRepository.DeleteAsync(name, ct);
+
+    public async Task<PreflightFailure?> CheckCompatibilityAsync(
+        string collectionName, CancellationToken ct = default)
+    {
+        var collection = await _collectionRepository.GetAsync(collectionName, ct);
+        if (collection is null)
+            return null;
+
+        var configuredDimension = await _dimensionProvider.GetDimensionAsync(ct);
+
+        if (collection.EmbeddingModel == _configuredEmbeddingModel
+            && collection.EmbeddingDimension == configuredDimension)
+            return null;
+
+        return new PreflightFailure(
+            "Collection.Compatibility",
+            $"Collection '{collectionName}' was created with embedder " +
+            $"'{collection.EmbeddingModel}' (dim {collection.EmbeddingDimension}), " +
+            $"but engine is configured with '{_configuredEmbeddingModel}' " +
+            $"(dim {configuredDimension}).");
+    }
 
     private static void ValidateName(string name)
     {

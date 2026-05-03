@@ -1,3 +1,4 @@
+using Minerva.Exceptions;
 using Minerva.Models;
 
 namespace Minerva.Collections;
@@ -15,4 +16,7 @@ public interface ICollectionService
     Task<Collection?> GetAsync(string name, CancellationToken ct = default);
     Task<IReadOnlyList<Collection>> ListAsync(CancellationToken ct = default);
     Task DeleteAsync(string name, CancellationToken ct = default);
+
+    Task<PreflightFailure?> CheckCompatibilityAsync(
+        string collectionName, CancellationToken ct = default);
 }
