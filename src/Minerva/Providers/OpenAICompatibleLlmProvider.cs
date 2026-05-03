@@ -173,6 +173,26 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         }
     }
 
+    public async Task<PreflightFailure?> PreflightAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            await CheckAvailabilityAsync(ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new PreflightFailure(
+                "Llm",
+                $"LLM endpoint at '{Metadata.ProviderUri}' did not respond, or model '{Metadata.DefaultModelId}' is not available: {ex.Message}. Verify the endpoint URL, the API key, and the model name.",
+                ex);
+        }
+    }
+
     public async Task<string> GenerateAsync(
         string? systemPrompt, string userPrompt, CancellationToken ct = default)
     {

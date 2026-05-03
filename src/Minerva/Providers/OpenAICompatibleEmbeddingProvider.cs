@@ -129,6 +129,26 @@ public sealed class OpenAICompatibleEmbeddingProvider
     public Task<int> GetDimensionAsync(CancellationToken ct = default) =>
         _dimensionLazy.Value.WaitAsync(ct);
 
+    public async Task<PreflightFailure?> PreflightAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            await GetDimensionAsync(ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new PreflightFailure(
+                "Embedding",
+                $"Embedding endpoint at '{Metadata.ProviderUri}' did not respond, or model '{Metadata.DefaultModelId}' is not available: {ex.Message}. Verify the endpoint URL, the API key, and the model name. For local stacks (Ollama / LM Studio) confirm the model is loaded.",
+                ex);
+        }
+    }
+
     private async Task<int> ProbeDimensionCoreAsync(CancellationToken ct)
     {
         try

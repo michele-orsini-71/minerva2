@@ -109,5 +109,6 @@ Providers: Resolve() of Credentials will be done before creating providers, that
 
 ## Still TODO
 
-- TODO MinervaBuilder preflight calls
 - TODO Minerva Initialization, we have schema initializer InitializeAsync, is there anything alse we should add?
+- Runtime checks we need ensure are present
+  - Embedding dimension drift to check 

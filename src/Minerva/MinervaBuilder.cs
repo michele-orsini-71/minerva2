@@ -35,9 +35,20 @@ public static class MinervaBuilder
                 [new PreflightFailure("Options.Credentials", ex.Message, ex)]);
         }
 
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(options.ConnectionString);
-        dataSourceBuilder.UseVector();
-        var dataSource = dataSourceBuilder.Build();
+        NpgsqlDataSource? dataSource = null;
+        try
+        {
+            var b = new NpgsqlDataSourceBuilder(options.ConnectionString);
+            b.UseVector();
+            dataSource = b.Build();
+        }
+        catch (ArgumentException ex)   // Npgsql's shape failures
+        {
+            throw new MinervaStartupException(
+                [new PreflightFailure("DataSource", ex.Message, ex)]);
+        }
+
+        var databasePreflight = new DatabasePreflight(dataSource);
 
         var schemaInitializer = new SchemaInitializer(
             dataSource,
@@ -62,20 +73,19 @@ public static class MinervaBuilder
         }
         
         IEmbeddingClient embeddingClient = embeddingProvider;
-        IEmbeddingDimensionProvider dimensionProvider = embeddingProvider;
         IEmbeddingService embeddingService = new EmbeddingService(
             embeddingClient,
             options.Embedding.BatchSize,
             loggerFactory.CreateLogger<EmbeddingService>());
 
+        OpenAICompatibleLlmProvider? llmProvider = null;
         ILlmClient? llmClient = null;
-        ILlmAvailabilityProbe? llmProbe = null;
         if (providerFactory.HasLlm)
         {
-            try {
-                var llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
-            llmClient = llmProvider;
-            llmProbe = llmProvider;
+            try
+            {
+                llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
+                llmClient = llmProvider;
             }
             catch (ConfigurationException ex)
             {
@@ -116,14 +126,8 @@ public static class MinervaBuilder
         ICollectionService collections = new CollectionManager(collectionRepository, provisioner);
 
         // Phase 3: preflight — environmental checks, aggregate failures.
-        // TODO: each service exposes PreflightAsync(ct) returning PreflightFailure?
-        // (null on success). Lift the old Readiness check bodies into the relevant
-        // services as preflight methods and call them here.
-        var preflightFailures = new List<PreflightFailure>();
-        // preflightFailures.AddIfNotNull(await PreflightDataSourceAsync(dataSource, ct));     // connectivity, pg_vector
-        // preflightFailures.AddIfNotNull(await embeddingProvider.PreflightAsync(ct));         // /embeddings reachable
-        // if (llmProbe is not null)
-        //     preflightFailures.AddIfNotNull(await llmProbe.PreflightAsync(ct));              // /chat reachable
+        var preflightFailures = await RunPreflightAsync(
+            databasePreflight, embeddingProvider, llmProvider, ct);
         if (preflightFailures.Count > 0)
             throw new MinervaStartupException(preflightFailures);
 
@@ -135,6 +139,32 @@ public static class MinervaBuilder
             searchPipeline,
             collections,
             loggerFactory.CreateLogger<MinervaEngine>());
+    }
+
+    private static async Task<List<PreflightFailure>> RunPreflightAsync(
+        DatabasePreflight databasePreflight,
+        OpenAICompatibleEmbeddingProvider embeddingProvider,
+        OpenAICompatibleLlmProvider? llmProvider,
+        CancellationToken ct)
+    {
+        var failures = new List<PreflightFailure>();
+
+        var storageFailure = await databasePreflight.PreflightAsync(ct);
+        if (storageFailure is not null)
+            failures.Add(storageFailure);
+
+        var embeddingFailure = await embeddingProvider.PreflightAsync(ct);
+        if (embeddingFailure is not null)
+            failures.Add(embeddingFailure);
+
+        if (llmProvider is not null)
+        {
+            var llmFailure = await llmProvider.PreflightAsync(ct);
+            if (llmFailure is not null)
+                failures.Add(llmFailure);
+        }
+
+        return failures;
     }
 
     private static List<PreflightFailure> ValidateOptions(MinervaOptions options)
