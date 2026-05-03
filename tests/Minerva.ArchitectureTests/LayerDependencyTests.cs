@@ -5,14 +5,14 @@ namespace Minerva.ArchitectureTests;
 
 // Clean Architecture layer model (see docs/architecture.md):
 //   ENTITIES   : Minerva.Models, Minerva.Exceptions, Minerva.Utilities
-//   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search, Minerva.Readiness
-//   ADAPTERS   : Minerva.Storage, Minerva.Providers, Minerva.Readiness.Checks
-//   FRAMEWORK  : Minerva.Configuration, Minerva.DI
+//   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search
+//   ADAPTERS   : Minerva.Storage, Minerva.Providers
+//   FRAMEWORK  : Minerva.Configuration
 //
 // Source-code dependencies must point INWARD only (ENTITIES <- USE_CASES <- ADAPTERS <- FRAMEWORK).
 public class LayerDependencyTests
 {
-    private static readonly Assembly Minerva = typeof(MinervaEngine).Assembly;
+    private static readonly Assembly Minerva = typeof(IMinervaEngine).Assembly;
 
     // --- ENTITIES ring ---------------------------------------------------
 
@@ -24,9 +24,9 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Models")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Models (Entities ring) must not depend on any other Minerva.* namespace.");
@@ -39,9 +39,9 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Exceptions")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI",
+                "Minerva.Configuration",
                 "Minerva.Models", "Minerva.Utilities")
             .GetResult();
 
@@ -55,9 +55,9 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Utilities")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search", "Minerva.Readiness",
+                "Minerva.Collections", "Minerva.Ingestion", "Minerva.Search",
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI",
+                "Minerva.Configuration",
                 "Minerva.Models", "Minerva.Exceptions")
             .GetResult();
 
@@ -70,13 +70,13 @@ public class LayerDependencyTests
     public void Collections_DoesNotDependOnAdaptersOrFramework()
     {
         // why: Collections orchestrates entities; it must not know about Storage
-        // (Adapters) or Configuration/DI (Framework). Ports it needs should live
+        // (Adapters) or Configuration (Framework). Ports it needs should live
         // in the inner ring, not in Storage.
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Collections")
             .Should().NotHaveDependencyOnAny(
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Collections (Use Cases) must not depend on Adapters or Framework rings.");
@@ -91,7 +91,7 @@ public class LayerDependencyTests
             .That().ResideInNamespace("Minerva.Ingestion")
             .Should().NotHaveDependencyOnAny(
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Ingestion (Use Cases) must not depend on Adapters or Framework rings.");
@@ -106,27 +106,10 @@ public class LayerDependencyTests
             .That().ResideInNamespace("Minerva.Search")
             .Should().NotHaveDependencyOnAny(
                 "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Search (Use Cases) must not depend on Adapters or Framework rings.");
-    }
-
-    [Fact]
-    public void Readiness_DoesNotDependOnAdaptersOrFramework()
-    {
-        // why: Readiness contracts and the sequential checker live in the use-case ring.
-        // Concrete checks live in Minerva.Readiness.Checks (adapter ring) — see the
-        // ReadinessChecks_DoesNotDependOnFramework test below. Nothing under the
-        // exact Minerva.Readiness namespace should reach into Storage/Providers/Configuration/DI.
-        var result = Types.InAssembly(Minerva)
-            .That().ResideInNamespaceMatching(@"^Minerva\.Readiness$")
-            .Should().NotHaveDependencyOnAny(
-                "Minerva.Storage", "Minerva.Providers",
-                "Minerva.Configuration", "Minerva.DI")
-            .GetResult();
-
-        ArchAssert.Passes(result, "Minerva.Readiness (Use Cases) must not depend on Adapters or Framework rings.");
     }
 
     // --- ADAPTERS ring ---------------------------------------------------
@@ -140,36 +123,21 @@ public class LayerDependencyTests
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Providers")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Providers (Adapters) must not depend on the Framework ring.");
     }
 
     [Fact]
-    public void ReadinessChecks_DoesNotDependOnDi()
-    {
-        // why: Concrete readiness checks (Minerva.Readiness.Checks) sit in the Adapters
-        // ring — they may consume Npgsql, the OpenAI SDK, the use-case ports, and the
-        // central MinervaOptions (so they can detect feature-off and short-circuit) — but
-        // they must not couple to Minerva.DI's composition root.
-        var result = Types.InAssembly(Minerva)
-            .That().ResideInNamespace("Minerva.Readiness.Checks")
-            .Should().NotHaveDependencyOn("Minerva.DI")
-            .GetResult();
-
-        ArchAssert.Passes(result, "Minerva.Readiness.Checks (Adapters) must not depend on Minerva.DI.");
-    }
-
-    [Fact]
     public void Storage_DoesNotDependOnFramework()
     {
         // why: Storage adapters should be usable independent of how the host app
-        // wires configuration or DI.
+        // wires configuration.
         var result = Types.InAssembly(Minerva)
             .That().ResideInNamespace("Minerva.Storage")
             .Should().NotHaveDependencyOnAny(
-                "Minerva.Configuration", "Minerva.DI")
+                "Minerva.Configuration")
             .GetResult();
 
         ArchAssert.Passes(result, "Minerva.Storage (Adapters) must not depend on the Framework ring.");
@@ -184,7 +152,7 @@ public class LayerDependencyTests
         // IEmbeddingGenerator, ChatMessage, ChatRole). Use cases must talk to
         // Minerva-defined ports; provider adapters should wrap the MS.AI types.
         var result = Types.InAssembly(Minerva)
-            .That().ResideInNamespaceMatching(@"^Minerva(\.Collections|\.Ingestion|\.Search|\.Readiness)?$")
+            .That().ResideInNamespaceMatching(@"^Minerva(\.Collections|\.Ingestion|\.Search)?$")
             .Should().NotHaveDependencyOn("Microsoft.Extensions.AI")
             .GetResult();
 

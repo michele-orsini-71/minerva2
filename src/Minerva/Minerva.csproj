@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <InternalsVisibleTo Include="Minerva.Tests" />
+    <InternalsVisibleTo Include="Minerva.IntegrationTests" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Storage/Migrations/*.sql" />

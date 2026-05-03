@@ -1,11 +1,13 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
+using Minerva.Collections;
 using Minerva.Configuration;
-using Minerva.DI;
 using Minerva.Ingestion;
+using Minerva.IntegrationTests.Storage;
 using Minerva.Models;
+using Minerva.Search;
 using Minerva.Storage;
-using Npgsql;
 
 namespace Minerva.IntegrationTests.EndToEnd;
 
@@ -13,72 +15,70 @@ namespace Minerva.IntegrationTests.EndToEnd;
 [Trait("Category", "E2E")]
 public class MinervaEngineE2ETests : IAsyncLifetime
 {
-    private const string DefaultConnectionString =
-        "Host=localhost;Database=minerva_test;Username=postgres;Password=postgres";
     private const int EmbeddingDimension = 16;
     private const string CollectionName = "e2e-collection";
+    private const string EmbeddingModel = "mock-embedding";
 
-    private ServiceProvider _provider = null!;
-    private IMinervaEngine _engine = null!;
-    private NpgsqlDataSource _dataSource = null!;
+    private readonly StorageTestFixture _fixture;
+    private readonly IMinervaEngine _engine;
 
-    public async Task InitializeAsync()
+    public MinervaEngineE2ETests(StorageTestFixture fixture)
     {
-        var connectionString = Environment.GetEnvironmentVariable("MINERVA_TEST_CONNSTRING")
-            ?? DefaultConnectionString;
+        _fixture = fixture;
 
-        var services = new ServiceCollection();
-        services.AddLogging();
-
-        // Pre-register mock embedding so AddMinerva's TryAdd doesn't overwrite it.
-        services.AddSingleton<IEmbeddingClient>(new MockEmbeddingGenerator(EmbeddingDimension));
-
-        services.AddMinerva(options =>
+        var chunking = new ChunkingOptions
         {
-            options.ConnectionString = connectionString;
-            options.Embedding = new ProviderOptions
-            {
-                BaseUrl = "http://localhost:0/",
-                Model = "mock-embedding",
-                BatchSize = 4,
-            };
-            options.Chunking = new ChunkingOptions
-            {
-                TargetChunkSize = 600,
-                ChunkOverlap = 100,
-                EnableSummarization = false,
-                EnableContextualization = false,
-            };
-        });
+            TargetChunkSize = 600,
+            ChunkOverlap = 100,
+            EnableSummarization = false,
+            EnableContextualization = false,
+        };
 
-        _provider = services.BuildServiceProvider();
-        _dataSource = _provider.GetRequiredService<NpgsqlDataSource>();
+        var mockEmbeddings = new MockEmbeddingGenerator(EmbeddingDimension);
+        var loggerFactory = NullLoggerFactory.Instance;
 
-        await CleanDatabaseAsync();
-        await _provider.GetRequiredService<SchemaInitializer>().InitializeAsync();
+        var chunkRepository = new PostgresChunkRepository(fixture.DataSource);
+        var collectionRepository = new PostgresCollectionRepository(fixture.DataSource);
 
-        _engine = _provider.GetRequiredService<IMinervaEngine>();
+        var embeddingService = new EmbeddingService(
+            mockEmbeddings,
+            batchSize: 4,
+            loggerFactory.CreateLogger<EmbeddingService>());
+
+        var ingestionPipeline = new IngestionPipeline(
+            new DocumentChunker(chunking),
+            embeddingService,
+            summarizer: null,
+            contextualizer: null,
+            chunkRepository,
+            loggerFactory.CreateLogger<IngestionPipeline>());
+
+        var searchPipeline = new SearchPipeline(
+            embeddingService,
+            new VectorSearch(chunkRepository),
+            new FullTextSearch(chunkRepository),
+            new ContextExpander(chunkRepository),
+            loggerFactory.CreateLogger<SearchPipeline>());
+
+        var collections = new CollectionManager(
+            collectionRepository, fixture.SchemaInitializer, EmbeddingModel, mockEmbeddings);
+
+        _engine = new MinervaEngine(
+            ingestionPipeline,
+            searchPipeline,
+            collections,
+            chunkRepository,
+            EmbeddingModel,
+            mockEmbeddings,
+            loggerFactory.CreateLogger<MinervaEngine>());
     }
 
-    public async Task DisposeAsync()
-    {
-        await CleanDatabaseAsync();
-        await _provider.DisposeAsync();
-    }
+    public Task InitializeAsync() => _fixture.CleanupAsync(honorDisableFlag: false);
+    public Task DisposeAsync() => _fixture.CleanupAsync();
 
     [Fact]
-    public async Task IngestSearchRemove_FullCycle()
+    public async Task IngestSearchDelete_FullCycle()
     {
-        // 1. Create the collection.
-        await _engine.Collections.CreateAsync(
-            CollectionName, "mock-embedding", EmbeddingDimension,
-            description: "E2E test collection");
-
-        var created = await _engine.Collections.GetAsync(CollectionName);
-        Assert.NotNull(created);
-        Assert.Equal(EmbeddingDimension, created.EmbeddingDimension);
-
-        // 2. Ingest two documents.
         var docA = new Document(
             SourceId: "doc-a",
             Title: "PostgreSQL Guide",
@@ -93,40 +93,40 @@ public class MinervaEngineE2ETests : IAsyncLifetime
                   "Tomorrow will bring fog in the morning and clear afternoon skies. " +
                   "The weekly forecast calls for consistent mild temperatures.");
 
-        var resultA = await _engine.IngestAsync(CollectionName, docA);
-        var resultB = await _engine.IngestAsync(CollectionName, docB);
+        // 1. First ingest: both docs are new (collection auto-created).
+        var first = await _engine.IngestAsync(CollectionName, AsAsync(docA, docB));
+        Assert.Equal(2, first.Added);
+        Assert.Equal(0, first.Updated);
+        Assert.Equal(0, first.Deleted);
+        Assert.Equal(0, first.Unchanged);
 
-        Assert.Equal(1, resultA.Added);
-        Assert.Equal(1, resultB.Added);
+        // 2. Re-ingest the same set: both unchanged.
+        var second = await _engine.IngestAsync(CollectionName, AsAsync(docA, docB));
+        Assert.Equal(0, second.Added);
+        Assert.Equal(0, second.Updated);
+        Assert.Equal(0, second.Deleted);
+        Assert.Equal(2, second.Unchanged);
 
-        // 3. Re-ingesting an unchanged document is a no-op.
-        var resultANoop = await _engine.IngestAsync(CollectionName, docA);
-        Assert.Equal(1, resultANoop.Unchanged);
-        Assert.Equal(0, resultANoop.Added);
-        Assert.Equal(0, resultANoop.Updated);
-
-        // 4. Search for a term that appears in docA — it should dominate.
-        var dbResults = await _engine.SearchAsync(
+        // 3. Search dominated by docA's content.
+        var results = await _engine.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
             new SearchOptions(TopK: 5));
+        Assert.NotEmpty(results);
+        Assert.Equal("doc-a", results[0].SourceId);
 
-        Assert.NotEmpty(dbResults);
-        Assert.Equal("doc-a", dbResults[0].SourceId);
+        // 4. Re-ingest with only docB: docA must be deleted by the diff.
+        var third = await _engine.IngestAsync(CollectionName, AsAsync(docB));
+        Assert.Equal(0, third.Added);
+        Assert.Equal(0, third.Updated);
+        Assert.Equal(1, third.Deleted);
+        Assert.Equal(1, third.Unchanged);
 
-        // 5. Remove docA, search again — it should no longer appear.
-        await _engine.RemoveAsync(CollectionName, "doc-a");
-
-        var afterRemove = await _engine.SearchAsync(
+        var afterDelete = await _engine.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
             new SearchOptions(TopK: 5));
-
-        Assert.DoesNotContain(afterRemove, r => r.SourceId == "doc-a");
-
-        // 6. Delete the collection.
-        await _engine.Collections.DeleteAsync(CollectionName);
-        Assert.Null(await _engine.Collections.GetAsync(CollectionName));
+        Assert.DoesNotContain(afterDelete, r => r.SourceId == "doc-a");
     }
 
     [Fact]
@@ -136,19 +136,12 @@ public class MinervaEngineE2ETests : IAsyncLifetime
             _engine.SearchAsync("anything", ["does-not-exist"]));
     }
 
-    [Fact]
-    public async Task IngestAsync_UnknownCollection_Throws()
+    private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)
     {
-        var doc = new Document("orphan", "t", "body text");
-        await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _engine.IngestAsync("does-not-exist", doc));
-    }
-
-    private async Task CleanDatabaseAsync()
-    {
-        await using var conn = await _dataSource.OpenConnectionAsync();
-        await using var cmd = new NpgsqlCommand(
-            "DELETE FROM chunks; DELETE FROM collections;", conn);
-        await cmd.ExecuteNonQueryAsync();
+        foreach (var d in docs)
+        {
+            yield return d;
+            await Task.Yield();
+        }
     }
 }

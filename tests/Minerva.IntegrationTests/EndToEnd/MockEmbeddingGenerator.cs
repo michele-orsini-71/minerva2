@@ -2,12 +2,7 @@ using Minerva.Ingestion;
 
 namespace Minerva.IntegrationTests.EndToEnd;
 
-/// <summary>
-/// Deterministic pseudo-random unit-vector embeddings keyed off the input text.
-/// Same input → same vector, so semantic similarity between duplicate inputs is 1.0
-/// and between different inputs is low.
-/// </summary>
-public sealed class MockEmbeddingGenerator : IEmbeddingClient
+public sealed class MockEmbeddingGenerator : IEmbeddingClient, IEmbeddingDimensionProvider
 {
     private readonly int _dimension;
 
@@ -25,11 +20,15 @@ public sealed class MockEmbeddingGenerator : IEmbeddingClient
         return Task.FromResult<IReadOnlyList<float[]>>(result);
     }
 
+    public Task<int> GetDimensionAsync(CancellationToken ct = default) =>
+        Task.FromResult(_dimension);
+
     public void Dispose() { }
 
     private static float[] DeterministicUnitVector(string text, int dimension)
     {
-        // Seed per-input so repeated ingests of identical text produce the same vector.
+        // Same input → same vector, so identical inputs have similarity 1.0
+        // and different inputs sit far apart on the unit sphere.
         var rng = new Random(text.GetHashCode(StringComparison.Ordinal));
         var vector = new float[dimension];
         float sumSquares = 0;

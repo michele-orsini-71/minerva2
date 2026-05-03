@@ -1,5 +1,6 @@
 using Minerva.Collections;
 using Minerva.Exceptions;
+using Minerva.Ingestion;
 using Minerva.Models;
 using NSubstitute;
 
@@ -18,9 +19,12 @@ public class CollectionManagerTests
     {
         repo = Substitute.For<ICollectionRepository>();
         provisioner = Substitute.For<ICollectionProvisioner>();
+        var dimensionProvider = Substitute.For<IEmbeddingDimensionProvider>();
+        dimensionProvider.GetDimensionAsync(Arg.Any<CancellationToken>())
+            .Returns(ValidDimension);
         repo.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((Collection?)null);
-        return new CollectionManager(repo, provisioner);
+        return new CollectionManager(repo, provisioner, ValidModel, dimensionProvider);
     }
 
     [Theory]

@@ -75,7 +75,7 @@ public class SmokeTests
         Environment.SetEnvironmentVariable("MINERVA_TEST_KEY", "resolved-value");
         try
         {
-            var result = CredentialResolver.Resolve("${MINERVA_TEST_KEY}");
+            var result = new CredentialResolver("${MINERVA_TEST_KEY}").Resolve();
             Assert.Equal("resolved-value", result);
         }
         finally
@@ -87,7 +87,7 @@ public class SmokeTests
     [Fact]
     public void CredentialResolver_rejects_literal_api_key()
     {
-        Assert.Throws<ConfigurationException>(() => CredentialResolver.Resolve("sk-abc123"));
+        Assert.Throws<ConfigurationException>(() => new CredentialResolver("sk-abc123"));
     }
 
     [Fact]
@@ -95,13 +95,14 @@ public class SmokeTests
     {
         Environment.SetEnvironmentVariable("MINERVA_NONEXISTENT", null);
 
-        Assert.Throws<ConfigurationException>(() => CredentialResolver.Resolve("${MINERVA_NONEXISTENT}"));
+        Assert.Throws<ConfigurationException>(
+            () => new CredentialResolver("${MINERVA_NONEXISTENT}").Resolve());
     }
 
     [Fact]
     public void CredentialResolver_passes_through_plain_values()
     {
-        var result = CredentialResolver.Resolve("http://localhost:11434");
+        var result = new CredentialResolver("http://localhost:11434").Resolve();
         Assert.Equal("http://localhost:11434", result);
     }
 }

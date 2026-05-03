@@ -47,9 +47,6 @@ public class IngestionPipelineTests
                     .Select(_ => SampleVector).ToArray()));
 
         var repo = Substitute.For<IChunkWriter>();
-        repo.GetContentHashAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((string?)null);
 
         IDocumentSummarizer? summarizer = null;
         if (withSummarizer)
@@ -91,10 +88,8 @@ public class IngestionPipelineTests
         var bed = CreatePipeline();
         var doc = new Document(SourceId, "Title", "Some content here.");
         var contentHash = HashHelper.ComputeContentHash(doc.Text);
-        bed.Repo.GetContentHashAsync(CollectionName, SourceId, Arg.Any<CancellationToken>())
-            .Returns(contentHash);
 
-        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc, contentHash);
 
         Assert.Equal(1, result.Unchanged);
         Assert.Equal(0, result.Added);
@@ -110,7 +105,7 @@ public class IngestionPipelineTests
         var bed = CreatePipeline();
         var doc = new Document(SourceId, "Title", "Some content here.");
 
-        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         Assert.Equal(1, result.Added);
         Assert.Equal(0, result.Updated);
@@ -122,10 +117,9 @@ public class IngestionPipelineTests
     {
         var bed = CreatePipeline();
         var doc = new Document(SourceId, "Title", "New content.");
-        bed.Repo.GetContentHashAsync(CollectionName, SourceId, Arg.Any<CancellationToken>())
-            .Returns("old-hash-that-wont-match");
 
-        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(
+            CollectionName, doc, storedContentHash: "old-hash-that-wont-match");
 
         Assert.Equal(1, result.Updated);
         Assert.Equal(0, result.Added);
@@ -138,7 +132,7 @@ public class IngestionPipelineTests
         var bed = CreatePipeline(withSummarizer: false, withContextualizer: false);
         var doc = new Document(SourceId, "Title", "Content.");
 
-        var result = await bed.Pipeline.IngestAsync(CollectionName, doc);
+        var result = await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         Assert.Equal(1, result.Added);
         await bed.Repo.Received(1).UpsertChunksAsync(
@@ -161,7 +155,7 @@ public class IngestionPipelineTests
             ]);
         var doc = new Document(SourceId, "Title", "text");
 
-        await bed.Pipeline.IngestAsync(CollectionName, doc);
+        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         await bed.Repo.Received(1).UpsertChunksAsync(
             CollectionName, SourceId,
@@ -188,7 +182,7 @@ public class IngestionPipelineTests
         var doc = new Document(SourceId, "Title", "Content.");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => bed.Pipeline.IngestAsync(CollectionName, doc));
+            () => bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null));
 
         await bed.Repo.DidNotReceive().UpsertChunksAsync(
             Arg.Any<string>(), Arg.Any<string>(),
@@ -217,7 +211,7 @@ public class IngestionPipelineTests
         var doc = new Document(
             SourceId, "Title", "See ![[img.png]] here.", Attachments: attachments);
 
-        await bed.Pipeline.IngestAsync(CollectionName, doc);
+        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         await bed.Repo.Received(1).UpsertChunksAsync(
             CollectionName, SourceId,
@@ -232,7 +226,7 @@ public class IngestionPipelineTests
         var bed = CreatePipeline(withSummarizer: true, withContextualizer: true);
         var doc = new Document(SourceId, "Title", "Content.");
 
-        await bed.Pipeline.IngestAsync(CollectionName, doc);
+        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         await bed.Repo.Received(1).UpsertChunksAsync(
             CollectionName, SourceId,

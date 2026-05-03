@@ -1,11 +1,5 @@
 using System.ClientModel;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Minerva.Configuration;
-using Minerva.DI;
 using Minerva.Exceptions;
-using Minerva.Ingestion;
-using Minerva.Models;
 using Minerva.Providers;
 
 namespace Minerva.Tests.Providers;
@@ -99,28 +93,6 @@ public class EmbeddingDimensionProviderTests
             () => provider.GetDimensionAsync(CancellationToken.None));
 
         Assert.IsType<ClientResultException>(ex.InnerException);
-    }
-
-    [Fact]
-    public void DiContainer_ResolvesEmbeddingClientAndDimensionProvider_ToSameSingleton()
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddMinerva(opt =>
-        {
-            opt.ConnectionString = "Host=localhost";
-            opt.Embedding = new ProviderOptions
-            {
-                BaseUrl = "http://localhost",
-                Model = "test-model",
-            };
-        });
-
-        using var sp = services.BuildServiceProvider();
-        var asClient = sp.GetRequiredService<IEmbeddingClient>();
-        var asDimension = sp.GetRequiredService<IEmbeddingDimensionProvider>();
-
-        Assert.Same(asClient, asDimension);
     }
 
     private static OpenAICompatibleEmbeddingProvider CreateProvider(IEmbeddingProbeFacade facade)

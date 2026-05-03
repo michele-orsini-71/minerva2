@@ -20,11 +20,10 @@ public class ProviderFactoryTests
     [Fact]
     public void CreateEmbeddingProvider_ValidOptions_ReturnsProvider()
     {
-        var factory = new ProviderFactory();
-        using var provider = factory.CreateEmbeddingProvider(ValidOptions());
+        var factory = new ProviderFactory(ValidOptions(), llm: null);
+        using var provider = (OpenAICompatibleEmbeddingProvider)factory.CreateEmbeddingProvider();
 
         Assert.NotNull(provider);
-        Assert.IsType<OpenAICompatibleEmbeddingProvider>(provider);
     }
 
     [Fact]
@@ -33,9 +32,9 @@ public class ProviderFactoryTests
         Environment.SetEnvironmentVariable("MINERVA_TEST_KEY", "resolved-value");
         try
         {
-            var factory = new ProviderFactory();
-            using var provider = factory.CreateEmbeddingProvider(
-                ValidOptions(apiKey: "${MINERVA_TEST_KEY}"));
+            var factory = new ProviderFactory(
+                ValidOptions(apiKey: "${MINERVA_TEST_KEY}"), llm: null);
+            using var provider = (OpenAICompatibleEmbeddingProvider)factory.CreateEmbeddingProvider();
 
             Assert.NotNull(provider);
         }
@@ -48,37 +47,33 @@ public class ProviderFactoryTests
     [Fact]
     public void CreateEmbeddingProvider_LiteralApiKey_ThrowsConfigurationException()
     {
-        var factory = new ProviderFactory();
-
+        // Resolution happens eagerly in the factory ctor.
         Assert.Throws<ConfigurationException>(
-            () => factory.CreateEmbeddingProvider(ValidOptions(apiKey: "sk-12345")));
+            () => new ProviderFactory(ValidOptions(apiKey: "sk-12345"), llm: null));
     }
 
     [Fact]
     public void CreateLlmProvider_ValidOptions_ReturnsProvider()
     {
-        var factory = new ProviderFactory();
-        using var provider = factory.CreateLlmProvider(ValidOptions());
+        var factory = new ProviderFactory(ValidOptions(), llm: ValidOptions());
 
+        Assert.True(factory.HasLlm);
+        using var provider = (OpenAICompatibleLlmProvider)factory.CreateLlmProvider();
         Assert.NotNull(provider);
-        Assert.IsType<OpenAICompatibleLlmProvider>(provider);
     }
 
     [Fact]
-    public void CreateLlmProvider_NullOptions_ReturnsNull()
+    public void HasLlm_NullLlmOptions_IsFalse()
     {
-        var factory = new ProviderFactory();
-        var provider = factory.CreateLlmProvider(null);
+        var factory = new ProviderFactory(ValidOptions(), llm: null);
 
-        Assert.Null(provider);
+        Assert.False(factory.HasLlm);
     }
 
     [Fact]
     public void CreateLlmProvider_LiteralApiKey_ThrowsConfigurationException()
     {
-        var factory = new ProviderFactory();
-
         Assert.Throws<ConfigurationException>(
-            () => factory.CreateLlmProvider(ValidOptions(apiKey: "AIzaSyTest123")));
+            () => new ProviderFactory(ValidOptions(), llm: ValidOptions(apiKey: "AIzaSyTest123")));
     }
 }
