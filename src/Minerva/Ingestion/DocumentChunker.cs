@@ -76,28 +76,101 @@ public class DocumentChunker : IDocumentChunker
 
     private List<string> SplitIntoChunks(string text)
     {
-        // Stage 1: Split at heading boundaries using Markdig
         var sections = SplitByHeaders(text);
 
-        // Stage 2: Split oversized sections recursively
-        var result = new List<string>();
+        var chunks = new List<string>();
+        var current = new StringBuilder();
+        const string sep = "\n\n";
+
         foreach (var section in sections)
         {
             if (section.Length > _options.TargetChunkSize)
-                result.AddRange(RecursiveSplit(section, _options.TargetChunkSize, _options.ChunkOverlap, _logger));
+            {
+                string? extraPrefix = null;
+                if (current.Length > 0)
+                {
+                    var currentStr = current.ToString();
+                    if (IsHeaderOnly(currentStr))
+                        extraPrefix = currentStr;
+                    else
+                        chunks.Add(currentStr);
+                    current.Clear();
+                }
+                chunks.AddRange(SplitOversizedSection(section, extraPrefix));
+            }
+            else if (current.Length > 0 && current.Length + sep.Length + section.Length > _options.TargetChunkSize)
+            {
+                chunks.Add(current.ToString());
+                current.Clear();
+                current.Append(section);
+            }
             else
-                result.Add(section);
+            {
+                if (current.Length > 0) current.Append(sep);
+                current.Append(section);
+            }
         }
 
-        // Stage 3: tail absorption — fold a too-small final chunk into its predecessor
+        if (current.Length > 0)
+            chunks.Add(current.ToString());
+
+        // Tail absorption: fold a too-small final chunk into its predecessor.
         int minChunkSize = _options.TargetChunkSize / 4;
-        if (result.Count >= 2 && result[^1].Length < minChunkSize)
+        if (chunks.Count >= 2 && chunks[^1].Length < minChunkSize)
         {
-            result[^2] = result[^2] + "\n\n" + result[^1];
-            result.RemoveAt(result.Count - 1);
+            chunks[^2] = chunks[^2] + "\n\n" + chunks[^1];
+            chunks.RemoveAt(chunks.Count - 1);
         }
 
-        return result;
+        return chunks;
+    }
+
+    private List<string> SplitOversizedSection(string section, string? extraPrefix = null)
+    {
+        var (heading, body) = SplitHeadingFromBody(section);
+
+        var combinedPrefix = (extraPrefix, heading) switch
+        {
+            (not null, not null) => extraPrefix + "\n\n" + heading,
+            (not null, null) => extraPrefix,
+            (null, not null) => heading,
+            _ => null,
+        };
+
+        if (combinedPrefix is null)
+            return RecursiveSplit(body, _options.TargetChunkSize, _options.ChunkOverlap, _logger);
+
+        int bodyMaxSize = _options.TargetChunkSize - combinedPrefix.Length - 2;
+        if (bodyMaxSize < _options.TargetChunkSize / 2)
+            bodyMaxSize = _options.TargetChunkSize / 2;
+
+        var bodyChunks = RecursiveSplit(body, bodyMaxSize, _options.ChunkOverlap, _logger);
+        return bodyChunks.Select(c => combinedPrefix + "\n\n" + c).ToList();
+    }
+
+    private static (string? heading, string body) SplitHeadingFromBody(string section)
+    {
+        if (!section.StartsWith('#'))
+            return (null, section);
+
+        int newlinePos = section.IndexOf('\n');
+        if (newlinePos < 0)
+            return (section, string.Empty);
+
+        var heading = section[..newlinePos].TrimEnd('\r');
+        var body = section[(newlinePos + 1)..].TrimStart();
+        return (heading, body);
+    }
+
+    private static bool IsHeaderOnly(string section)
+    {
+        foreach (var line in section.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            if (!trimmed.StartsWith('#')) return false;
+        }
+        return true;
     }
 
     internal static List<string> SplitByHeaders(string text)
@@ -195,16 +268,11 @@ public class DocumentChunker : IDocumentChunker
                     current.RemoveAt(0);
             }
 
-            // If the split is too big to fit alongside even the trimmed carry, flush
-            // the carry alone so the split stands on its own. Otherwise the joined
-            // chunk would exceed maxSize and the caller's RecursiveSplit would try
-            // the same separator on it again — producing the identical shape and
-            // recursing forever.
+            // If the split is too big to fit alongside even the trimmed carry, drop
+            // the carry so the split stands on its own. The carry was already emitted
+            // by the flush above; re-emitting it here would duplicate.
             if (current.Count > 0 && JoinedLength() + separator.Length + split.Length > maxSize)
-            {
-                result.Add(string.Join(separator, current));
                 current.Clear();
-            }
 
             current.Add(split);
         }

@@ -33,9 +33,9 @@ public class DocumentChunkerTests
             Content of section two.
             """;
 
-        // Small TargetChunkSize keeps each section above the tail-absorption threshold (Target/4),
-        // so heading-based splits aren't folded back together.
-        var chunker = CreateChunker(targetChunkSize: 80, overlap: 10);
+        // Small TargetChunkSize prevents adjacent sections from being packed together,
+        // so each heading boundary produces a separate chunk.
+        var chunker = CreateChunker(targetChunkSize: 50, overlap: 10);
         var chunks = chunker.Chunk("coll", "src1", markdown);
 
         Assert.True(chunks.Count >= 3, $"Expected at least 3 chunks, got {chunks.Count}");
@@ -193,5 +193,35 @@ public class DocumentChunkerTests
 
         Assert.True(result.Count >= 2);
         Assert.Contains(result, s => s.Contains("Paragraph one"));
+    }
+
+    [Fact]
+    public void Chunk_HeaderOnlySectionFollowedByOversized_NoOrphanedHeader()
+    {
+        var markdown = LoadFixture("orphan_header_before_oversized.md");
+        var chunker = CreateChunker(targetChunkSize: 1200, overlap: 200);
+
+        var chunks = chunker.Chunk("coll", "src1", markdown);
+
+        Assert.All(chunks, c =>
+            Assert.False(IsHeaderOnly(c.Content),
+                $"Chunk {c.ChunkIndex} is header-only:\n{c.Content}"));
+    }
+
+    private static string LoadFixture(string name)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
+        return File.ReadAllText(path);
+    }
+
+    private static bool IsHeaderOnly(string content)
+    {
+        foreach (var line in content.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            if (!trimmed.StartsWith('#')) return false;
+        }
+        return true;
     }
 }

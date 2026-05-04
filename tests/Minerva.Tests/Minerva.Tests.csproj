@@ -21,4 +21,10 @@
     <ProjectReference Include="..\..\src\Minerva.MarkdownIndexer\Minerva.MarkdownIndexer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Fixtures\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
