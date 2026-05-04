@@ -484,3 +484,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Chunk comparator files
+chunk-comparison
+chunk-comparison
