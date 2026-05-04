@@ -195,6 +195,17 @@ public class DocumentChunker : IDocumentChunker
                     current.RemoveAt(0);
             }
 
+            // If the split is too big to fit alongside even the trimmed carry, flush
+            // the carry alone so the split stands on its own. Otherwise the joined
+            // chunk would exceed maxSize and the caller's RecursiveSplit would try
+            // the same separator on it again — producing the identical shape and
+            // recursing forever.
+            if (current.Count > 0 && JoinedLength() + separator.Length + split.Length > maxSize)
+            {
+                result.Add(string.Join(separator, current));
+                current.Clear();
+            }
+
             current.Add(split);
         }
 
