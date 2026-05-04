@@ -33,7 +33,9 @@ public class DocumentChunkerTests
             Content of section two.
             """;
 
-        var chunker = CreateChunker();
+        // Small TargetChunkSize keeps each section above the tail-absorption threshold (Target/4),
+        // so heading-based splits aren't folded back together.
+        var chunker = CreateChunker(targetChunkSize: 80, overlap: 10);
         var chunks = chunker.Chunk("coll", "src1", markdown);
 
         Assert.True(chunks.Count >= 3, $"Expected at least 3 chunks, got {chunks.Count}");

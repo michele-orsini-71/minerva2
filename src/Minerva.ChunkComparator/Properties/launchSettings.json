@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Minerva.ChunkComparator": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "debug"
+      }
+    }
+  }
+}

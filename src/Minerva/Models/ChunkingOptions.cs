@@ -1,5 +1,11 @@
 namespace Minerva.Models;
 
+public enum ChunkerType
+{
+    Custom,
+    SemanticKernel,
+}
+
 public class ChunkingOptions
 {
     public int TargetChunkSize { get; set; } = 1200;
@@ -7,4 +13,5 @@ public class ChunkingOptions
     public bool EnableSummarization { get; set; }
     public bool EnableContextualization { get; set; }
     public int LargeDocumentThreshold { get; set; } = 8000;
+    public ChunkerType ChunkerType { get; set; } = ChunkerType.Custom;
 }

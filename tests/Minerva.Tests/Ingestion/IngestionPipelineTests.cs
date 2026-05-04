@@ -224,6 +224,16 @@ public class IngestionPipelineTests
     public async Task IngestAsync_WithContextualizer_AppliesPrefixes()
     {
         var bed = CreatePipeline(withSummarizer: true, withContextualizer: true);
+
+        // Multi-chunk path: contextualization (and the summarizer it depends on) only runs when
+        // a doc produces more than one chunk. Override the default 1-chunk mock to return 2.
+        bed.Chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(ci => (IReadOnlyList<Chunk>)
+            [
+                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 0, ci.ArgAt<string>(2)),
+                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 1, ci.ArgAt<string>(2)),
+            ]);
+
         var doc = new Document(SourceId, "Title", "Content.");
 
         await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);

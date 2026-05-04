@@ -1,6 +1,7 @@
 using System.Text;
 using Markdig;
 using Markdig.Syntax;
+using Microsoft.Extensions.Logging;
 using Minerva.Exceptions;
 using Minerva.Models;
 using Minerva.Utilities;
@@ -10,10 +11,12 @@ namespace Minerva.Ingestion;
 public class DocumentChunker : IDocumentChunker
 {
     private readonly ChunkingOptions _options;
+    private readonly ILogger<DocumentChunker>? _logger;
 
-    public DocumentChunker(ChunkingOptions options)
+    public DocumentChunker(ChunkingOptions options, ILogger<DocumentChunker>? logger = null)
     {
         _options = options;
+        _logger = logger;
     }
 
     /// <summary>
@@ -81,9 +84,17 @@ public class DocumentChunker : IDocumentChunker
         foreach (var section in sections)
         {
             if (section.Length > _options.TargetChunkSize)
-                result.AddRange(RecursiveSplit(section, _options.TargetChunkSize, _options.ChunkOverlap));
+                result.AddRange(RecursiveSplit(section, _options.TargetChunkSize, _options.ChunkOverlap, _logger));
             else
                 result.Add(section);
+        }
+
+        // Stage 3: tail absorption — fold a too-small final chunk into its predecessor
+        int minChunkSize = _options.TargetChunkSize / 4;
+        if (result.Count >= 2 && result[^1].Length < minChunkSize)
+        {
+            result[^2] = result[^2] + "\n\n" + result[^1];
+            result.RemoveAt(result.Count - 1);
         }
 
         return result;
@@ -125,12 +136,12 @@ public class DocumentChunker : IDocumentChunker
         return sections;
     }
 
-    internal static List<string> RecursiveSplit(string text, int maxSize, int overlap)
+    internal static List<string> RecursiveSplit(string text, int maxSize, int overlap, ILogger? logger = null)
     {
         if (text.Length <= maxSize)
             return [text];
 
-        string[] separators = ["\n\n", "\n", " "];
+        string[] separators = ["\n\n", "\n", ". ", "; ", " "];
 
         foreach (var sep in separators)
         {
@@ -145,22 +156,20 @@ public class DocumentChunker : IDocumentChunker
             foreach (var chunk in merged)
             {
                 if (chunk.Length > maxSize)
-                    result.AddRange(RecursiveSplit(chunk, maxSize, overlap));
+                    result.AddRange(RecursiveSplit(chunk, maxSize, overlap, logger));
                 else
                     result.Add(chunk);
             }
             return result;
         }
 
-        // Last resort: hard character split
-        var hardChunks = new List<string>();
-        int step = Math.Max(1, maxSize - overlap);
-        for (int i = 0; i < text.Length; i += step)
-        {
-            hardChunks.Add(text.Substring(i, Math.Min(maxSize, text.Length - i)));
-            if (i + maxSize >= text.Length) break;
-        }
-        return hardChunks;
+        // No usable separator anywhere — emit as a single oversized chunk and warn,
+        // rather than slicing mid-token. Downstream embedding may reject it; failing
+        // loudly is better than silent corruption.
+        logger?.LogWarning(
+            "Could not split a {Length}-char section within maxSize={Max}; emitting oversized chunk",
+            text.Length, maxSize);
+        return [text];
     }
 
     private static List<string> MergeSplitsWithOverlap(

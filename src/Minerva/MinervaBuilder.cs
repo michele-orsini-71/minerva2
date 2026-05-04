@@ -103,7 +103,12 @@ public static class MinervaBuilder
                 ? new ChunkContextualizer(llmClient)
                 : null;
 
-        IDocumentChunker chunker = new DocumentChunker(options.Chunking);
+        IDocumentChunker chunker = options.Chunking.ChunkerType switch
+        {
+            ChunkerType.SemanticKernel => new SemanticKernelChunker(options.Chunking),
+            _ => new DocumentChunker(
+                options.Chunking, loggerFactory.CreateLogger<DocumentChunker>()),
+        };
 
         var ingestionPipeline = new IngestionPipeline(
             chunker,

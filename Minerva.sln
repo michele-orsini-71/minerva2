@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.IntegrationTests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.ArchitectureTests", "tests\Minerva.ArchitectureTests\Minerva.ArchitectureTests.csproj", "{4205E18F-0EDF-4C2D-8680-67D914962BD3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.ChunkComparator", "src\Minerva.ChunkComparator\Minerva.ChunkComparator.csproj", "{21BD604B-FEF7-4355-B0D9-60F766F90E94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{4205E18F-0EDF-4C2D-8680-67D914962BD3}.Release|x64.Build.0 = Release|Any CPU
 		{4205E18F-0EDF-4C2D-8680-67D914962BD3}.Release|x86.ActiveCfg = Release|Any CPU
 		{4205E18F-0EDF-4C2D-8680-67D914962BD3}.Release|x86.Build.0 = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|x64.Build.0 = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Debug|x86.Build.0 = Debug|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|x64.ActiveCfg = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|x64.Build.0 = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|x86.ActiveCfg = Release|Any CPU
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,5 +111,6 @@ Global
 		{F3CD8234-3C8C-436C-BBBF-CA6357B4D2D7} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{1F23C684-494D-4699-B8F2-E8865B46F13B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{4205E18F-0EDF-4C2D-8680-67D914962BD3} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{21BD604B-FEF7-4355-B0D9-60F766F90E94} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
