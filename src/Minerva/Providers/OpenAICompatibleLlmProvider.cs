@@ -11,7 +11,7 @@ namespace Minerva.Providers;
 
 internal interface IChatClientFacade
 {
-    Task CompleteChatAsync(
+    Task<OAI.ChatCompletion> CompleteChatAsync(
         IList<OAI.ChatMessage> messages,
         OAI.ChatCompletionOptions options,
         CancellationToken ct);
@@ -163,13 +163,15 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
     {
         var options = new OAI.ChatCompletionOptions { MaxOutputTokenCount = 5 };
         var messages = new List<OAI.ChatMessage> { new OAI.UserChatMessage("ping") };
-        try
+        var completion = await _probeFacade.CompleteChatAsync(messages, options, ct);
+
+        var requested = Metadata.DefaultModelId;
+        var served = completion.Model;
+        if (!string.Equals(served, requested, StringComparison.Ordinal))
         {
-            await _probeFacade.CompleteChatAsync(messages, options, ct);
-        }
-        catch (ClientResultException ex) when (ex.Status == 400)
-        {
-            // A reasoning model rejecting our probe params is still demonstrably reachable.
+            throw new InvalidOperationException(
+                $"Server responded with model '{served}', not the configured '{requested}'. " +
+                $"Check the model name in configuration matches exactly what the server exposes.");
         }
     }
 
@@ -244,12 +246,13 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
 
         public SdkChatClientFacade(OAI.ChatClient client) => _client = client;
 
-        public async Task CompleteChatAsync(
+        public async Task<OAI.ChatCompletion> CompleteChatAsync(
             IList<OAI.ChatMessage> messages,
             OAI.ChatCompletionOptions options,
             CancellationToken ct)
         {
-            await _client.CompleteChatAsync(messages, options, ct);
+            var result = await _client.CompleteChatAsync(messages, options, ct);
+            return result.Value;
         }
     }
 

@@ -59,6 +59,7 @@ internal class MinervaEngine : IMinervaEngine
             added += result.Added;
             updated += result.Updated;
             unchanged += result.Unchanged;
+            deleted += result.Deleted;
             seen.Add(document.SourceId);
         }
 

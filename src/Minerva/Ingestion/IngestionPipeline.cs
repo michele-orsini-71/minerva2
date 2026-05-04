@@ -42,6 +42,20 @@ public class IngestionPipeline
         var text = AttachmentIntegrator.Integrate(
             document.Text, document.Attachments ?? new Dictionary<string, AttachmentDescription>());
 
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            if (storedContentHash is not null)
+            {
+                _logger.LogInformation(
+                    "Document {SourceId} is now empty; removing prior chunks", document.SourceId);
+                await _chunkWriter.DeleteBySourceIdAsync(collectionName, document.SourceId, ct);
+                return new IngestionResult(0, 0, Deleted: 1, 0, sw.Elapsed);
+            }
+
+            _logger.LogDebug("Document {SourceId} is empty, skipping", document.SourceId);
+            return new IngestionResult(0, 0, 0, 0, sw.Elapsed);
+        }
+
         // 2. Compare against caller-provided hash — skip if unchanged
         var contentHash = HashHelper.ComputeContentHash(text);
 
@@ -132,13 +146,16 @@ public class IngestionPipeline
     private async Task<(List<Chunk>, IReadOnlyList<string>?)> ProcessSingleDocumentAsync(
         string collectionName, string sourceId, string text, CancellationToken ct)
     {
+        // Chunk first — single-chunk docs need neither summary nor contextual prefix
+        var chunks = _chunker.Chunk(collectionName, sourceId, text).ToList();
+
+        if (chunks.Count <= 1)
+            return (chunks, null);
+
         // Summarize (optional)
         string? summary = _summarizer is not null
             ? await _summarizer.SummarizeAsync(text, ct)
             : null;
-
-        // Chunk
-        var chunks = _chunker.Chunk(collectionName, sourceId, text).ToList();
 
         // Contextualize (optional, requires summary)
         IReadOnlyList<string>? prefixes = null;
