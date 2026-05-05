@@ -7,7 +7,7 @@ Minerva's code is organised after Robert C. Martin's **Clean Architecture** mode
 Four concentric rings, from innermost to outermost:
 
 | Ring | Role | Minerva namespaces |
-|---|---|---|
+| --- | --- | --- |
 | **Entities** (Enterprise Business Rules) | Pure domain records, exceptions, and stateless helpers. The most reusable code. | `Minerva.Models`, `Minerva.Exceptions`, `Minerva.Utilities` |
 | **Use Cases** (Application Business Rules) | Orchestrators. They coordinate entities to fulfil application operations. They talk to the outer world only through *ports* (interfaces they define). | `Minerva` (root — `MinervaEngine`, `IMinervaEngine`), `Minerva.Collections`, `Minerva.Ingestion`, `Minerva.Search` |
 | **Interface Adapters** | Translate between the application and the outside world: repositories backed by a real database, providers backed by a real HTTP API, and so on. | `Minerva.Storage`, `Minerva.Providers` |

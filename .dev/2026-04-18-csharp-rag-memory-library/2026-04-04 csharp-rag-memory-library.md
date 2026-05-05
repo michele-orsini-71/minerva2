@@ -79,11 +79,12 @@ These documents remain in the repository for historical reference but should not
 ### Hybrid search with rank fusion
 
 **Choice**: Dense vector similarity + PostgreSQL full-text search, combined via rank fusion in a single SQL query.
-**Rationale**: Implements the Anthropic contextual retrieval article's recommended approach without needing a separate search engine. PostgreSQL's tsvector/tsquery handles the keyword side, pgvector handles the semantic side, and a weighted combination produces the final ranking. No BGE-M3 sparse vectors needed.
+**Rationale**: Implements the Anthropic contextual retrieval article's recommended approach without needing a separate search engine. PostgreSQL's tsvector/tsquery handles the keyword side, pgvector handles the semantic side, and a weighted combination produces the final ranking. No BGE-M3 sparse vectors needed. [Reference](https://www.anthropic.com/engineering/contextual-retrieval)
 
 ### Contextual preprocessing with document summary
 
 **Choice**: Two-step contextual preprocessing per the Anthropic article:
+
 1. Generate a summary of the entire document (one LLM call per document)
 2. For each chunk, send summary + chunk to the LLM to generate a short contextual prefix (one LLM call per chunk)
 3. Prepend the prefix to the chunk before embedding
@@ -107,6 +108,7 @@ For large documents exceeding a configurable token threshold (e.g., 8,000 tokens
 ### Rate limiting and batching per provider
 
 **Choice**: The per-collection provider configuration includes rate limiting and concurrency controls (carrying forward Minerva v1's `RateLimitConfig` pattern):
+
 - **Requests per minute** — throttles total API calls for cloud providers with rate limits
 - **Concurrency** — limits parallel in-flight requests (critical for local models like Ollama that can only handle 1 concurrent request)
 - **Embedding batch size** — provider-specific (e.g., OpenAI supports batch embedding, Ollama processes one at a time)
@@ -179,7 +181,7 @@ The following items are intentionally left to the implementation phase. They are
 
 ## Ingestion Pipeline
 
-```
+```txt
 Document (any size) + optional attachment dictionary
     │
     ▼
