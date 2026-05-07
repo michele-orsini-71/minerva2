@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AssemblyName>markdown-indexer</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

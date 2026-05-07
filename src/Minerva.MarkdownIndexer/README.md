@@ -1,4 +1,4 @@
-# Minerva.MarkdownWatcher
+# Minerva.MarkdownIndexer
 
 A filesystem watcher that keeps a Minerva collection in sync with a directory of markdown files. The first real client of the [Minerva](../Minerva/README.md) library.
 
@@ -24,7 +24,7 @@ Frontmatter is parsed and passed through as document `Metadata`. Markdown images
 ## Usage
 
 ```bash
-dotnet run --project src/Minerva.MarkdownWatcher
+dotnet run --project src/Minerva.MarkdownIndexer
 ```
 
 Runs as a long-lived host — it does not exit until cancelled.
@@ -42,17 +42,16 @@ Runs as a long-lived host — it does not exit until cancelled.
       "Model": "nomic-embed-text"
     }
   },
-  "Watcher": {
+  "Indexer": {
     "RootPath": "/path/to/markdown/root",
     "CollectionName": "my-notes",
     "FilePattern": "*.md",
-    "DebounceMs": 500,
     "ExcludeDirectories": [".obsidian", ".trash", ".git"]
   }
 }
 ```
 
-The `Minerva` section is the full core-library config (see [`src/Minerva/README.md`](../Minerva/README.md)); the `Watcher` section configures this client.
+The `Minerva` section is the full core-library config (see [`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
 `ExcludeDirectories` defaults cover the common cases (Obsidian internals + git metadata). Override it for other workflows.
 
@@ -61,13 +60,84 @@ The `Minerva` section is the full core-library config (see [`src/Minerva/README.
 > - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
 > - **LM Studio**: load both models in the *Models* panel before starting the watcher.
 
+## Building a standalone binary
+
+`build-markdown-indexer.sh` (at the repo root) publishes a self-contained binary to `bin/`:
+
+```bash
+./build-markdown-indexer.sh
+```
+
+Output:
+
+- `bin/markdown-indexer` — the executable
+- `bin/appsettings.json` — copied from the project (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
+
+Run it with:
+
+```bash
+./bin/markdown-indexer
+```
+
+For long-running ingestions, detach it from the terminal:
+
+```bash
+nohup ./bin/markdown-indexer > logs/run.log 2>&1 &
+```
+
+## Overriding configuration
+
+`Program.cs` builds configuration in this order (later sources override earlier):
+
+1. `appsettings.json` (required)
+2. `appsettings.{DOTNET_ENVIRONMENT}.json` (optional, defaults to `Production`)
+3. Environment variables
+4. Command-line args
+
+### Named profile files (recommended for experiments)
+
+Drop additional files next to the binary:
+
+```text
+bin/
+  markdown-indexer
+  appsettings.json              # base / defaults
+  appsettings.experiment-a.json # only the keys to override
+  appsettings.experiment-b.json
+```
+
+Launch with the matching environment name:
+
+```bash
+DOTNET_ENVIRONMENT=experiment-a ./bin/markdown-indexer
+```
+
+The profile is merged on top of `appsettings.json`, so it only needs the keys that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the `appsettings*.json` glob in the csproj copies them on each build.
+
+The files have to sit next to `markdown-indexer` — they are loaded from `AppContext.BaseDirectory`.
+
+### Environment variables (one-off tweaks)
+
+Use `__` (double underscore) as the section separator:
+
+```bash
+Indexer__RootPath=/path/to/notes \
+Indexer__CollectionName=experiment-a \
+./bin/markdown-indexer
+```
+
+### Command-line args
+
+```bash
+./bin/markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
+```
+
 ## Files
 
 | File | Role |
-|---|---|
-| `Program.cs` | Host builder — wires `AddMinerva` + `AddMinervaWatcher` |
-| `WatcherOptions.cs` | Config record bound to the `Watcher` section |
+| --- | --- |
+| `Program.cs` | Entry point — builds config, constructs the engine + indexer, runs one ingest pass |
+| `IndexerOptions.cs` | Config record bound to the `Indexer` section |
 | `MarkdownScanner.cs` | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
-| `MarkdownSyncService.cs` | `BackgroundService` — initial scan + `FileSystemWatcher` + ingest |
-| `PathDebouncer.cs` | Coalesces rapid repeated events for the same path |
-| `DI/ServiceCollectionExtensions.cs` | `AddMinervaWatcher()` extension |
+| `MarkdownIndexer.cs` | Drives a single scan-and-ingest pass against `IMinervaEngine` |
+| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer` |
