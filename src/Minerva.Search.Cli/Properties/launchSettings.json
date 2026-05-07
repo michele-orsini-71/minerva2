@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Minerva.Search.Cli": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "debug"
+      },
+      "commandLineArgs": "\"how do I configure logging\" --collection test-1 --top-k 5"
+    }
+  }
+}
