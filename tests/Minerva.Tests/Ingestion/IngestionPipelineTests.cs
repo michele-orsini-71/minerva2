@@ -75,7 +75,7 @@ public class IngestionPipelineTests
 
     private static Chunk MakeChunk(
         string collection, string sourceId, int index, string content) => new(
-            Id: HashHelper.GenerateChunkId(sourceId, index),
+            Id: HashHelper.GenerateChunkId(collection, sourceId, index),
             SourceId: sourceId,
             CollectionName: collection,
             ChunkIndex: index,

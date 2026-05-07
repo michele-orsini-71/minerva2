@@ -74,7 +74,7 @@ public class DocumentChunkerTests
         for (int i = 0; i < chunks1.Count; i++)
         {
             Assert.Equal(chunks1[i].Id, chunks2[i].Id);
-            Assert.Equal(HashHelper.GenerateChunkId("src1", i), chunks1[i].Id);
+            Assert.Equal(HashHelper.GenerateChunkId("coll", "src1", i), chunks1[i].Id);
         }
     }
 

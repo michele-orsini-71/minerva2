@@ -94,12 +94,12 @@ public class ChunkRepositoryTests : IAsyncLifetime
     {
         // Insert chunks with known embeddings
         var close = new ChunkWithEmbedding(
-            HashHelper.GenerateChunkId("vec-doc", 0), "vec-doc", CollectionName, 0,
+            HashHelper.GenerateChunkId(CollectionName, "vec-doc", 0), "vec-doc", CollectionName, 0,
             "close content", HashHelper.ComputeContentHash("close content"),
             [1.0f, 0.0f, 0.0f, 0.0f]);
 
         var far = new ChunkWithEmbedding(
-            HashHelper.GenerateChunkId("vec-doc", 1), "vec-doc", CollectionName, 1,
+            HashHelper.GenerateChunkId(CollectionName, "vec-doc", 1), "vec-doc", CollectionName, 1,
             "far content", HashHelper.ComputeContentHash("far content"),
             [0.0f, 0.0f, 0.0f, 1.0f]);
 
@@ -117,11 +117,11 @@ public class ChunkRepositoryTests : IAsyncLifetime
     {
         var chunks = new List<ChunkWithEmbedding>
         {
-            new(HashHelper.GenerateChunkId("fts-doc", 0), "fts-doc", CollectionName, 0,
+            new(HashHelper.GenerateChunkId(CollectionName, "fts-doc", 0), "fts-doc", CollectionName, 0,
                 "PostgreSQL is a relational database",
                 HashHelper.ComputeContentHash("PostgreSQL is a relational database"),
                 [0.1f, 0.2f, 0.3f, 0.4f]),
-            new(HashHelper.GenerateChunkId("fts-doc", 1), "fts-doc", CollectionName, 1,
+            new(HashHelper.GenerateChunkId(CollectionName, "fts-doc", 1), "fts-doc", CollectionName, 1,
                 "The weather is sunny today",
                 HashHelper.ComputeContentHash("The weather is sunny today"),
                 [0.5f, 0.6f, 0.7f, 0.8f]),
@@ -150,7 +150,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
         {
             var content = $"{contentPrefix}chunk {i} content for {sourceId}";
             chunks.Add(new ChunkWithEmbedding(
-                HashHelper.GenerateChunkId(sourceId, i),
+                HashHelper.GenerateChunkId(CollectionName, sourceId, i),
                 sourceId,
                 CollectionName,
                 i,

@@ -64,7 +64,7 @@ public class DocumentChunker : IDocumentChunker
         {
             int index = startIndex + i;
             chunks.Add(new Chunk(
-                Id: HashHelper.GenerateChunkId(sourceId, index),
+                Id: HashHelper.GenerateChunkId(collectionName, sourceId, index),
                 SourceId: sourceId,
                 CollectionName: collectionName,
                 ChunkIndex: index,

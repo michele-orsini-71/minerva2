@@ -5,9 +5,9 @@ namespace Minerva.Utilities;
 
 public static class HashHelper
 {
-    public static string GenerateChunkId(string sourceId, int chunkIndex)
+    public static string GenerateChunkId(string collectionName, string sourceId, int chunkIndex)
     {
-        var input = $"{sourceId}:{chunkIndex}";
+        var input = $"{collectionName}:{sourceId}:{chunkIndex}";
         return ComputeSha256(input);
     }
 

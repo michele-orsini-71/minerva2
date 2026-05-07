@@ -35,8 +35,8 @@ public class SmokeTests
     [Fact]
     public void HashHelper_GenerateChunkId_is_deterministic()
     {
-        var id1 = HashHelper.GenerateChunkId("doc1", 0);
-        var id2 = HashHelper.GenerateChunkId("doc1", 0);
+        var id1 = HashHelper.GenerateChunkId("coll", "doc1", 0);
+        var id2 = HashHelper.GenerateChunkId("coll", "doc1", 0);
 
         Assert.Equal(id1, id2);
         Assert.Equal(64, id1.Length); // SHA-256 hex = 64 chars
@@ -45,10 +45,19 @@ public class SmokeTests
     [Fact]
     public void HashHelper_GenerateChunkId_varies_by_index()
     {
-        var id0 = HashHelper.GenerateChunkId("doc1", 0);
-        var id1 = HashHelper.GenerateChunkId("doc1", 1);
+        var id0 = HashHelper.GenerateChunkId("coll", "doc1", 0);
+        var id1 = HashHelper.GenerateChunkId("coll", "doc1", 1);
 
         Assert.NotEqual(id0, id1);
+    }
+
+    [Fact]
+    public void HashHelper_GenerateChunkId_varies_by_collection()
+    {
+        var idA = HashHelper.GenerateChunkId("coll-a", "doc1", 0);
+        var idB = HashHelper.GenerateChunkId("coll-b", "doc1", 0);
+
+        Assert.NotEqual(idA, idB);
     }
 
     [Fact]
