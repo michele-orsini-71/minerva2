@@ -84,7 +84,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         catch (ClientResultException ex)
         {
             throw new ProviderUnavailableException(
-                $"LLM API request failed (HTTP {ex.Status}): {ex.Message}", ex);
+                $"LLM API request failed (HTTP {ex.Status}): {ReadResponseBody(ex) ?? ex.Message}", ex);
         }
         catch (ProviderUnavailableException)
         {
@@ -94,6 +94,19 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         {
             throw new ProviderUnavailableException(
                 $"Failed to get chat response: {ex.Message}", ex);
+        }
+    }
+
+    private static string? ReadResponseBody(ClientResultException ex)
+    {
+        try
+        {
+            var body = ex.GetRawResponse()?.Content?.ToString();
+            return string.IsNullOrWhiteSpace(body) ? null : body;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -121,7 +134,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
             if (acquired)
                 _rateLimiter.Release();
             throw new ProviderUnavailableException(
-                $"LLM streaming API request failed (HTTP {ex.Status}): {ex.Message}", ex);
+                $"LLM streaming API request failed (HTTP {ex.Status}): {ReadResponseBody(ex) ?? ex.Message}", ex);
         }
         catch (ProviderUnavailableException)
         {

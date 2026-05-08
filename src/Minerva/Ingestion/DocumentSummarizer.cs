@@ -1,3 +1,5 @@
+using Minerva.Exceptions;
+
 namespace Minerva.Ingestion;
 
 public class DocumentSummarizer : IDocumentSummarizer
@@ -16,8 +18,15 @@ public class DocumentSummarizer : IDocumentSummarizer
 
     public async Task<string?> SummarizeAsync(string text, CancellationToken ct = default)
     {
-        var result = await _llm.GenerateAsync(SystemPrompt, text, ct);
-        return string.IsNullOrEmpty(result) ? null : result;
+        try
+        {
+            return await SummarizeCoreAsync(text, ct);
+        }
+        catch (ProviderUnavailableException ex)
+        {
+            throw new ProviderUnavailableException(
+                $"Summarization failed (input {text.Length} chars): {ex.Message}", ex);
+        }
     }
 
     public async Task<IReadOnlyList<string>> SummarizeSegmentsAsync(
@@ -27,9 +36,23 @@ public class DocumentSummarizer : IDocumentSummarizer
 
         for (int i = 0; i < segments.Count; i++)
         {
-            summaries[i] = await SummarizeAsync(segments[i], ct) ?? string.Empty;
+            try
+            {
+                summaries[i] = await SummarizeCoreAsync(segments[i], ct) ?? string.Empty;
+            }
+            catch (ProviderUnavailableException ex)
+            {
+                throw new ProviderUnavailableException(
+                    $"Summarization failed at segment {i + 1}/{segments.Count} ({segments[i].Length} chars): {ex.Message}", ex);
+            }
         }
 
         return summaries;
+    }
+
+    private async Task<string?> SummarizeCoreAsync(string text, CancellationToken ct)
+    {
+        var result = await _llm.GenerateAsync(SystemPrompt, text, ct);
+        return string.IsNullOrEmpty(result) ? null : result;
     }
 }

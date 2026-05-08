@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Minerva.Exceptions;
 using Minerva.Models;
 using Minerva.Utilities;
 
@@ -68,8 +69,18 @@ public class IngestionPipeline
         bool isUpdate = storedContentHash is not null;
 
         // 3. Segment, summarize, chunk, contextualize
-        var (allChunks, contextPrefixes) = await ProcessDocumentAsync(
-            collectionName, document.SourceId, text, ct);
+        List<Chunk> allChunks;
+        IReadOnlyList<string>? contextPrefixes;
+        try
+        {
+            (allChunks, contextPrefixes) = await ProcessDocumentAsync(
+                collectionName, document.SourceId, text, ct);
+        }
+        catch (ProviderUnavailableException ex)
+        {
+            throw new ProviderUnavailableException(
+                $"Ingestion failed for document '{document.SourceId}' ({text.Length} chars): {ex.Message}", ex);
+        }
 
         // 4. Apply contextual prefixes
         if (contextPrefixes is not null)
