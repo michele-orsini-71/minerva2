@@ -28,21 +28,17 @@ public class DocumentChunker : IDocumentChunker
         if (string.IsNullOrWhiteSpace(text))
             throw new ChunkingException("Cannot chunk empty or whitespace-only text.");
 
-        var textChunks = SplitIntoChunks(text);
+        var textChunks = SplitMarkdownToBudget(text, _options.TargetChunkSize, _options.ChunkOverlap);
         return BuildChunks(collectionName, sourceId, textChunks, startIndex: 0);
     }
 
     /// <summary>
-    /// Splits a large document into segments at highest-level heading boundaries.
-    /// Returns a single-element list for documents under <see cref="ChunkingOptions.LargeDocumentThreshold"/>.
-    /// Used by the pipeline when segments need separate summarization.
+    /// Splits a large document into segments under <see cref="ChunkingOptions.LargeDocumentThreshold"/>.
+    /// Used by the pipeline when segments need separate summarization (e.g. an LLM context budget).
     /// </summary>
     public IReadOnlyList<string> SegmentDocument(string text)
     {
-        if (text.Length <= _options.LargeDocumentThreshold)
-            return [text];
-
-        return SplitIntoSegments(text);
+        return SplitMarkdownToBudget(text, _options.LargeDocumentThreshold, overlap: 0);
     }
 
     /// <summary>
@@ -52,7 +48,7 @@ public class DocumentChunker : IDocumentChunker
     public IReadOnlyList<Chunk> ChunkSegment(
         string collectionName, string sourceId, string text, int startIndex)
     {
-        var textChunks = SplitIntoChunks(text);
+        var textChunks = SplitMarkdownToBudget(text, _options.TargetChunkSize, _options.ChunkOverlap);
         return BuildChunks(collectionName, sourceId, textChunks, startIndex);
     }
 
@@ -74,8 +70,17 @@ public class DocumentChunker : IDocumentChunker
         return chunks;
     }
 
-    private List<string> SplitIntoChunks(string text)
+    /// <summary>
+    /// Unified core: splits markdown into pieces each ≤ <paramref name="maxChars"/>.
+    /// Used both for chunker output (embedder budget) and segmenter output (LLM budget).
+    /// Algorithm: header-aware split → greedy pack → recursive separator fallback →
+    /// brute-force slice with overlap. Returns <c>[text]</c> verbatim when input fits.
+    /// </summary>
+    private List<string> SplitMarkdownToBudget(string text, int maxChars, int overlap)
     {
+        if (text.Length <= maxChars)
+            return [text];
+
         var sections = SplitByHeaders(text);
 
         var chunks = new List<string>();
@@ -84,7 +89,7 @@ public class DocumentChunker : IDocumentChunker
 
         foreach (var section in sections)
         {
-            if (section.Length > _options.TargetChunkSize)
+            if (section.Length > maxChars)
             {
                 string? extraPrefix = null;
                 if (current.Length > 0)
@@ -96,9 +101,9 @@ public class DocumentChunker : IDocumentChunker
                         chunks.Add(currentStr);
                     current.Clear();
                 }
-                chunks.AddRange(SplitOversizedSection(section, extraPrefix));
+                chunks.AddRange(SplitOversizedSection(section, maxChars, overlap, extraPrefix));
             }
-            else if (current.Length > 0 && current.Length + sep.Length + section.Length > _options.TargetChunkSize)
+            else if (current.Length > 0 && current.Length + sep.Length + section.Length > maxChars)
             {
                 chunks.Add(current.ToString());
                 current.Clear();
@@ -114,18 +119,25 @@ public class DocumentChunker : IDocumentChunker
         if (current.Length > 0)
             chunks.Add(current.ToString());
 
-        // Tail absorption: fold a too-small final chunk into its predecessor.
-        int minChunkSize = _options.TargetChunkSize / 4;
+        // Tail absorption: fold a too-small final chunk into its predecessor, but only
+        // when the merged result still fits. Skipping this when over budget preserves
+        // the ≤-budget contract for documents whose tail would otherwise overflow.
+        int minChunkSize = maxChars / 4;
         if (chunks.Count >= 2 && chunks[^1].Length < minChunkSize)
         {
-            chunks[^2] = chunks[^2] + "\n\n" + chunks[^1];
-            chunks.RemoveAt(chunks.Count - 1);
+            int merged = chunks[^2].Length + 2 + chunks[^1].Length;
+            if (merged <= maxChars)
+            {
+                chunks[^2] = chunks[^2] + "\n\n" + chunks[^1];
+                chunks.RemoveAt(chunks.Count - 1);
+            }
         }
 
         return chunks;
     }
 
-    private List<string> SplitOversizedSection(string section, string? extraPrefix = null)
+    private List<string> SplitOversizedSection(
+        string section, int maxChars, int overlap, string? extraPrefix = null)
     {
         var (heading, body) = SplitHeadingFromBody(section);
 
@@ -138,13 +150,13 @@ public class DocumentChunker : IDocumentChunker
         };
 
         if (combinedPrefix is null)
-            return RecursiveSplit(body, _options.TargetChunkSize, _options.ChunkOverlap, _logger);
+            return RecursiveSplit(body, maxChars, overlap, _logger);
 
-        int bodyMaxSize = _options.TargetChunkSize - combinedPrefix.Length - 2;
-        if (bodyMaxSize < _options.TargetChunkSize / 2)
-            bodyMaxSize = _options.TargetChunkSize / 2;
+        int bodyMaxSize = maxChars - combinedPrefix.Length - 2;
+        if (bodyMaxSize < maxChars / 2)
+            bodyMaxSize = maxChars / 2;
 
-        var bodyChunks = RecursiveSplit(body, bodyMaxSize, _options.ChunkOverlap, _logger);
+        var bodyChunks = RecursiveSplit(body, bodyMaxSize, overlap, _logger);
         return bodyChunks.Select(c => combinedPrefix + "\n\n" + c).ToList();
     }
 
@@ -236,13 +248,27 @@ public class DocumentChunker : IDocumentChunker
             return result;
         }
 
-        // No usable separator anywhere — emit as a single oversized chunk and warn,
-        // rather than slicing mid-token. Downstream embedding may reject it; failing
-        // loudly is better than silent corruption.
+        // No usable separator anywhere — brute-force slice with overlap. Slicing
+        // mid-token is ugly but the ≤-budget contract is more important than token
+        // alignment; downstream embedding/LLM calls would reject an oversized blob.
+        return BruteForceSlice(text, maxSize, overlap, logger);
+    }
+
+    private static List<string> BruteForceSlice(string text, int maxSize, int overlap, ILogger? logger)
+    {
         logger?.LogWarning(
-            "Could not split a {Length}-char section within maxSize={Max}; emitting oversized chunk",
-            text.Length, maxSize);
-        return [text];
+            "Could not split a {Length}-char section within maxSize={Max}; brute-force slicing with overlap={Overlap}",
+            text.Length, maxSize, overlap);
+
+        int step = Math.Max(1, maxSize - overlap);
+        var result = new List<string>();
+        for (int i = 0; i < text.Length; i += step)
+        {
+            int end = Math.Min(text.Length, i + maxSize);
+            result.Add(text[i..end]);
+            if (end == text.Length) break;
+        }
+        return result;
     }
 
     private static List<string> MergeSplitsWithOverlap(
@@ -283,68 +309,4 @@ public class DocumentChunker : IDocumentChunker
         return result;
     }
 
-    private List<string> SplitIntoSegments(string text)
-    {
-        var document = Markdown.Parse(text);
-
-        // Find the highest (lowest-number) heading level present
-        int minLevel = int.MaxValue;
-        foreach (var block in document)
-        {
-            if (block is HeadingBlock hb && hb.Level < minLevel)
-                minLevel = hb.Level;
-        }
-
-        if (minLevel == int.MaxValue)
-            return [text]; // No headings — single segment
-
-        // Positions of highest-level headings
-        var splitPoints = new List<int>();
-        foreach (var block in document)
-        {
-            if (block is HeadingBlock hb && hb.Level == minLevel)
-                splitPoints.Add(block.Span.Start);
-        }
-
-        // Extract raw sections at these split points
-        var rawSegments = new List<string>();
-
-        if (splitPoints[0] > 0)
-        {
-            var preHeader = text[..splitPoints[0]].Trim();
-            if (preHeader.Length > 0)
-                rawSegments.Add(preHeader);
-        }
-
-        for (int i = 0; i < splitPoints.Count; i++)
-        {
-            int start = splitPoints[i];
-            int end = i + 1 < splitPoints.Count ? splitPoints[i + 1] : text.Length;
-            var section = text[start..end].Trim();
-            if (section.Length > 0)
-                rawSegments.Add(section);
-        }
-
-        // Merge adjacent sections to keep segments under threshold
-        var segments = new List<string>();
-        var buffer = new StringBuilder();
-
-        foreach (var seg in rawSegments)
-        {
-            if (buffer.Length > 0 && buffer.Length + 1 + seg.Length > _options.LargeDocumentThreshold)
-            {
-                segments.Add(buffer.ToString());
-                buffer.Clear();
-            }
-
-            if (buffer.Length > 0)
-                buffer.Append('\n');
-            buffer.Append(seg);
-        }
-
-        if (buffer.Length > 0)
-            segments.Add(buffer.ToString());
-
-        return segments;
-    }
 }

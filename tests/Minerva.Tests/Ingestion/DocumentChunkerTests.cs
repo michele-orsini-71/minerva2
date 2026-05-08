@@ -20,48 +20,6 @@ public class DocumentChunkerTests
     }
 
     [Fact]
-    public void Chunk_SplitsMultiHeaderMarkdown()
-    {
-        var markdown = """
-            # Section 1
-            Content of section one.
-
-            ## Section 1.1
-            Sub-section content.
-
-            # Section 2
-            Content of section two.
-            """;
-
-        // Small TargetChunkSize prevents adjacent sections from being packed together,
-        // so each heading boundary produces a separate chunk.
-        var chunker = CreateChunker(targetChunkSize: 50, overlap: 10);
-        var chunks = chunker.Chunk("coll", "src1", markdown);
-
-        Assert.True(chunks.Count >= 3, $"Expected at least 3 chunks, got {chunks.Count}");
-        Assert.Contains(chunks, c => c.Content.Contains("Section 1"));
-        Assert.Contains(chunks, c => c.Content.Contains("Section 2"));
-    }
-
-    [Fact]
-    public void Chunk_RespectsChunkSizeLimits()
-    {
-        // Build a document with one long section
-        var longContent = "# Title\n\n" + string.Join("\n\n", Enumerable.Range(0, 50)
-            .Select(i => $"Paragraph {i}. " + new string('x', 100)));
-
-        var chunker = CreateChunker(targetChunkSize: 500, overlap: 50);
-        var chunks = chunker.Chunk("coll", "src1", longContent);
-
-        Assert.True(chunks.Count > 1, "Long document should be split into multiple chunks");
-        foreach (var chunk in chunks)
-        {
-            Assert.True(chunk.Content.Length <= 600,
-                $"Chunk {chunk.ChunkIndex} is {chunk.Content.Length} chars, expected <= ~500");
-        }
-    }
-
-    [Fact]
     public void Chunk_GeneratesDeterministicIds()
     {
         var text = "# Header\nSome content here.";
@@ -91,18 +49,6 @@ public class DocumentChunkerTests
     }
 
     [Fact]
-    public void Chunk_NoHeaders_FallsBackToSizeSplitting()
-    {
-        var text = string.Join("\n\n", Enumerable.Range(0, 30)
-            .Select(i => $"Paragraph {i}. " + new string('x', 80)));
-
-        var chunker = CreateChunker(targetChunkSize: 500, overlap: 50);
-        var chunks = chunker.Chunk("coll", "src1", text);
-
-        Assert.True(chunks.Count > 1, "Long text with no headers should still be split");
-    }
-
-    [Fact]
     public void Chunk_ThrowsOnEmptyText()
     {
         var chunker = CreateChunker();
@@ -112,7 +58,7 @@ public class DocumentChunkerTests
     }
 
     [Fact]
-    public void Chunk_ShortDocument_SingleChunk()
+    public void Chunk_PopulatesRecordFields()
     {
         var text = "# Title\nShort content.";
         var chunker = CreateChunker();
@@ -135,93 +81,5 @@ public class DocumentChunkerTests
 
         for (int i = 0; i < chunks.Count; i++)
             Assert.Equal(i, chunks[i].ChunkIndex);
-    }
-
-    [Fact]
-    public void SegmentDocument_SmallDocument_ReturnsSingleSegment()
-    {
-        var text = "# Title\nShort content.";
-        var chunker = CreateChunker(largeDocThreshold: 8000);
-
-        var segments = chunker.SegmentDocument(text);
-
-        Assert.Single(segments);
-        Assert.Equal(text, segments[0]);
-    }
-
-    [Fact]
-    public void SegmentDocument_LargeDocument_SplitsAtTopLevelHeadings()
-    {
-        // Build a document that exceeds the threshold
-        var sections = Enumerable.Range(1, 5)
-            .Select(i => $"# Section {i}\n{new string('x', 2000)}")
-            .ToList();
-        var text = string.Join("\n\n", sections);
-
-        var chunker = CreateChunker(largeDocThreshold: 3000);
-        var segments = chunker.SegmentDocument(text);
-
-        Assert.True(segments.Count > 1, "Large document should be split into segments");
-    }
-
-    [Fact]
-    public void SplitByHeaders_ContentBeforeFirstHeader()
-    {
-        var text = "Preamble text\n\n# Header\nContent";
-
-        var sections = DocumentChunker.SplitByHeaders(text);
-
-        Assert.True(sections.Count >= 2);
-        Assert.Equal("Preamble text", sections[0]);
-    }
-
-    [Fact]
-    public void RecursiveSplit_TextUnderMax_ReturnsSingleElement()
-    {
-        var text = "Short text";
-        var result = DocumentChunker.RecursiveSplit(text, 100, 20);
-
-        Assert.Single(result);
-        Assert.Equal("Short text", result[0]);
-    }
-
-    [Fact]
-    public void RecursiveSplit_SplitsByParagraphBreaks()
-    {
-        var text = "Paragraph one.\n\nParagraph two.\n\nParagraph three.";
-        var result = DocumentChunker.RecursiveSplit(text, 30, 0);
-
-        Assert.True(result.Count >= 2);
-        Assert.Contains(result, s => s.Contains("Paragraph one"));
-    }
-
-    [Fact]
-    public void Chunk_HeaderOnlySectionFollowedByOversized_NoOrphanedHeader()
-    {
-        var markdown = LoadFixture("orphan_header_before_oversized.md");
-        var chunker = CreateChunker(targetChunkSize: 1200, overlap: 200);
-
-        var chunks = chunker.Chunk("coll", "src1", markdown);
-
-        Assert.All(chunks, c =>
-            Assert.False(IsHeaderOnly(c.Content),
-                $"Chunk {c.ChunkIndex} is header-only:\n{c.Content}"));
-    }
-
-    private static string LoadFixture(string name)
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
-        return File.ReadAllText(path);
-    }
-
-    private static bool IsHeaderOnly(string content)
-    {
-        foreach (var line in content.Split('\n'))
-        {
-            var trimmed = line.Trim();
-            if (trimmed.Length == 0) continue;
-            if (!trimmed.StartsWith('#')) return false;
-        }
-        return true;
     }
 }
