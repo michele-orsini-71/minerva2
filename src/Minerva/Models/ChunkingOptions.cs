@@ -12,6 +12,6 @@ public class ChunkingOptions
     public int ChunkOverlap { get; set; } = 200;
     public bool EnableSummarization { get; set; }
     public bool EnableContextualization { get; set; }
-    public int LargeDocumentThreshold { get; set; } = 8000;
+    public int MaxSegmentChars { get; set; } = 8000;
     public ChunkerType ChunkerType { get; set; } = ChunkerType.Custom;
 }

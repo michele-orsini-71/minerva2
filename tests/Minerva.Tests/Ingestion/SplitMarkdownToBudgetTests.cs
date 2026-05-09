@@ -8,13 +8,13 @@ namespace Minerva.Tests.Ingestion;
 public class SplitMarkdownToBudgetTests
 {
     private static DocumentChunker CreateChunker(
-        int targetChunkSize = 1200, int overlap = 200, int largeDocThreshold = 8000)
+        int targetChunkSize = 1200, int overlap = 200, int maxSegmentChars = 8000)
     {
         return new DocumentChunker(new ChunkingOptions
         {
             TargetChunkSize = targetChunkSize,
             ChunkOverlap = overlap,
-            LargeDocumentThreshold = largeDocThreshold,
+            MaxSegmentChars = maxSegmentChars,
         });
     }
 
@@ -43,7 +43,7 @@ public class SplitMarkdownToBudgetTests
             $"Test setup: doc must be large, was {text.Length}");
 
         const int budget = 8000;
-        var chunker = CreateChunker(largeDocThreshold: budget);
+        var chunker = CreateChunker(maxSegmentChars: budget);
         var segments = chunker.SegmentDocument(text);
 
         Assert.True(segments.Count > 1, "Large doc must split into multiple segments");
@@ -149,7 +149,7 @@ public class SplitMarkdownToBudgetTests
     public void SegmentDocument_SmallDocument_ReturnsSingleSegment()
     {
         var text = "# Title\nShort content.";
-        var chunker = CreateChunker(largeDocThreshold: 8000);
+        var chunker = CreateChunker(maxSegmentChars: 8000);
 
         var segments = chunker.SegmentDocument(text);
 
@@ -166,7 +166,7 @@ public class SplitMarkdownToBudgetTests
         var text = string.Join("\n\n", sections);
 
         const int budget = 3000;
-        var chunker = CreateChunker(largeDocThreshold: budget);
+        var chunker = CreateChunker(maxSegmentChars: budget);
         var segments = chunker.SegmentDocument(text);
 
         Assert.True(segments.Count > 1, "Large document should be split into segments");

@@ -9,13 +9,13 @@ namespace Minerva.Tests.Ingestion;
 public class DocumentChunkerTests
 {
     private static DocumentChunker CreateChunker(
-        int targetChunkSize = 1200, int overlap = 200, int largeDocThreshold = 8000)
+        int targetChunkSize = 1200, int overlap = 200, int maxSegmentChars = 8000)
     {
         return new DocumentChunker(new ChunkingOptions
         {
             TargetChunkSize = targetChunkSize,
             ChunkOverlap = overlap,
-            LargeDocumentThreshold = largeDocThreshold,
+            MaxSegmentChars = maxSegmentChars,
         });
     }
 

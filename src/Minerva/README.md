@@ -120,7 +120,7 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 | `ChunkOverlap` | int | `200` | optional |
 | `EnableSummarization` | bool | `false` | optional (needs `Llm`) |
 | `EnableContextualization` | bool | `false` | optional (needs `Llm`) |
-| `LargeDocumentThreshold` | int | `8000` | optional |
+| `MaxSegmentChars` | int | `8000` | optional |
 
 ## Internal layout
 

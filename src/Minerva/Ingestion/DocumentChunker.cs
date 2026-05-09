@@ -33,12 +33,12 @@ public class DocumentChunker : IDocumentChunker
     }
 
     /// <summary>
-    /// Splits a large document into segments under <see cref="ChunkingOptions.LargeDocumentThreshold"/>.
+    /// Splits a large document into segments under <see cref="ChunkingOptions.MaxSegmentChars"/>.
     /// Used by the pipeline when segments need separate summarization (e.g. an LLM context budget).
     /// </summary>
     public IReadOnlyList<string> SegmentDocument(string text)
     {
-        return SplitMarkdownToBudget(text, _options.LargeDocumentThreshold, overlap: 0);
+        return SplitMarkdownToBudget(text, _options.MaxSegmentChars, overlap: 0);
     }
 
     /// <summary>

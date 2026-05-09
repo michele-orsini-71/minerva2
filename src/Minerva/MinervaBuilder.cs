@@ -225,7 +225,7 @@ public static class MinervaBuilder
         else if (c.TargetChunkSize > 0 && c.ChunkOverlap >= c.TargetChunkSize)
             failures.Add(new PreflightFailure(stage, $"ChunkOverlap must be < TargetChunkSize (got {c.ChunkOverlap} >= {c.TargetChunkSize})."));
 
-        if (c.LargeDocumentThreshold <= 0)
-            failures.Add(new PreflightFailure(stage, $"LargeDocumentThreshold must be > 0 (got {c.LargeDocumentThreshold})."));
+        if (c.MaxSegmentChars <= 0)
+            failures.Add(new PreflightFailure(stage, $"MaxSegmentChars must be > 0 (got {c.MaxSegmentChars})."));
     }
 }
