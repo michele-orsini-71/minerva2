@@ -18,16 +18,11 @@ public static class MinervaBuilder
         ILoggerFactory loggerFactory,
         CancellationToken ct = default)
     {
-        // Phase 1: validate option shape (cheap, synchronous).
-        var optionFailures = ValidateOptions(options);
-        if (optionFailures.Count > 0)
-            throw new MinervaStartupException(optionFailures);
-
-        // Phase 2: construct services (no I/O).
+        // Phase 2: construct services (no I/O). Options arrive pre-validated from the binder.
         ProviderFactory providerFactory;
         try
         {
-            providerFactory = new ProviderFactory(options.Embedding, options.Llm);
+            providerFactory = new ProviderFactory(options.Embedding, options.Chunking.Llm);
         }
         catch (ConfigurationException ex)
         {
@@ -71,7 +66,7 @@ public static class MinervaBuilder
             throw new MinervaStartupException(
                 [new PreflightFailure("Embedding.Credentials", ex.Message, ex)]);
         }
-        
+
         IEmbeddingClient embeddingClient = embeddingProvider;
         IEmbeddingService embeddingService = new EmbeddingService(
             embeddingClient,
@@ -94,14 +89,12 @@ public static class MinervaBuilder
             }
         }
 
-        IDocumentSummarizer? summarizer =
-            options.Chunking.EnableSummarization && llmClient is not null
-                ? new DocumentSummarizer(llmClient)
-                : null;
-        IChunkContextualizer? contextualizer =
-            options.Chunking.EnableContextualization && llmClient is not null
-                ? new ChunkContextualizer(llmClient)
-                : null;
+        IDocumentSummarizer? summarizer = llmClient is not null
+            ? new DocumentSummarizer(llmClient)
+            : null;
+        IChunkContextualizer? contextualizer = llmClient is not null
+            ? new ChunkContextualizer(llmClient)
+            : null;
 
         IDocumentChunker chunker = options.Chunking.ChunkerType switch
         {
@@ -174,58 +167,5 @@ public static class MinervaBuilder
         }
 
         return failures;
-    }
-
-    private static List<PreflightFailure> ValidateOptions(MinervaOptions options)
-    {
-        var failures = new List<PreflightFailure>();
-
-        if (string.IsNullOrWhiteSpace(options.ConnectionString))
-            failures.Add(new PreflightFailure("Options", "ConnectionString is required."));
-
-        ValidateProvider("Options.Embedding", options.Embedding, failures);
-
-        if (options.Llm is not null)
-            ValidateProvider("Options.Llm", options.Llm, failures);
-
-        ValidateChunking(options.Chunking, failures);
-
-        return failures;
-    }
-
-    private static void ValidateProvider(string stage, ProviderOptions p, List<PreflightFailure> failures)
-    {
-        if (string.IsNullOrWhiteSpace(p.BaseUrl))
-            failures.Add(new PreflightFailure(stage, "BaseUrl is required."));
-        else if (!Uri.TryCreate(p.BaseUrl, UriKind.Absolute, out _))
-            failures.Add(new PreflightFailure(stage, $"BaseUrl is not a valid absolute URI: '{p.BaseUrl}'."));
-
-        if (string.IsNullOrWhiteSpace(p.Model))
-            failures.Add(new PreflightFailure(stage, "Model is required."));
-
-        if (p.Concurrency <= 0)
-            failures.Add(new PreflightFailure(stage, $"Concurrency must be > 0 (got {p.Concurrency})."));
-
-        if (p.BatchSize <= 0)
-            failures.Add(new PreflightFailure(stage, $"BatchSize must be > 0 (got {p.BatchSize})."));
-
-        if (p.RequestsPerMinute is int rpm && rpm <= 0)
-            failures.Add(new PreflightFailure(stage, $"RequestsPerMinute must be > 0 when set (got {rpm})."));
-    }
-
-    private static void ValidateChunking(ChunkingOptions c, List<PreflightFailure> failures)
-    {
-        const string stage = "Options.Chunking";
-
-        if (c.TargetChunkSize <= 0)
-            failures.Add(new PreflightFailure(stage, $"TargetChunkSize must be > 0 (got {c.TargetChunkSize})."));
-
-        if (c.ChunkOverlap < 0)
-            failures.Add(new PreflightFailure(stage, $"ChunkOverlap must be >= 0 (got {c.ChunkOverlap})."));
-        else if (c.TargetChunkSize > 0 && c.ChunkOverlap >= c.TargetChunkSize)
-            failures.Add(new PreflightFailure(stage, $"ChunkOverlap must be < TargetChunkSize (got {c.ChunkOverlap} >= {c.TargetChunkSize})."));
-
-        if (c.MaxSegmentChars <= 0)
-            failures.Add(new PreflightFailure(stage, $"MaxSegmentChars must be > 0 (got {c.MaxSegmentChars})."));
     }
 }

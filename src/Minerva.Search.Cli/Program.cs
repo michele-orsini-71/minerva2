@@ -23,11 +23,7 @@ try
         .AddEnvironmentVariables()
         .Build();
 
-    var minervaOptions = new MinervaOptions
-    {
-        Embedding = new ProviderOptions { BaseUrl = string.Empty, Model = string.Empty },
-    };
-    config.GetSection("Minerva").Bind(minervaOptions);
+    var minervaOptions = MinervaOptionsBinder.Bind(config.GetSection("Minerva"));
 
     using var loggerFactory = LoggerFactory.Create(b =>
     {
@@ -51,6 +47,11 @@ try
     ResultFormatter.Print(results, parsed, Console.Out);
 
     return results.Count == 0 ? 3 : 0;
+}
+catch (OptionsValidationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
 }
 catch (MinervaStartupException ex)
 {

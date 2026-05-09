@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using Minerva.Collections;
-using Minerva.Configuration;
 using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
 using Minerva.Models;
@@ -30,8 +29,8 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         {
             TargetChunkSize = 600,
             ChunkOverlap = 100,
-            EnableSummarization = false,
-            EnableContextualization = false,
+            MaxSegmentChars = 8000,
+            ChunkerType = ChunkerType.Custom,
         };
 
         var mockEmbeddings = new MockEmbeddingGenerator(EmbeddingDimension);

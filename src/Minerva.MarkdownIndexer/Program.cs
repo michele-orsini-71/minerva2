@@ -4,7 +4,6 @@ using Minerva;
 using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.MarkdownIndexer;
-using Minerva.Models;
 
 try
 {
@@ -17,14 +16,8 @@ try
         .AddCommandLine(args)
         .Build();
 
-    var minervaOptions = new MinervaOptions
-    {
-        Embedding = new ProviderOptions { BaseUrl = string.Empty, Model = string.Empty },
-    };
-    config.GetSection("Minerva").Bind(minervaOptions);
-
-    var indexerOptions = new IndexerOptions { RootPath = string.Empty, CollectionName = string.Empty };
-    config.GetSection("Indexer").Bind(indexerOptions);
+    var minervaOptions = MinervaOptionsBinder.Bind(config.GetSection("Minerva"));
+    var indexerOptions = IndexerOptionsBinder.Bind(config.GetSection("Indexer"));
 
     var forceRecreate = args.Contains("--force-recreate");
 
@@ -49,6 +42,11 @@ try
 
     await indexer.RunAsync(cts.Token);
     return 0;
+}
+catch (OptionsValidationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
 }
 catch (MinervaStartupException ex)
 {

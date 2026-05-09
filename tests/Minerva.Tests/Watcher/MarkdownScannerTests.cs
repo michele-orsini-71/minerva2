@@ -1,4 +1,5 @@
 using Minerva.MarkdownIndexer;
+using Minerva.Tests.TestSupport;
 
 namespace Minerva.Tests.Watcher;
 
@@ -19,12 +20,9 @@ public class MarkdownScannerTests : IDisposable
     }
 
     private MarkdownScanner MakeScanner(string[]? excludes = null) =>
-        new(new IndexerOptions
-        {
-            RootPath = _root,
-            CollectionName = "test",
-            ExcludeDirectories = excludes ?? [".obsidian", ".trash", ".git"],
-        });
+        new(TestOptions.Indexer(
+            rootPath: _root,
+            excludeDirectories: excludes ?? [".obsidian", ".trash", ".git"]));
 
     private string WriteFile(string relativePath, string content)
     {

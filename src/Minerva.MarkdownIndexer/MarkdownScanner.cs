@@ -5,6 +5,8 @@ namespace Minerva.MarkdownIndexer;
 
 public partial class MarkdownScanner
 {
+    private const string MarkdownFilePattern = "*.md";
+
     private static readonly Regex ImageRegex = MarkdownImageRegex();
 
     private readonly IndexerOptions _options;
@@ -22,7 +24,7 @@ public partial class MarkdownScanner
         var excludeSet = new HashSet<string>(_options.ExcludeDirectories, StringComparer.OrdinalIgnoreCase);
 
         foreach (var path in Directory.EnumerateFiles(
-            _options.RootPath, _options.FilePattern, SearchOption.AllDirectories))
+            _options.RootPath, MarkdownFilePattern, SearchOption.AllDirectories))
         {
             if (IsExcluded(path, excludeSet))
                 continue;

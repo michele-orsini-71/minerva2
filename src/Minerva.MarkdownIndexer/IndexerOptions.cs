@@ -1,9 +1,8 @@
 namespace Minerva.MarkdownIndexer;
 
-public class IndexerOptions
+public sealed record IndexerOptions
 {
-    public required string RootPath { get; set; }
-    public required string CollectionName { get; set; }
-    public string FilePattern { get; set; } = "*.md";
-    public string[] ExcludeDirectories { get; set; } = [];
+    public required string RootPath { get; init; }
+    public required string CollectionName { get; init; }
+    public required IReadOnlyList<string> ExcludeDirectories { get; init; }
 }

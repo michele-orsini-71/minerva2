@@ -6,12 +6,11 @@ public enum ChunkerType
     SemanticKernel,
 }
 
-public class ChunkingOptions
+public sealed record ChunkingOptions
 {
-    public int TargetChunkSize { get; set; } = 1200;
-    public int ChunkOverlap { get; set; } = 200;
-    public bool EnableSummarization { get; set; }
-    public bool EnableContextualization { get; set; }
-    public int MaxSegmentChars { get; set; } = 8000;
-    public ChunkerType ChunkerType { get; set; } = ChunkerType.Custom;
+    public required int TargetChunkSize { get; init; }
+    public required int ChunkOverlap { get; init; }
+    public required int MaxSegmentChars { get; init; }
+    public required ChunkerType ChunkerType { get; init; }
+    public LlmProviderOptions? Llm { get; init; }
 }

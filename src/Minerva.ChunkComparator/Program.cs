@@ -1,74 +1,82 @@
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Minerva.Configuration;
 using Minerva.Ingestion;
 using Minerva.Models;
 
-var config = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: false)
-    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", optional: true)
-    .AddEnvironmentVariables()
-    .AddCommandLine(args)
-    .Build();
-
-var rootPath = config["Indexer:RootPath"]
-    ?? throw new InvalidOperationException("Indexer:RootPath is required.");
-var filePattern = config["Indexer:FilePattern"] ?? "*.md";
-var excludeDirs = config.GetSection("Indexer:ExcludeDirectories").Get<string[]>() ?? [];
-
-var chunkingOptions = new ChunkingOptions();
-config.GetSection("Minerva:Chunking").Bind(chunkingOptions);
-
-var outputDir = config["Comparator:OutputDir"] ?? "./chunk-comparison";
-
-if (!Directory.Exists(rootPath))
-    throw new DirectoryNotFoundException($"RootPath does not exist: {rootPath}");
-
-var customDir = Path.Combine(outputDir, "custom");
-var skDir = Path.Combine(outputDir, "microsoft");
-Directory.CreateDirectory(customDir);
-Directory.CreateDirectory(skDir);
-
-IDocumentChunker customChunker = new DocumentChunker(chunkingOptions);
-IDocumentChunker skChunker = new SemanticKernelChunker(chunkingOptions);
-
-var excludeSet = new HashSet<string>(excludeDirs, StringComparer.OrdinalIgnoreCase);
-var summary = new List<DocComparison>();
-
-foreach (var path in Directory.EnumerateFiles(rootPath, filePattern, SearchOption.AllDirectories))
+try
 {
-    var relative = Path.GetRelativePath(rootPath, path);
-    if (relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-        .Any(seg => excludeSet.Contains(seg)))
-        continue;
+    var config = new ConfigurationBuilder()
+        .SetBasePath(AppContext.BaseDirectory)
+        .AddJsonFile("appsettings.json", optional: false)
+        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", optional: true)
+        .AddEnvironmentVariables()
+        .AddCommandLine(args)
+        .Build();
 
-    var raw = await File.ReadAllTextAsync(path);
-    var body = StripFrontmatter(raw);
-    if (string.IsNullOrWhiteSpace(body))
-        continue;
+    var rootPath = config["Indexer:RootPath"]
+        ?? throw new InvalidOperationException("Indexer:RootPath is required.");
+    var excludeDirs = config.GetSection("Indexer:ExcludeDirectories").Get<string[]>() ?? [];
 
-    var slug = Slugify(Path.GetFileNameWithoutExtension(path));
-    const string collection = "compare";
+    var chunkingOptions = ChunkingOptionsBinder.Bind(config.GetSection("Minerva:Chunking"));
 
-    var customChunks = customChunker.Chunk(collection, slug, body);
-    var skChunks = skChunker.Chunk(collection, slug, body);
+    var outputDir = config["Comparator:OutputDir"] ?? "./chunk-comparison";
 
-    await WriteChunksAsync(customDir, slug, customChunks);
-    await WriteChunksAsync(skDir, slug, skChunks);
+    if (!Directory.Exists(rootPath))
+        throw new DirectoryNotFoundException($"RootPath does not exist: {rootPath}");
 
-    summary.Add(new DocComparison(
-        relative,
-        customChunks.Count,
-        skChunks.Count,
-        customChunks.Count == 0 ? 0 : (int)customChunks.Average(c => c.Content.Length),
-        skChunks.Count == 0 ? 0 : (int)skChunks.Average(c => c.Content.Length),
-        body.Length));
+    var customDir = Path.Combine(outputDir, "custom");
+    var skDir = Path.Combine(outputDir, "microsoft");
+    Directory.CreateDirectory(customDir);
+    Directory.CreateDirectory(skDir);
+
+    IDocumentChunker customChunker = new DocumentChunker(chunkingOptions);
+    IDocumentChunker skChunker = new SemanticKernelChunker(chunkingOptions);
+
+    var excludeSet = new HashSet<string>(excludeDirs, StringComparer.OrdinalIgnoreCase);
+    var summary = new List<DocComparison>();
+
+    foreach (var path in Directory.EnumerateFiles(rootPath, "*.md", SearchOption.AllDirectories))
+    {
+        var relative = Path.GetRelativePath(rootPath, path);
+        if (relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(seg => excludeSet.Contains(seg)))
+            continue;
+
+        var raw = await File.ReadAllTextAsync(path);
+        var body = StripFrontmatter(raw);
+        if (string.IsNullOrWhiteSpace(body))
+            continue;
+
+        var slug = Slugify(Path.GetFileNameWithoutExtension(path));
+        const string collection = "compare";
+
+        var customChunks = customChunker.Chunk(collection, slug, body);
+        var skChunks = skChunker.Chunk(collection, slug, body);
+
+        await WriteChunksAsync(customDir, slug, customChunks);
+        await WriteChunksAsync(skDir, slug, skChunks);
+
+        summary.Add(new DocComparison(
+            relative,
+            customChunks.Count,
+            skChunks.Count,
+            customChunks.Count == 0 ? 0 : (int)customChunks.Average(c => c.Content.Length),
+            skChunks.Count == 0 ? 0 : (int)skChunks.Average(c => c.Content.Length),
+            body.Length));
+    }
+
+    await WriteSummaryAsync(outputDir, summary, chunkingOptions);
+
+    Console.WriteLine($"Compared {summary.Count} documents.");
+    Console.WriteLine($"Output written to: {Path.GetFullPath(outputDir)}");
+    return 0;
 }
-
-await WriteSummaryAsync(outputDir, summary, chunkingOptions);
-
-Console.WriteLine($"Compared {summary.Count} documents.");
-Console.WriteLine($"Output written to: {Path.GetFullPath(outputDir)}");
+catch (OptionsValidationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
+}
 
 static string StripFrontmatter(string raw)
 {

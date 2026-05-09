@@ -1,6 +1,6 @@
 using Minerva.Exceptions;
 using Minerva.Ingestion;
-using Minerva.Models;
+using Minerva.Tests.TestSupport;
 using Minerva.Utilities;
 
 namespace Minerva.Tests.Ingestion;
@@ -11,12 +11,10 @@ public class DocumentChunkerTests
     private static DocumentChunker CreateChunker(
         int targetChunkSize = 1200, int overlap = 200, int maxSegmentChars = 8000)
     {
-        return new DocumentChunker(new ChunkingOptions
-        {
-            TargetChunkSize = targetChunkSize,
-            ChunkOverlap = overlap,
-            MaxSegmentChars = maxSegmentChars,
-        });
+        return new DocumentChunker(TestOptions.Chunking(
+            targetChunkSize: targetChunkSize,
+            chunkOverlap: overlap,
+            maxSegmentChars: maxSegmentChars));
     }
 
     [Fact]
