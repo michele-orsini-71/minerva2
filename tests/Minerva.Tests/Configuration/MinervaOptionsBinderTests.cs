@@ -18,7 +18,12 @@ public class MinervaOptionsBinderTests
           "Chunking": {
             "TargetChunkSize": 1200,
             "ChunkOverlap": 200,
-            "MaxSegmentChars": 8000,
+            "ContextBudget": {
+              "MaxContextTokens": 4096,
+              "ReservedTokens": 512,
+              "CharsPerToken": 3.0,
+              "SafetyFactor": 0.9
+            },
             "ChunkerType": "Custom"
           }
         }
@@ -39,7 +44,10 @@ public class MinervaOptionsBinderTests
         Assert.Null(options.Embedding.ApiKey);
         Assert.Equal(1200, options.Chunking.TargetChunkSize);
         Assert.Equal(200, options.Chunking.ChunkOverlap);
-        Assert.Equal(8000, options.Chunking.MaxSegmentChars);
+        Assert.Equal(4096, options.Chunking.ContextBudget.MaxContextTokens);
+        Assert.Equal(512, options.Chunking.ContextBudget.ReservedTokens);
+        Assert.Equal(3.0, options.Chunking.ContextBudget.CharsPerToken);
+        Assert.Equal(0.9, options.Chunking.ContextBudget.SafetyFactor);
         Assert.Equal(ChunkerType.Custom, options.Chunking.ChunkerType);
         Assert.Null(options.Chunking.Llm);
     }
@@ -69,7 +77,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
@@ -102,7 +115,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom"
               }
             }
@@ -130,7 +148,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom"
               }
             }
@@ -158,7 +181,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
@@ -187,7 +215,12 @@ public class MinervaOptionsBinderTests
               },
               "Chunking": {
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom"
               }
             }
@@ -215,7 +248,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "bad-url",
@@ -250,7 +288,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "BogusValue"
               }
             }
@@ -278,7 +321,12 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 100,
                 "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
                 "ChunkerType": "Custom"
               }
             }

@@ -81,19 +81,11 @@ MaxInputChars = (4096 − 512) × 3.0 × 0.9 = 9676.8 → 9676
 
 Plug those numbers into `appsettings.qwen2-5-test.json` and re-run `run-obsidian-indexing-test-3-qwen2-5-test.sh`. MacTree.md must succeed (it failed before with a 4k-loaded context).
 
-### Open decisions
+### Decisions (resolved 2026-05-09)
 
-- **D-B1: Where the new options live.**
-
-  1. **Extend `ChunkingOptions`** ([src/Minerva/Models/ChunkingOptions.cs](../../src/Minerva/Models/ChunkingOptions.cs)) with `MaxContextTokens`, `ReservedTokens`, `CharsPerToken`, `SafetyFactor`. Compute `MaxSegmentChars` and `TargetChunkSize` from those at startup. Repurpose or remove `LargeDocumentThreshold`.
-  2. **New options class** like `ContextBudgetOptions` under `Minerva:Llm` (LLM-side) and `Minerva:Embeddings` (embedder-side); keep `ChunkingOptions` for chunker mechanics only.
-  3. **Minimal rename** — rename `LargeDocumentThreshold` → `MaxSegmentChars`, document it as "your token budget, expressed in chars," and let operators do the math. No new config keys.
-
-  Option 3 is the smallest patch. Option 1 is honest about the formula. Option 2 is the cleanest extension point if Phase C will land. Pragmatic recommendation: **Option 1**, but waiting for your call.
-
-- **D-B2: Embedder budget.** Same treatment for `TargetChunkSize` (currently 1200, embedder-bound)? BGE-M3 has 8192 tokens → ≈22k chars at 3.0 ratio, which is way above today's 1200. So in practice today's chunk size is well under the embedder's ceiling and we don't gain from automating it. Recommendation: skip embedder-side budget automation in Phase B, revisit if a chunker output ever rejects.
-
-- **D-B3: Where the formula evaluates.** A static helper in `Minerva.Ingestion`? Inside `ChunkingOptions` as a computed property? At DI registration in `Minerva.Hosting`? Recommendation: at DI registration, so options classes stay POCO.
+- **D-B1 — settled:** new `ContextBudgetOptions` record as a `required` sub-option of `ChunkingOptions` (same nesting pattern as the existing `Llm` sub-option). `MaxSegmentChars` is removed entirely from `ChunkingOptions` and from every `appsettings*.json`; `ContextBudget` is the only way to express the LLM-bound budget.
+- **D-B2 — settled:** embedder-side automation skipped. `TargetChunkSize` stays as a fixed int. BGE-M3's 8192-token ceiling is an order of magnitude above today's 1200-char chunks; automating gains nothing now and adds config surface.
+- **D-B3 — settled:** the formula `(MaxContextTokens − ReservedTokens) × CharsPerToken × SafetyFactor` lives in **`DocumentChunker`** (the chunking engine, where the knowledge belongs), evaluated **once in the constructor** and cached in a private field. The binder's job is only to validate the four inputs (required, positive, ranges sensible). The post-`remove-di` equivalent of "DI registration" — the options binder — was rejected as putting one concern in the wrong place.
 
 ### Out of scope for Phase B
 

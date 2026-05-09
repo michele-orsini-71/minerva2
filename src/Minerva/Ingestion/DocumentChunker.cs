@@ -11,12 +11,27 @@ namespace Minerva.Ingestion;
 public class DocumentChunker : IDocumentChunker
 {
     private readonly ChunkingOptions _options;
+    private readonly int _maxSegmentChars;
     private readonly ILogger<DocumentChunker>? _logger;
 
     public DocumentChunker(ChunkingOptions options, ILogger<DocumentChunker>? logger = null)
     {
         _options = options;
+        _maxSegmentChars = ComputeMaxSegmentChars(options.ContextBudget);
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Translates a token-denominated context budget into the char ceiling for one
+    /// LLM input. Lives here (not in the binder) because the chars↔tokens bridge
+    /// is the chunker's concern; the binder only validates the inputs.
+    /// </summary>
+    internal static int ComputeMaxSegmentChars(ContextBudgetOptions budget)
+    {
+        double chars = (budget.MaxContextTokens - budget.ReservedTokens)
+            * budget.CharsPerToken
+            * budget.SafetyFactor;
+        return (int)Math.Floor(chars);
     }
 
     /// <summary>
@@ -33,12 +48,13 @@ public class DocumentChunker : IDocumentChunker
     }
 
     /// <summary>
-    /// Splits a large document into segments under <see cref="ChunkingOptions.MaxSegmentChars"/>.
-    /// Used by the pipeline when segments need separate summarization (e.g. an LLM context budget).
+    /// Splits a large document into segments under the char budget derived from
+    /// <see cref="ChunkingOptions.ContextBudget"/>. Used by the pipeline when segments
+    /// need separate summarization (e.g. an LLM context budget).
     /// </summary>
     public IReadOnlyList<string> SegmentDocument(string text)
     {
-        return SplitMarkdownToBudget(text, _options.MaxSegmentChars, overlap: 0);
+        return SplitMarkdownToBudget(text, _maxSegmentChars, overlap: 0);
     }
 
     /// <summary>

@@ -29,7 +29,12 @@ public static class ChunkingOptionsBinder
                 stagePrefix + "ChunkOverlap",
                 $"must be < TargetChunkSize (got {o} >= {t})."));
 
-        BinderHelpers.ValidateRequiredPositiveInt(raw.MaxSegmentChars, stagePrefix + "MaxSegmentChars", failures);
+        ContextBudgetOptions? contextBudget = null;
+        if (raw.ContextBudget is null)
+            failures.Add(new OptionsFailure(stagePrefix + "ContextBudget", "is required."));
+        else
+            contextBudget = ContextBudgetOptionsBinder.TryBuild(
+                raw.ContextBudget, stagePrefix + "ContextBudget.", failures);
 
         ChunkerType chunkerType = default;
         bool chunkerValid = false;
@@ -58,7 +63,7 @@ public static class ChunkingOptionsBinder
         {
             TargetChunkSize = raw.TargetChunkSize!.Value,
             ChunkOverlap = raw.ChunkOverlap!.Value,
-            MaxSegmentChars = raw.MaxSegmentChars!.Value,
+            ContextBudget = contextBudget!,
             ChunkerType = chunkerValid ? chunkerType : default,
             Llm = llm,
         };
@@ -69,7 +74,7 @@ internal sealed class RawChunkingOptions
 {
     public int? TargetChunkSize { get; set; }
     public int? ChunkOverlap { get; set; }
-    public int? MaxSegmentChars { get; set; }
+    public RawContextBudgetOptions? ContextBudget { get; set; }
     public string? ChunkerType { get; set; }
     public RawLlmProviderOptions? Llm { get; set; }
 }

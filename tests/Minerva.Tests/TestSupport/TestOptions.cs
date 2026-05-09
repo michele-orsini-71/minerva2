@@ -14,7 +14,15 @@ internal static class TestOptions
     {
         TargetChunkSize = targetChunkSize,
         ChunkOverlap = chunkOverlap,
-        MaxSegmentChars = maxSegmentChars,
+        // Synthesize a ContextBudget whose formula resolves to exactly `maxSegmentChars`,
+        // so tests can keep expressing the LLM-bound budget as a plain char count.
+        ContextBudget = new ContextBudgetOptions
+        {
+            MaxContextTokens = maxSegmentChars,
+            ReservedTokens = 0,
+            CharsPerToken = 1.0,
+            SafetyFactor = 1.0,
+        },
         ChunkerType = chunkerType,
         Llm = llm,
     };

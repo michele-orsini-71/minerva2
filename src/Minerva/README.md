@@ -120,7 +120,7 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 | `ChunkOverlap` | int | `200` | optional |
 | `EnableSummarization` | bool | `false` | optional (needs `Llm`) |
 | `EnableContextualization` | bool | `false` | optional (needs `Llm`) |
-| `MaxSegmentChars` | int | `8000` | optional |
+| `ContextBudget` | `ContextBudgetOptions` | — | **required** (LLM-bound segment budget; chunker derives `MaxSegmentChars` from `(MaxContextTokens − ReservedTokens) × CharsPerToken × SafetyFactor`) |
 
 ## Internal layout
 
