@@ -80,11 +80,11 @@ var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(Top
 }
 ```
 
-- `Chunking.Llm` is optional — only required when summarization or contextualization is desired. When absent, large documents are still segmented (using `MaxSegmentChars`) but the LLM-driven steps are skipped.
+- `Chunking.Llm` is optional. When **present**, large documents are summarized and chunks are contextualized via that LLM. When **absent**, large documents are still segmented (using `MaxSegmentChars`) but the LLM-driven steps are skipped — there is no separate enable/disable flag, presence is the toggle.
 - API keys may be inlined or referenced via `env:VAR_NAME` (resolved by `CredentialResolver`).
 - Embedding / LLM providers are any OpenAI-compatible HTTP endpoint.
 
-> **Local-runtime tip.** When both `Embedding` and `Llm` point at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise every ingestion alternates between embedding and summarization/contextualization calls and the runtime swaps models in and out of VRAM on each switch.
+> **Local-runtime tip.** When both `Embedding` and `Chunking.Llm` point at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise every ingestion alternates between embedding and summarization/contextualization calls and the runtime swaps models in and out of VRAM on each switch.
 >
 > - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
 > - **LM Studio**: load both models in the *Models* panel before starting the client.
@@ -97,10 +97,9 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 
 | Field | Type | Default | Required? |
 | --- | --- | --- | --- |
-| `ConnectionString` | string | — | **required** (enforced by `required` keyword) |
-| `Embedding` | `ProviderOptions` | — | **required** (enforced by `required` keyword; fields below) |
-| `Llm` | `ProviderOptions?` | `null` | optional — required when any `Chunking.Enable*` flag is true |
-| `Chunking` | `ChunkingOptions` | `new()` | optional (all fields have defaults) |
+| `ConnectionString` | string | — | **required** |
+| `Embedding` | `EmbeddingProviderOptions` | — | **required** (fields below) |
+| `Chunking` | `ChunkingOptions` | — | **required** (fields below; LLM is nested under `Chunking.Llm`) |
 
 **`Embedding` / `Llm`** (`ProviderOptions`)
 
@@ -121,7 +120,7 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 | `ChunkOverlap` | int | — | **required** (overlap between adjacent chunks, in chars; must be `< TargetChunkSize`) |
 | `MaxSegmentChars` | int | — | **required** (hard ceiling on segment size, in chars; must be `>= TargetChunkSize`) |
 | `ChunkerType` | enum | — | **required** (`Custom` or `SemanticKernel`) |
-| `Llm` | `LlmProviderOptions?` | `null` | optional — required to enable summarization / contextualization for large documents |
+| `Llm` | `LlmProviderOptions?` | `null` | optional — when present, enables summarization + contextualization for large documents; when absent, those steps are skipped |
 
 #### How segment sizing works
 
