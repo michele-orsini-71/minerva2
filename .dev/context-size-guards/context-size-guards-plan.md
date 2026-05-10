@@ -94,40 +94,70 @@ Plug those numbers into `appsettings.qwen2-5-test.json` and re-run `run-obsidian
 
 ---
 
-## Phase C — Preflight reads server context length
+## Phase C — Preflight validates server context length
 
-**Goal**: stop guessing `MaxContextTokens`. Read it from the server at startup.
+**Goal**: catch operator misconfiguration of `MaxContextTokens` against what the server actually loaded. The probe **validates**, it does not override — `DocumentChunker` stays oblivious to probe outcome and the budget stays exactly what the operator wrote.
 
-### Server matrix (from design notes)
+### Server matrix
 
-| Server | Endpoint | Field |
+| Server | Endpoint | Field read (loaded only) |
 |---|---|---|
-| LM Studio | `GET /api/v0/models` | `loaded_context_length`, `max_context_length` |
-| llama.cpp | `GET /props` | `n_ctx` |
-| Ollama | `POST /api/show` | `parameters.num_ctx` |
-| vLLM | `GET /v1/models` | `max_model_len` |
+| LM Studio | `GET /api/v0/models` | `data[i].loaded_context_length` (matched by `id`) |
+| Ollama | `POST /api/show` | `num_ctx` line in the `parameters` string |
+| llama.cpp | `GET /props` | `default_generation_settings.n_ctx`, falls back to top-level `n_ctx` |
 
-Read **loaded** context (what's actually allocated), not max (model capability). Fallback to the configured value from Phase B if no server-specific endpoint matches. Surface a clear startup error if neither works.
+Only "loaded" fields are read. `max_context_length` (capability) is deliberately ignored — a model that *can* hold 32k may be loaded at 2k, and validating against capability would silently pass configurations that crash at runtime. vLLM is deferred (its `max_model_len` is capability, not loaded).
 
-### Concrete change
+### Decisions (resolved 2026-05-09)
 
-Extend [`PreflightAsync` in OpenAICompatibleLlmProvider.cs (line 191-209)](../../src/Minerva/Providers/OpenAICompatibleLlmProvider.cs#L191-L209) with a context-length probe. The probe is best-effort: if it succeeds, override the configured `MaxContextTokens`; if it fails, log and use the config value.
+- **D-C1 — settled:** LM Studio + Ollama + llama.cpp. No `IContextLengthProbe` interface introduced — engine selection is a `ContextLengthProbe` enum on `LlmProviderOptions`, dispatch is a `switch` inside the provider. vLLM and any other engine is reachable via `ContextLengthProbe.None` (no probe attempted).
+- **D-C2 — settled:** soft-fall-through. Probe HTTP failure or unrecognized response shape → `Warning` log + preflight passes. The probe is a safety check, not the source of truth; the operator's configured value remains the ceiling. Probe success but `loaded < configured` → `PreflightFailure` (hard fail).
+- **D-C3 — settled:** probe runs once during `MinervaBuilder.RunPreflightAsync` (which itself runs once during `BuildAsync`). No re-probing. Operators who hot-swap models or change loaded context in the local server must restart Minerva.
+
+### Operator surface
+
+New required field on `LlmProviderOptions`:
+
+```jsonc
+"Llm": {
+  "BaseUrl": "...",
+  "Model": "...",
+  "Concurrency": 1,
+  "ContextLengthProbe": "LMStudio"  // LMStudio | Ollama | LlamaCpp | None
+}
+```
+
+`None` is the catch-all for hosted providers (OpenAI, Anthropic via OpenAI-compat shim, Google via OpenAI-compat shim, Deepseek, Together, etc.) and any custom proxy. Same configure-and-trust behavior as Minerva v1; no probe is attempted, no log is emitted. Typos in the enum value fail at config-validation time.
+
+### Wiring
+
+- `OpenAICompatibleLlmProvider.PreflightAsync(int configuredMaxContextTokens, ILogger logger, CancellationToken ct)`:
+  1. Existing model-availability check (`CheckAvailabilityAsync`). On failure → return `PreflightFailure("Llm", ...)` and short-circuit.
+  2. If `ContextLengthProbe == None` → return null silently.
+  3. Call `ProbeLoadedContextLengthAsync` (single HTTP call, ~5s timeout, swallows all errors as `null`).
+  4. Probe returned `null` → `Warning` log "did not respond as expected; using configured value unverified" → return null.
+  5. `loaded < configured` → return `PreflightFailure("Llm.ContextLength", ...)` with both numbers and remediation text.
+  6. `loaded >= configured` → `Information` log "OK" → return null.
+- `MinervaBuilder.RunPreflightAsync` reads `options.Chunking.ContextBudget.MaxContextTokens` and passes it in alongside an `ILogger<OpenAICompatibleLlmProvider>` from the configured factory.
 
 ### Verification
 
-Run against LM Studio with qwen2.5 loaded at 4096 context. Expect a startup log line like:
+Unit-tested in [tests/Minerva.Tests/Providers/ContextLengthProbeTests.cs](../../tests/Minerva.Tests/Providers/ContextLengthProbeTests.cs):
+
+- per-engine happy path (LMStudio matches by model id, Ollama parses `num_ctx` line, LlamaCpp reads either nested or top-level `n_ctx`)
+- per-engine failure modes (404, malformed JSON, missing field, model-id mismatch, HTTP exception) all return `null`
+- `Preflight_ProbedLessThanConfigured_ReturnsContextLengthFailure` proves the validation rule
+- `Preflight_ProbeNone_DoesNotMakeHttpCall` proves silent skip
+- `Preflight_ChatAvailabilityFails_ShortCircuitsBeforeProbe` proves short-circuit ordering
+
+Live verification: run against LM Studio with qwen2.5 loaded at 4096 context, configured `MaxContextTokens: 4096`. Expect:
 
 ```
-LM Studio reports loaded_context_length=4096; effective char budget=9676
+info: Minerva.Providers.OpenAICompatibleLlmProvider
+      LLM context-length probe (LMStudio) reports loaded=4096 tokens; configured MaxContextTokens=4096. OK.
 ```
 
-Reduce LM Studio's loaded context to 2048, restart, expect the budget to halve automatically.
-
-### Open decisions
-
-- **D-C1: Which servers to support up-front.** All four is speculative. Recommendation: **LM Studio only**, with a clean extension point (e.g., a `IContextLengthProbe` that we can add `LlamaCpp`, `Ollama`, `Vllm` implementations to as needed).
-- **D-C2: Probe failure behavior.** Log + fallback to configured value (recommended), or hard fail at startup? Hard fail is safer when the operator forgets to set the budget; soft fallback is more permissive. Default to log+fallback with a warning when fallback is used.
-- **D-C3: Caching.** Probe once at startup, or re-probe periodically? Model swaps in LM Studio are common but rare per session. Recommendation: probe once at startup; document that restart is needed after model swap.
+Reduce LM Studio's loaded context to 2048, restart Minerva. Expect `MinervaStartupException` with stage `Llm.ContextLength` and a message naming both numbers ("2048 tokens, but ... configured to 4096; lower MaxContextTokens to <= 2048 or load the model with a larger context window").
 
 ---
 

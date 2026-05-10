@@ -126,7 +126,12 @@ public static class MinervaBuilder
 
         // Phase 3: preflight — environmental checks, aggregate failures.
         var preflightFailures = await RunPreflightAsync(
-            databasePreflight, embeddingProvider, llmProvider, ct);
+            databasePreflight,
+            embeddingProvider,
+            llmProvider,
+            options.Chunking.ContextBudget.MaxContextTokens,
+            loggerFactory.CreateLogger<OpenAICompatibleLlmProvider>(),
+            ct);
         if (preflightFailures.Count > 0)
             throw new MinervaStartupException(preflightFailures);
 
@@ -147,6 +152,8 @@ public static class MinervaBuilder
         DatabasePreflight databasePreflight,
         OpenAICompatibleEmbeddingProvider embeddingProvider,
         OpenAICompatibleLlmProvider? llmProvider,
+        int configuredMaxContextTokens,
+        ILogger<OpenAICompatibleLlmProvider> llmLogger,
         CancellationToken ct)
     {
         var failures = new List<PreflightFailure>();
@@ -161,7 +168,7 @@ public static class MinervaBuilder
 
         if (llmProvider is not null)
         {
-            var llmFailure = await llmProvider.PreflightAsync(ct);
+            var llmFailure = await llmProvider.PreflightAsync(configuredMaxContextTokens, llmLogger, ct);
             if (llmFailure is not null)
                 failures.Add(llmFailure);
         }

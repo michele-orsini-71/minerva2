@@ -87,7 +87,8 @@ public class MinervaOptionsBinderTests
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Model": "gemma",
-                  "Concurrency": 2
+                  "Concurrency": 2,
+                  "ContextLengthProbe": "LMStudio"
                 }
               }
             }
@@ -99,6 +100,7 @@ public class MinervaOptionsBinderTests
         Assert.Equal("http://localhost:1234/v1", options.Chunking.Llm!.BaseUrl);
         Assert.Equal("gemma", options.Chunking.Llm.Model);
         Assert.Equal(2, options.Chunking.Llm.Concurrency);
+        Assert.Equal(ContextLengthProbe.LMStudio, options.Chunking.Llm.ContextLengthProbe);
     }
 
     [Fact]
@@ -190,7 +192,8 @@ public class MinervaOptionsBinderTests
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
-                  "Concurrency": 1
+                  "Concurrency": 1,
+                  "ContextLengthProbe": "None"
                 }
               }
             }
@@ -257,7 +260,8 @@ public class MinervaOptionsBinderTests
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "bad-url",
-                  "Concurrency": 1
+                  "Concurrency": 1,
+                  "ContextLengthProbe": "None"
                 }
               }
             }
@@ -304,6 +308,125 @@ public class MinervaOptionsBinderTests
 
         Assert.Single(ex.Failures);
         Assert.Equal("Chunking.ChunkerType", ex.Failures[0].Path);
+    }
+
+    [Fact]
+    public void Bind_LlmMissingContextLengthProbe_ReportsProbePath()
+    {
+        const string json = """
+            {
+              "ConnectionString": "Host=h;Database=d",
+              "Embedding": {
+                "BaseUrl": "http://localhost:11434/v1",
+                "Model": "nomic",
+                "Concurrency": 1,
+                "BatchSize": 4
+              },
+              "Chunking": {
+                "TargetChunkSize": 1200,
+                "ChunkOverlap": 200,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
+                "ChunkerType": "Custom",
+                "Llm": {
+                  "BaseUrl": "http://localhost:1234/v1",
+                  "Model": "gemma",
+                  "Concurrency": 1
+                }
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Single(ex.Failures);
+        Assert.Equal("Chunking.Llm.ContextLengthProbe", ex.Failures[0].Path);
+    }
+
+    [Fact]
+    public void Bind_LlmInvalidContextLengthProbe_ReportsProbePath()
+    {
+        const string json = """
+            {
+              "ConnectionString": "Host=h;Database=d",
+              "Embedding": {
+                "BaseUrl": "http://localhost:11434/v1",
+                "Model": "nomic",
+                "Concurrency": 1,
+                "BatchSize": 4
+              },
+              "Chunking": {
+                "TargetChunkSize": 1200,
+                "ChunkOverlap": 200,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
+                "ChunkerType": "Custom",
+                "Llm": {
+                  "BaseUrl": "http://localhost:1234/v1",
+                  "Model": "gemma",
+                  "Concurrency": 1,
+                  "ContextLengthProbe": "lmstudio-typo"
+                }
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Single(ex.Failures);
+        Assert.Equal("Chunking.Llm.ContextLengthProbe", ex.Failures[0].Path);
+    }
+
+    [Theory]
+    [InlineData("LMStudio", ContextLengthProbe.LMStudio)]
+    [InlineData("lmstudio", ContextLengthProbe.LMStudio)]
+    [InlineData("Ollama", ContextLengthProbe.Ollama)]
+    [InlineData("LlamaCpp", ContextLengthProbe.LlamaCpp)]
+    [InlineData("None", ContextLengthProbe.None)]
+    public void Bind_LlmContextLengthProbe_ParsesEnumCaseInsensitive(string raw, ContextLengthProbe expected)
+    {
+        string json = $$"""
+            {
+              "ConnectionString": "Host=h;Database=d",
+              "Embedding": {
+                "BaseUrl": "http://localhost:11434/v1",
+                "Model": "nomic",
+                "Concurrency": 1,
+                "BatchSize": 4
+              },
+              "Chunking": {
+                "TargetChunkSize": 1200,
+                "ChunkOverlap": 200,
+                "ContextBudget": {
+                  "MaxContextTokens": 4096,
+                  "ReservedTokens": 512,
+                  "CharsPerToken": 3.0,
+                  "SafetyFactor": 0.9
+                },
+                "ChunkerType": "Custom",
+                "Llm": {
+                  "BaseUrl": "http://localhost:1234/v1",
+                  "Model": "gemma",
+                  "Concurrency": 1,
+                  "ContextLengthProbe": "{{raw}}"
+                }
+              }
+            }
+            """;
+
+        var options = MinervaOptionsBinder.Bind(ConfigFromJson.Build(json));
+
+        Assert.Equal(expected, options.Chunking.Llm!.ContextLengthProbe);
     }
 
     [Fact]

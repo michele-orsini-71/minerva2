@@ -48,13 +48,15 @@ internal static class TestOptions
         string model = "test-llm",
         string? apiKey = null,
         int concurrency = 1,
-        int? requestsPerMinute = null) => new()
+        int? requestsPerMinute = null,
+        ContextLengthProbe contextLengthProbe = ContextLengthProbe.None) => new()
     {
         BaseUrl = baseUrl,
         Model = model,
         ApiKey = apiKey,
         Concurrency = concurrency,
         RequestsPerMinute = requestsPerMinute,
+        ContextLengthProbe = contextLengthProbe,
     };
 
     public static IndexerOptions Indexer(

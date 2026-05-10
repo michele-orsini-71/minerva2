@@ -43,7 +43,7 @@ public class ProviderFactory
         var (client, endpoint) = CreateOpenAIClient(_llm.BaseUrl, _llmResolver);
         var chatClient = client.GetChatClient(_llm.Model);
         var rateLimiter = new RateLimiter(_llm.Concurrency, _llm.RequestsPerMinute);
-        return new OpenAICompatibleLlmProvider(chatClient, rateLimiter, _llm.Model, endpoint);
+        return new OpenAICompatibleLlmProvider(chatClient, rateLimiter, _llm.Model, endpoint, _llm.ContextLengthProbe);
     }
 
     private static (OpenAI.OpenAIClient Client, Uri Endpoint) CreateOpenAIClient(

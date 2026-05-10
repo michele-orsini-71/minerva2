@@ -27,6 +27,23 @@ public static class LlmProviderOptionsBinder
         BinderHelpers.ValidateRequiredPositiveInt(raw.Concurrency, stagePrefix + "Concurrency", failures);
         BinderHelpers.ValidateOptionalPositiveInt(raw.RequestsPerMinute, stagePrefix + "RequestsPerMinute", failures);
 
+        ContextLengthProbe probe = default;
+        bool probeValid = false;
+        if (string.IsNullOrWhiteSpace(raw.ContextLengthProbe))
+        {
+            failures.Add(new OptionsFailure(stagePrefix + "ContextLengthProbe", "is required."));
+        }
+        else if (!Enum.TryParse<ContextLengthProbe>(raw.ContextLengthProbe, ignoreCase: true, out probe))
+        {
+            failures.Add(new OptionsFailure(
+                stagePrefix + "ContextLengthProbe",
+                $"is not a valid ContextLengthProbe ('{raw.ContextLengthProbe}'). Valid values: None, LMStudio, Ollama, LlamaCpp."));
+        }
+        else
+        {
+            probeValid = true;
+        }
+
         if (failures.Count > before) return null;
 
         return new LlmProviderOptions
@@ -36,6 +53,7 @@ public static class LlmProviderOptionsBinder
             ApiKey = string.IsNullOrWhiteSpace(raw.ApiKey) ? null : raw.ApiKey,
             Concurrency = raw.Concurrency!.Value,
             RequestsPerMinute = raw.RequestsPerMinute,
+            ContextLengthProbe = probeValid ? probe : default,
         };
     }
 }
@@ -47,4 +65,5 @@ internal sealed class RawLlmProviderOptions
     public string? ApiKey { get; set; }
     public int? Concurrency { get; set; }
     public int? RequestsPerMinute { get; set; }
+    public string? ContextLengthProbe { get; set; }
 }
