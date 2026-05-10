@@ -1,0 +1,1 @@
+DELETE FROM collections WHERE name = '<collection>';

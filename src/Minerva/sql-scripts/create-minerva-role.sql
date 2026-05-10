@@ -1,0 +1,1 @@
+CREATE ROLE minerva WITH LOGIN PASSWORD '<password>';
