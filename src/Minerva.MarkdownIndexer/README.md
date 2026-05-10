@@ -3,6 +3,7 @@
 A filesystem watcher that keeps a Minerva collection in sync with a directory of markdown files. The first real client of the [Minerva](../Minerva/README.md) library.
 
 Works for:
+
 - Obsidian vaults
 - Repository `docs/` folders
 - Static-site sources (Jekyll, Hugo, Astro, Quartz, …)
@@ -13,6 +14,7 @@ Obsidian-specific features (wikilinks, embeds, tags, dataview) are **out of scop
 ## What it does
 
 On startup:
+
 1. Ensures the target Minerva collection exists (auto-creates it, probing the embedder for its vector dimension).
 2. Scans the root directory and ingests every matching file.
 3. Starts a `FileSystemWatcher` with debouncing; thereafter each create/change/delete/rename is reflected in the collection.
@@ -39,7 +41,7 @@ Runs as a long-lived host — it does not exit until cancelled.
     "ConnectionString": "Host=localhost;Database=minerva;Username=minerva;Password=minerva",
     "Embedding": {
       "BaseUrl": "http://localhost:11434/v1",
-      "Model": "nomic-embed-text"
+      "Model": "embedding-bge-m3"
     }
   },
   "Indexer": {
@@ -58,7 +60,7 @@ The `Minerva` section is the full core-library config (see [`src/Minerva/README.
 > **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise the watcher will trigger model swaps in and out of VRAM whenever it alternates between embedding and summarization/contextualization.
 >
 > - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
-> - **LM Studio**: load both models in the *Models* panel before starting the watcher.
+> - **LM Studio**: load both models in the _Models_ panel before starting the watcher.
 
 ## Building a standalone binary
 
@@ -134,10 +136,10 @@ Indexer__CollectionName=experiment-a \
 
 ## Files
 
-| File | Role |
-| --- | --- |
-| `Program.cs` | Entry point — builds config, constructs the engine + indexer, runs one ingest pass |
-| `IndexerOptions.cs` | Config record bound to the `Indexer` section |
-| `MarkdownScanner.cs` | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
-| `MarkdownIndexer.cs` | Drives a single scan-and-ingest pass against `IMinervaEngine` |
-| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer` |
+| File                        | Role                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `Program.cs`                | Entry point — builds config, constructs the engine + indexer, runs one ingest pass   |
+| `IndexerOptions.cs`         | Config record bound to the `Indexer` section                                         |
+| `MarkdownScanner.cs`        | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
+| `MarkdownIndexer.cs`        | Drives a single scan-and-ingest pass against `IMinervaEngine`                        |
+| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer`                           |

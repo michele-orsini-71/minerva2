@@ -9,13 +9,13 @@
 
 ## Implementation Progress
 
-| Step | Description | Status |
-|------|-------------|--------|
-| **1** | Create WatcherOptions | ✅ Complete |
-| **2** | Create MarkdownScanner | ✅ Complete |
-| **3** | Create MarkdownSyncService | ✅ Complete |
+| Step  | Description                     | Status      |
+| ----- | ------------------------------- | ----------- |
+| **1** | Create WatcherOptions           | ✅ Complete |
+| **2** | Create MarkdownScanner          | ✅ Complete |
+| **3** | Create MarkdownSyncService      | ✅ Complete |
 | **4** | Create Program.cs and DI wiring | ✅ Complete |
-| **5** | Write tests | ✅ Complete |
+| **5** | Write tests                     | ✅ Complete |
 
 ---
 
@@ -66,6 +66,7 @@ public class MarkdownScanner
 ```
 
 **ReadFile behavior**:
+
 - Derive `sourceId` from the relative path within the root (e.g., `notes/daily/2026-04-07.md`)
 - Parse YAML frontmatter (between `---` fences) into `metadata` dictionary
 - Extract `title` from frontmatter `title` field, or fall back to filename without extension
@@ -156,7 +157,7 @@ public static class ServiceCollectionExtensions
     "ConnectionString": "Host=localhost;Database=minerva;Username=minerva",
     "Embedding": {
       "BaseUrl": "http://localhost:11434/v1",
-      "Model": "nomic-embed-text",
+      "Model": "embedding-bge-m3",
       "Concurrency": 1,
       "BatchSize": 1
     }
@@ -172,6 +173,7 @@ public static class ServiceCollectionExtensions
 ### Step 5: Write tests
 
 **File**: `tests/Minerva.Tests/Watcher/MarkdownScannerTests.cs`
+
 - Scans a temp directory with `.md` files, returns correct file list
 - Excludes directories listed in `ExcludeDirectories`
 - Parses YAML frontmatter into metadata dictionary
@@ -180,6 +182,7 @@ public static class ServiceCollectionExtensions
 - Handles files with no frontmatter gracefully
 
 **File**: `tests/Minerva.Tests/Watcher/DebounceTests.cs`
+
 - Rapid file events are coalesced into a single processing call
 - Events for different files are processed independently
 - Debounce timer resets on each new event for the same file
@@ -190,16 +193,16 @@ public static class ServiceCollectionExtensions
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `src/Minerva.MarkdownWatcher/WatcherOptions.cs` | Watcher configuration |
-| `src/Minerva.MarkdownWatcher/MarkdownScanner.cs` | Markdown file enumeration + frontmatter parsing |
-| `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` | BackgroundService with FileSystemWatcher + debouncing |
-| `src/Minerva.MarkdownWatcher/Program.cs` | Host builder entry point |
-| `src/Minerva.MarkdownWatcher/DI/ServiceCollectionExtensions.cs` | AddMinervaWatcher() extension |
-| `src/Minerva.MarkdownWatcher/appsettings.json` | Default configuration |
-| `tests/Minerva.Tests/Watcher/MarkdownScannerTests.cs` | Scanner unit tests |
-| `tests/Minerva.Tests/Watcher/DebounceTests.cs` | Debounce logic unit tests |
+| File                                                            | Purpose                                               |
+| --------------------------------------------------------------- | ----------------------------------------------------- |
+| `src/Minerva.MarkdownWatcher/WatcherOptions.cs`                 | Watcher configuration                                 |
+| `src/Minerva.MarkdownWatcher/MarkdownScanner.cs`                | Markdown file enumeration + frontmatter parsing       |
+| `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs`            | BackgroundService with FileSystemWatcher + debouncing |
+| `src/Minerva.MarkdownWatcher/Program.cs`                        | Host builder entry point                              |
+| `src/Minerva.MarkdownWatcher/DI/ServiceCollectionExtensions.cs` | AddMinervaWatcher() extension                         |
+| `src/Minerva.MarkdownWatcher/appsettings.json`                  | Default configuration                                 |
+| `tests/Minerva.Tests/Watcher/MarkdownScannerTests.cs`           | Scanner unit tests                                    |
+| `tests/Minerva.Tests/Watcher/DebounceTests.cs`                  | Debounce logic unit tests                             |
 
 ---
 

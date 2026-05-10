@@ -27,6 +27,7 @@ ICollectionService Collections { get; }   // CreateAsync, GetAsync, DeleteAsync,
 ```
 
 Key models (`Minerva.Models`):
+
 - `Document(SourceId, Title, Text, Metadata?, Attachments?)`
 - `SearchOptions(TopK, HybridAlpha, ExpandContext, MetadataFilter?)`
 - `SearchResult(ChunkId, SourceId, CollectionName, Content, Score, Metadata?, ContextBefore?, ContextAfter?)`
@@ -44,7 +45,7 @@ builder.Services.AddMinerva(options =>
 var host = builder.Build();
 var engine = host.Services.GetRequiredService<IMinervaEngine>();
 
-await engine.Collections.CreateAsync("my-notes", "nomic-embed-text", dimension: 768);
+await engine.Collections.CreateAsync("my-notes", "embedding-bge-m3", dimension: 768);
 await engine.IngestAsync("my-notes", new Document("note-1", "Hello", "World"));
 
 var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(TopK: 5));
@@ -60,7 +61,7 @@ var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(Top
     "ConnectionString": "Host=localhost;Database=minerva;Username=...;Password=...",
     "Embedding": {
       "BaseUrl": "http://localhost:11434/v1",
-      "Model": "nomic-embed-text",
+      "Model": "embedding-bge-m3",
       "Concurrency": 1,
       "BatchSize": 1
     },
@@ -87,7 +88,7 @@ var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(Top
 > **Local-runtime tip.** When both `Embedding` and `Chunking.Llm` point at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise every ingestion alternates between embedding and summarization/contextualization calls and the runtime swaps models in and out of VRAM on each switch.
 >
 > - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
-> - **LM Studio**: load both models in the *Models* panel before starting the client.
+> - **LM Studio**: load both models in the _Models_ panel before starting the client.
 
 ### Configuration reference
 
@@ -95,32 +96,32 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 
 **`Minerva`** (`MinervaOptions`)
 
-| Field | Type | Default | Required? |
-| --- | --- | --- | --- |
-| `ConnectionString` | string | — | **required** |
-| `Embedding` | `EmbeddingProviderOptions` | — | **required** (fields below) |
-| `Chunking` | `ChunkingOptions` | — | **required** (fields below; LLM is nested under `Chunking.Llm`) |
+| Field              | Type                       | Default | Required?                                                       |
+| ------------------ | -------------------------- | ------- | --------------------------------------------------------------- |
+| `ConnectionString` | string                     | —       | **required**                                                    |
+| `Embedding`        | `EmbeddingProviderOptions` | —       | **required** (fields below)                                     |
+| `Chunking`         | `ChunkingOptions`          | —       | **required** (fields below; LLM is nested under `Chunking.Llm`) |
 
 **`Embedding` / `Llm`** (`ProviderOptions`)
 
-| Field | Type | Default | Required? |
-| --- | --- | --- | --- |
-| `BaseUrl` | string | — | **required** (enforced by `required` keyword) |
-| `Model` | string | — | **required** (enforced by `required` keyword) |
-| `ApiKey` | string? | `null` | optional (supports `env:VAR_NAME`) |
-| `RequestsPerMinute` | int? | `null` (unlimited) | optional |
-| `Concurrency` | int | `1` | optional |
-| `BatchSize` | int | `1` | optional |
+| Field               | Type    | Default            | Required?                                     |
+| ------------------- | ------- | ------------------ | --------------------------------------------- |
+| `BaseUrl`           | string  | —                  | **required** (enforced by `required` keyword) |
+| `Model`             | string  | —                  | **required** (enforced by `required` keyword) |
+| `ApiKey`            | string? | `null`             | optional (supports `env:VAR_NAME`)            |
+| `RequestsPerMinute` | int?    | `null` (unlimited) | optional                                      |
+| `Concurrency`       | int     | `1`                | optional                                      |
+| `BatchSize`         | int     | `1`                | optional                                      |
 
 **`Chunking`** (`ChunkingOptions`)
 
-| Field | Type | Default | Required? |
-| --- | --- | --- | --- |
-| `TargetChunkSize` | int | — | **required** (target size for individual chunks, in chars) |
-| `ChunkOverlap` | int | — | **required** (overlap between adjacent chunks, in chars; must be `< TargetChunkSize`) |
-| `MaxSegmentChars` | int | — | **required** (hard ceiling on segment size, in chars; must be `>= TargetChunkSize`) |
-| `ChunkerType` | enum | — | **required** (`Custom` or `SemanticKernel`) |
-| `Llm` | `LlmProviderOptions?` | `null` | optional — when present, enables summarization + contextualization for large documents; when absent, those steps are skipped |
+| Field             | Type                  | Default | Required?                                                                                                                    |
+| ----------------- | --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `TargetChunkSize` | int                   | —       | **required** (target size for individual chunks, in chars)                                                                   |
+| `ChunkOverlap`    | int                   | —       | **required** (overlap between adjacent chunks, in chars; must be `< TargetChunkSize`)                                        |
+| `MaxSegmentChars` | int                   | —       | **required** (hard ceiling on segment size, in chars; must be `>= TargetChunkSize`)                                          |
+| `ChunkerType`     | enum                  | —       | **required** (`Custom` or `SemanticKernel`)                                                                                  |
+| `Llm`             | `LlmProviderOptions?` | `null`  | optional — when present, enables summarization + contextualization for large documents; when absent, those steps are skipped |
 
 #### How segment sizing works
 
@@ -128,15 +129,15 @@ A "segment" is the largest piece of a document that can be processed as one LLM 
 
 ## Internal layout
 
-| Folder | Responsibility |
-|---|---|
-| `Collections/` | `CollectionManager`, `Collection` entity |
-| `Configuration/` | `MinervaOptions`, `CredentialResolver` |
-| `DI/` | `AddMinerva()` extension, `MinervaStartupService` |
-| `Exceptions/` | Typed exceptions (`ConfigurationException`, etc.) |
-| `Ingestion/` | `IngestionPipeline`, `DocumentChunker`, `EmbeddingService`, `DocumentSummarizer`, `ChunkContextualizer` |
-| `Models/` | Public records (`Document`, `SearchResult`, …) |
-| `Providers/` | OpenAI-compatible embedding/LLM clients, `RateLimiter`, `ProviderFactory` |
-| `Search/` | `VectorSearch`, `FullTextSearch`, `ContextExpander`, `SearchPipeline` (RRF fusion) |
-| `Storage/` | `SchemaInitializer`, `PostgresCollectionRepository`, `PostgresChunkRepository` |
-| `Utilities/` | Cross-cutting helpers |
+| Folder           | Responsibility                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `Collections/`   | `CollectionManager`, `Collection` entity                                                                |
+| `Configuration/` | `MinervaOptions`, `CredentialResolver`                                                                  |
+| `DI/`            | `AddMinerva()` extension, `MinervaStartupService`                                                       |
+| `Exceptions/`    | Typed exceptions (`ConfigurationException`, etc.)                                                       |
+| `Ingestion/`     | `IngestionPipeline`, `DocumentChunker`, `EmbeddingService`, `DocumentSummarizer`, `ChunkContextualizer` |
+| `Models/`        | Public records (`Document`, `SearchResult`, …)                                                          |
+| `Providers/`     | OpenAI-compatible embedding/LLM clients, `RateLimiter`, `ProviderFactory`                               |
+| `Search/`        | `VectorSearch`, `FullTextSearch`, `ContextExpander`, `SearchPipeline` (RRF fusion)                      |
+| `Storage/`       | `SchemaInitializer`, `PostgresCollectionRepository`, `PostgresChunkRepository`                          |
+| `Utilities/`     | Cross-cutting helpers                                                                                   |

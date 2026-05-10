@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 # Chunk comparator files
 chunk-comparison
 chunk-comparison
+
+bin/
+bin-search/

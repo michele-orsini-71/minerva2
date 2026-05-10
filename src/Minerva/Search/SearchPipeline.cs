@@ -50,6 +50,14 @@ public class SearchPipeline
             .Take(options.TopK)
             .ToList();
 
+        if (merged.Count < options.TopK)
+        {
+            _logger.LogWarning(
+                "Search returned {Actual} results, {Requested} were requested. " +
+                "Candidate pool may be too small for this corpus — consider increasing CandidatePoolMultiplier (currently {Multiplier}).",
+                merged.Count, options.TopK, options.CandidatePoolMultiplier);
+        }
+
         // 4. Optional context expansion.
         if (options.ExpandContext)
             return await _contextExpander.ExpandAsync(merged, ct);
@@ -64,21 +72,34 @@ public class SearchPipeline
         SearchOptions options,
         CancellationToken ct)
     {
+        var candidatePoolSize = options.TopK * options.CandidatePoolMultiplier;
+
         var vectorTask = _vectorSearch.SearchAsync(
-            collectionName, queryEmbedding, options.TopK, ct);
+            collectionName, queryEmbedding, candidatePoolSize, ct);
         var ftsTask = _fullTextSearch.SearchAsync(
-            collectionName, query, options.TopK, ct);
+            collectionName, query, candidatePoolSize, ct);
 
         await Task.WhenAll(vectorTask, ftsTask);
 
         var fused = RankFusion.Fuse(
             vectorTask.Result, ftsTask.Result, options.HybridAlpha);
 
-        _logger.LogDebug(
-            "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused",
-            collectionName, vectorTask.Result.Count, ftsTask.Result.Count, fused.Count);
+        // Dedup by SourceId — fused is already sorted desc by score,
+        // so the first occurrence of each source is the highest-scoring chunk.
+        var seen = new HashSet<string>();
+        var dedupedBySource = new List<FusedResult>();
+        foreach (var f in fused)
+        {
+            if (seen.Add(f.Chunk.SourceId))
+                dedupedBySource.Add(f);
+        }
 
-        return fused.Take(options.TopK).ToList();
+        _logger.LogDebug(
+            "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused → {Sources} sources",
+            collectionName, vectorTask.Result.Count, ftsTask.Result.Count,
+            fused.Count, dedupedBySource.Count);
+
+        return dedupedBySource.Take(options.TopK).ToList();
     }
 
     private static SearchResult ToSearchResult(FusedResult r) =>
