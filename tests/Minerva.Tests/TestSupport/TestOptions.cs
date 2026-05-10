@@ -14,15 +14,7 @@ internal static class TestOptions
     {
         TargetChunkSize = targetChunkSize,
         ChunkOverlap = chunkOverlap,
-        // Synthesize a ContextBudget whose formula resolves to exactly `maxSegmentChars`,
-        // so tests can keep expressing the LLM-bound budget as a plain char count.
-        ContextBudget = new ContextBudgetOptions
-        {
-            MaxContextTokens = maxSegmentChars,
-            ReservedTokens = 0,
-            CharsPerToken = 1.0,
-            SafetyFactor = 1.0,
-        },
+        MaxSegmentChars = maxSegmentChars,
         ChunkerType = chunkerType,
         Llm = llm,
     };
@@ -49,7 +41,8 @@ internal static class TestOptions
         string? apiKey = null,
         int concurrency = 1,
         int? requestsPerMinute = null,
-        ContextLengthProbe contextLengthProbe = ContextLengthProbe.None) => new()
+        ContextLengthProbe contextLengthProbe = ContextLengthProbe.None,
+        ContextBudgetOptions? contextBudget = null) => new()
     {
         BaseUrl = baseUrl,
         Model = model,
@@ -57,6 +50,13 @@ internal static class TestOptions
         Concurrency = concurrency,
         RequestsPerMinute = requestsPerMinute,
         ContextLengthProbe = contextLengthProbe,
+        ContextBudget = contextBudget ?? new ContextBudgetOptions
+        {
+            MaxContextTokens = 4096,
+            ReservedTokens = 512,
+            CharsPerToken = 3.0,
+            SafetyFactor = 0.9,
+        },
     };
 
     public static IndexerOptions Indexer(

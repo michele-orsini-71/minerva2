@@ -18,12 +18,7 @@ public class MinervaOptionsBinderTests
           "Chunking": {
             "TargetChunkSize": 1200,
             "ChunkOverlap": 200,
-            "ContextBudget": {
-              "MaxContextTokens": 4096,
-              "ReservedTokens": 512,
-              "CharsPerToken": 3.0,
-              "SafetyFactor": 0.9
-            },
+            "MaxSegmentChars": 8000,
             "ChunkerType": "Custom"
           }
         }
@@ -44,10 +39,7 @@ public class MinervaOptionsBinderTests
         Assert.Null(options.Embedding.ApiKey);
         Assert.Equal(1200, options.Chunking.TargetChunkSize);
         Assert.Equal(200, options.Chunking.ChunkOverlap);
-        Assert.Equal(4096, options.Chunking.ContextBudget.MaxContextTokens);
-        Assert.Equal(512, options.Chunking.ContextBudget.ReservedTokens);
-        Assert.Equal(3.0, options.Chunking.ContextBudget.CharsPerToken);
-        Assert.Equal(0.9, options.Chunking.ContextBudget.SafetyFactor);
+        Assert.Equal(8000, options.Chunking.MaxSegmentChars);
         Assert.Equal(ChunkerType.Custom, options.Chunking.ChunkerType);
         Assert.Null(options.Chunking.Llm);
     }
@@ -77,18 +69,19 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Model": "gemma",
                   "Concurrency": 2,
-                  "ContextLengthProbe": "LMStudio"
+                  "ContextLengthProbe": "LMStudio",
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -101,6 +94,10 @@ public class MinervaOptionsBinderTests
         Assert.Equal("gemma", options.Chunking.Llm.Model);
         Assert.Equal(2, options.Chunking.Llm.Concurrency);
         Assert.Equal(ContextLengthProbe.LMStudio, options.Chunking.Llm.ContextLengthProbe);
+        Assert.Equal(4096, options.Chunking.Llm.ContextBudget.MaxContextTokens);
+        Assert.Equal(512, options.Chunking.Llm.ContextBudget.ReservedTokens);
+        Assert.Equal(3.0, options.Chunking.Llm.ContextBudget.CharsPerToken);
+        Assert.Equal(0.9, options.Chunking.Llm.ContextBudget.SafetyFactor);
     }
 
     [Fact]
@@ -117,12 +114,7 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom"
               }
             }
@@ -150,12 +142,7 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom"
               }
             }
@@ -183,17 +170,18 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Concurrency": 1,
-                  "ContextLengthProbe": "None"
+                  "ContextLengthProbe": "None",
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -218,12 +206,7 @@ public class MinervaOptionsBinderTests
               },
               "Chunking": {
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom"
               }
             }
@@ -251,17 +234,18 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "bad-url",
                   "Concurrency": 1,
-                  "ContextLengthProbe": "None"
+                  "ContextLengthProbe": "None",
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -292,12 +276,7 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "BogusValue"
               }
             }
@@ -325,17 +304,18 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Model": "gemma",
-                  "Concurrency": 1
+                  "Concurrency": 1,
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -363,18 +343,19 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Model": "gemma",
                   "Concurrency": 1,
-                  "ContextLengthProbe": "lmstudio-typo"
+                  "ContextLengthProbe": "lmstudio-typo",
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -407,18 +388,19 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
                 "Llm": {
                   "BaseUrl": "http://localhost:1234/v1",
                   "Model": "gemma",
                   "Concurrency": 1,
-                  "ContextLengthProbe": "{{raw}}"
+                  "ContextLengthProbe": "{{raw}}",
+                  "ContextBudget": {
+                    "MaxContextTokens": 4096,
+                    "ReservedTokens": 512,
+                    "CharsPerToken": 3.0,
+                    "SafetyFactor": 0.9
+                  }
                 }
               }
             }
@@ -444,12 +426,7 @@ public class MinervaOptionsBinderTests
               "Chunking": {
                 "TargetChunkSize": 100,
                 "ChunkOverlap": 200,
-                "ContextBudget": {
-                  "MaxContextTokens": 4096,
-                  "ReservedTokens": 512,
-                  "CharsPerToken": 3.0,
-                  "SafetyFactor": 0.9
-                },
+                "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom"
               }
             }

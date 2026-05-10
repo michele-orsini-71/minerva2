@@ -316,7 +316,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         {
             return new PreflightFailure(
                 "Llm.ContextLength",
-                $"{_contextLengthProbe} reports loaded context length = {probed.Value} tokens, but Chunking.ContextBudget.MaxContextTokens is configured to {configuredMaxContextTokens}. Either lower MaxContextTokens to <= {probed.Value} or load the model with a larger context window.",
+                $"{_contextLengthProbe} reports loaded context length = {probed.Value} tokens, but Chunking.Llm.ContextBudget.MaxContextTokens is configured to {configuredMaxContextTokens}. Either lower MaxContextTokens to <= {probed.Value} or load the model with a larger context window.",
                 null);
         }
 

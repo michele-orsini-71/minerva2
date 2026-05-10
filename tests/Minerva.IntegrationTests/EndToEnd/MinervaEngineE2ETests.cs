@@ -29,13 +29,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         {
             TargetChunkSize = 600,
             ChunkOverlap = 100,
-            ContextBudget = new ContextBudgetOptions
-            {
-                MaxContextTokens = 8000,
-                ReservedTokens = 0,
-                CharsPerToken = 1.0,
-                SafetyFactor = 1.0,
-            },
+            MaxSegmentChars = 8000,
             ChunkerType = ChunkerType.Custom,
         };
 

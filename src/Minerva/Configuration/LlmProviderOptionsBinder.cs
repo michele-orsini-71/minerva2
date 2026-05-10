@@ -44,6 +44,13 @@ public static class LlmProviderOptionsBinder
             probeValid = true;
         }
 
+        ContextBudgetOptions? contextBudget = null;
+        if (raw.ContextBudget is null)
+            failures.Add(new OptionsFailure(stagePrefix + "ContextBudget", "is required."));
+        else
+            contextBudget = ContextBudgetOptionsBinder.TryBuild(
+                raw.ContextBudget, stagePrefix + "ContextBudget.", failures);
+
         if (failures.Count > before) return null;
 
         return new LlmProviderOptions
@@ -54,6 +61,7 @@ public static class LlmProviderOptionsBinder
             Concurrency = raw.Concurrency!.Value,
             RequestsPerMinute = raw.RequestsPerMinute,
             ContextLengthProbe = probeValid ? probe : default,
+            ContextBudget = contextBudget!,
         };
     }
 }
@@ -66,4 +74,5 @@ internal sealed class RawLlmProviderOptions
     public int? Concurrency { get; set; }
     public int? RequestsPerMinute { get; set; }
     public string? ContextLengthProbe { get; set; }
+    public RawContextBudgetOptions? ContextBudget { get; set; }
 }

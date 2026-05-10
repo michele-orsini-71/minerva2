@@ -17,7 +17,9 @@ public class DocumentChunker : IDocumentChunker
     public DocumentChunker(ChunkingOptions options, ILogger<DocumentChunker>? logger = null)
     {
         _options = options;
-        _maxSegmentChars = ComputeMaxSegmentChars(options.ContextBudget);
+        _maxSegmentChars = options.Llm?.ContextBudget is { } budget
+            ? Math.Min(options.MaxSegmentChars, ComputeMaxSegmentChars(budget))
+            : options.MaxSegmentChars;
         _logger = logger;
     }
 
@@ -48,9 +50,10 @@ public class DocumentChunker : IDocumentChunker
     }
 
     /// <summary>
-    /// Splits a large document into segments under the char budget derived from
-    /// <see cref="ChunkingOptions.ContextBudget"/>. Used by the pipeline when segments
-    /// need separate summarization (e.g. an LLM context budget).
+    /// Splits a large document into segments under the per-segment char ceiling.
+    /// The ceiling is the lower of <see cref="ChunkingOptions.MaxSegmentChars"/> and the
+    /// LLM-derived budget (when an <see cref="LlmProviderOptions"/> is configured).
+    /// Used by the pipeline when segments need separate summarization.
     /// </summary>
     public IReadOnlyList<string> SegmentDocument(string text)
     {
