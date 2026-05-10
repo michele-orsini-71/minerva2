@@ -57,7 +57,6 @@ public class DocumentSummarizer : IDocumentSummarizer
                     SegmentIndex = i,
                     TotalSegments = segments.Count,
                     DocumentPath = ex.DocumentPath,
-                    Budget = ex.Budget,
                 };
             }
             catch (ProviderUnavailableException ex)

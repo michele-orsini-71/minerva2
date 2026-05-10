@@ -86,7 +86,6 @@ public class IngestionPipeline
                 SegmentIndex = ex.SegmentIndex,
                 TotalSegments = ex.TotalSegments,
                 DocumentPath = document.SourceId,
-                Budget = ex.Budget,
             };
         }
         catch (ProviderUnavailableException ex)
