@@ -22,6 +22,12 @@ public class DocumentSummarizer : IDocumentSummarizer
         {
             return await SummarizeCoreAsync(text, ct);
         }
+        catch (LlmContextOverflowException)
+        {
+            // Single-document summarize: no segment context to add. Let the typed exception
+            // bubble; outer layers (IngestionPipeline) will enrich with document path.
+            throw;
+        }
         catch (ProviderUnavailableException ex)
         {
             throw new ProviderUnavailableException(
@@ -39,6 +45,20 @@ public class DocumentSummarizer : IDocumentSummarizer
             try
             {
                 summaries[i] = await SummarizeCoreAsync(segments[i], ct) ?? string.Empty;
+            }
+            catch (LlmContextOverflowException ex)
+            {
+                throw new LlmContextOverflowException(
+                    $"Summarization failed at segment {i + 1}/{segments.Count} ({segments[i].Length} chars): {ex.Message}",
+                    ex)
+                {
+                    InputChars = ex.InputChars,
+                    ServerResponseBody = ex.ServerResponseBody,
+                    SegmentIndex = i,
+                    TotalSegments = segments.Count,
+                    DocumentPath = ex.DocumentPath,
+                    Budget = ex.Budget,
+                };
             }
             catch (ProviderUnavailableException ex)
             {

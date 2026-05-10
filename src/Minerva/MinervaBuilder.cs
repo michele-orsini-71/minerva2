@@ -79,7 +79,8 @@ public static class MinervaBuilder
         {
             try
             {
-                llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
+                llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider(
+                    loggerFactory.CreateLogger<OpenAICompatibleLlmProvider>());
                 llmClient = llmProvider;
             }
             catch (ConfigurationException ex)

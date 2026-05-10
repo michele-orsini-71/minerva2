@@ -76,6 +76,19 @@ public class IngestionPipeline
             (allChunks, contextPrefixes) = await ProcessDocumentAsync(
                 collectionName, document.SourceId, text, ct);
         }
+        catch (LlmContextOverflowException ex)
+        {
+            throw new LlmContextOverflowException(
+                $"Ingestion failed for document '{document.SourceId}' ({text.Length} chars): {ex.Message}", ex)
+            {
+                InputChars = ex.InputChars,
+                ServerResponseBody = ex.ServerResponseBody,
+                SegmentIndex = ex.SegmentIndex,
+                TotalSegments = ex.TotalSegments,
+                DocumentPath = document.SourceId,
+                Budget = ex.Budget,
+            };
+        }
         catch (ProviderUnavailableException ex)
         {
             throw new ProviderUnavailableException(

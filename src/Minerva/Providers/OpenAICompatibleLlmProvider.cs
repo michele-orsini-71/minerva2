@@ -28,17 +28,19 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
     private readonly OAI.ChatClient _client;
     private readonly RateLimiter _rateLimiter;
     private readonly ResiliencePipeline _resiliencePipeline;
-    private readonly IChatClientFacade _probeFacade;
+    private readonly IChatClientFacade _chatFacade;
     private readonly ContextLengthProbe _contextLengthProbe;
     private readonly HttpMessageHandler? _probeHandler;
+    private readonly ILogger<OpenAICompatibleLlmProvider>? _logger;
 
     public OpenAICompatibleLlmProvider(
         OAI.ChatClient client,
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint,
-        ContextLengthProbe contextLengthProbe)
-        : this(client, rateLimiter, modelId, endpoint, contextLengthProbe, probeFacade: null, probeHandler: null)
+        ContextLengthProbe contextLengthProbe,
+        ILogger<OpenAICompatibleLlmProvider>? logger = null)
+        : this(client, rateLimiter, modelId, endpoint, contextLengthProbe, chatFacade: null, probeHandler: null, logger)
     {
     }
 
@@ -48,17 +50,19 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         string modelId,
         Uri endpoint,
         ContextLengthProbe contextLengthProbe,
-        IChatClientFacade? probeFacade,
-        HttpMessageHandler? probeHandler)
+        IChatClientFacade? chatFacade,
+        HttpMessageHandler? probeHandler,
+        ILogger<OpenAICompatibleLlmProvider>? logger = null)
     {
         _client = client;
         _rateLimiter = rateLimiter;
         Metadata = new ChatClientMetadata(
             nameof(OpenAICompatibleLlmProvider), endpoint, modelId);
         _resiliencePipeline = BuildResiliencePipeline();
-        _probeFacade = probeFacade ?? new SdkChatClientFacade(_client);
+        _chatFacade = chatFacade ?? new SdkChatClientFacade(_client);
         _contextLengthProbe = contextLengthProbe;
         _probeHandler = probeHandler;
+        _logger = logger;
     }
 
     public ChatClientMetadata Metadata { get; }
@@ -68,31 +72,18 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var openAiMessages = chatMessages.Select(ToOpenAIMessage).ToList();
+        var messagesList = chatMessages.ToList();
         var openAiOptions = MapOptions(options);
 
         try
         {
-            OAI.ChatCompletion completion = await _resiliencePipeline.ExecuteAsync(async ct =>
-            {
-                await _rateLimiter.AcquireAsync(ct);
-                try
-                {
-                    OAI.ChatCompletion result =
-                        await _client.CompleteChatAsync(openAiMessages, openAiOptions, ct);
-                    return result;
-                }
-                finally
-                {
-                    _rateLimiter.Release();
-                }
-            }, cancellationToken);
-
-            var responseText = completion.Content.Count > 0
-                ? completion.Content[0].Text ?? string.Empty
-                : string.Empty;
-
-            return new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText));
+            var openAiMessages = messagesList.Select(ToOpenAIMessage).ToList();
+            var completion = await ExecuteOnceAsync(openAiMessages, openAiOptions, cancellationToken);
+            return ToChatResponse(completion);
+        }
+        catch (ClientResultException ex) when (ex.Status == 400)
+        {
+            return await ShrinkAndRetryAsync(messagesList, openAiOptions, ex, cancellationToken);
         }
         catch (ClientResultException ex)
         {
@@ -108,6 +99,92 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
             throw new ProviderUnavailableException(
                 $"Failed to get chat response: {ex.Message}", ex);
         }
+    }
+
+    private async Task<OAI.ChatCompletion> ExecuteOnceAsync(
+        IList<OAI.ChatMessage> openAiMessages,
+        OAI.ChatCompletionOptions? openAiOptions,
+        CancellationToken cancellationToken)
+    {
+        return await _resiliencePipeline.ExecuteAsync(async ct =>
+        {
+            await _rateLimiter.AcquireAsync(ct);
+            try
+            {
+                return await _chatFacade.CompleteChatAsync(openAiMessages, openAiOptions!, ct);
+            }
+            finally
+            {
+                _rateLimiter.Release();
+            }
+        }, cancellationToken);
+    }
+
+    private async Task<ChatResponse> ShrinkAndRetryAsync(
+        List<ChatMessage> originalMessages,
+        OAI.ChatCompletionOptions? openAiOptions,
+        ClientResultException firstFailure,
+        CancellationToken cancellationToken)
+    {
+        var firstBody = ReadResponseBody(firstFailure);
+        int? lastUserIdx = FindLastUserMessageIndex(originalMessages);
+        string? originalText = lastUserIdx is null ? null : originalMessages[lastUserIdx.Value].Text;
+        int originalLen = originalText?.Length ?? 0;
+
+        if (lastUserIdx is null || originalLen < 2)
+        {
+            throw new LlmContextOverflowException(
+                $"LLM rejected request (HTTP 400) and the last user message could not be shrunk further: {firstBody ?? firstFailure.Message}",
+                firstFailure)
+            {
+                InputChars = originalLen,
+                ServerResponseBody = firstBody,
+            };
+        }
+
+        int halvedLen = originalLen / 2;
+        var halvedText = originalText!.Substring(0, halvedLen);
+
+        var halvedMessages = new List<ChatMessage>(originalMessages);
+        halvedMessages[lastUserIdx.Value] = new ChatMessage(ChatRole.User, halvedText);
+
+        _logger?.LogWarning(
+            "LLM rejected input (HTTP 400, last user message {OriginalChars} chars); retrying with halved input ({HalvedChars} chars).",
+            originalLen, halvedLen);
+
+        var halvedOpenAi = halvedMessages.Select(ToOpenAIMessage).ToList();
+
+        try
+        {
+            var completion = await ExecuteOnceAsync(halvedOpenAi, openAiOptions, cancellationToken);
+            return ToChatResponse(completion);
+        }
+        catch (ClientResultException ex)
+        {
+            var secondBody = ReadResponseBody(ex) ?? firstBody;
+            throw new LlmContextOverflowException(
+                $"LLM rejected request (HTTP {ex.Status}) even after halving input from {originalLen} to {halvedLen} chars: {secondBody ?? ex.Message}",
+                ex)
+            {
+                InputChars = originalLen,
+                ServerResponseBody = secondBody,
+            };
+        }
+    }
+
+    private static int? FindLastUserMessageIndex(IReadOnlyList<ChatMessage> messages)
+    {
+        for (int i = messages.Count - 1; i >= 0; i--)
+            if (messages[i].Role == ChatRole.User) return i;
+        return null;
+    }
+
+    private static ChatResponse ToChatResponse(OAI.ChatCompletion completion)
+    {
+        var responseText = completion.Content.Count > 0
+            ? completion.Content[0].Text ?? string.Empty
+            : string.Empty;
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText));
     }
 
     private static string? ReadResponseBody(ClientResultException ex)
@@ -189,7 +266,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
     {
         var options = new OAI.ChatCompletionOptions { MaxOutputTokenCount = 5 };
         var messages = new List<OAI.ChatMessage> { new OAI.UserChatMessage("ping") };
-        var completion = await _probeFacade.CompleteChatAsync(messages, options, ct);
+        var completion = await _chatFacade.CompleteChatAsync(messages, options, ct);
 
         var requested = Metadata.DefaultModelId;
         var served = completion.Model;

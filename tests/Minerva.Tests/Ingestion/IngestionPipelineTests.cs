@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Minerva.Exceptions;
 using Minerva.Ingestion;
 using Minerva.Models;
 using Minerva.Utilities;
@@ -218,6 +219,58 @@ public class IngestionPipelineTests
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.Any(c => c.Content.Contains("A photo of a cat"))),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_LlmContextOverflow_PropagatesWithLayeredEnrichment()
+    {
+        // Real DocumentSummarizer + real IngestionPipeline + fake ILlmClient that throws
+        // LlmContextOverflowException as the provider would. Verify enrichment at each
+        // layer: provider supplies InputChars/ServerResponseBody, summarizer adds
+        // SegmentIndex/TotalSegments, pipeline adds DocumentPath.
+        var bed = CreatePipeline();
+
+        // Multi-segment path: 3 segments so that the failure happens at segment index 1.
+        bed.Chunker.SegmentDocument(Arg.Any<string>())
+            .Returns((IReadOnlyList<string>)["seg-zero", "seg-one-fails", "seg-two"]);
+
+        var llm = Substitute.For<ILlmClient>();
+        llm.GenerateAsync(Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var prompt = ci.ArgAt<string>(1);
+                if (prompt == "seg-zero")
+                    return Task.FromResult("summary-zero");
+                throw new LlmContextOverflowException(
+                    "LLM rejected request (HTTP 400) even after halving input from 100 to 50 chars: too long")
+                {
+                    InputChars = 100,
+                    ServerResponseBody = "too long",
+                };
+            });
+
+        var summarizer = new DocumentSummarizer(llm);
+        var contextualizer = new ChunkContextualizer(llm);
+        var pipelineWithSummarizer = new IngestionPipeline(
+            bed.Chunker, bed.Embedder, summarizer, contextualizer,
+            bed.Repo, NullLogger<IngestionPipeline>.Instance);
+
+        var doc = new Document(SourceId, "Title", "doc body");
+
+        var ex = await Assert.ThrowsAsync<LlmContextOverflowException>(
+            () => pipelineWithSummarizer.IngestAsync(CollectionName, doc, storedContentHash: null));
+
+        // Provider-layer fields preserved end-to-end
+        Assert.Equal(100, ex.InputChars);
+        Assert.Equal("too long", ex.ServerResponseBody);
+        // Summarizer-layer enrichment
+        Assert.Equal(1, ex.SegmentIndex);
+        Assert.Equal(3, ex.TotalSegments);
+        // Pipeline-layer enrichment
+        Assert.Equal(SourceId, ex.DocumentPath);
+        // Composed message names each layer's context
+        Assert.Contains("Ingestion failed", ex.Message);
+        Assert.Contains("segment 2/3", ex.Message);
     }
 
     [Fact]

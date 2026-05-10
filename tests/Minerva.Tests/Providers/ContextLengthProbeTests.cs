@@ -305,7 +305,7 @@ public class ContextLengthProbeTests
             modelId,
             BaseEndpoint,
             probe,
-            probeFacade: chatFacade,
+            chatFacade: chatFacade,
             probeHandler: handler);
     }
 
