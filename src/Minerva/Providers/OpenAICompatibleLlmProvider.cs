@@ -1,12 +1,8 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
 using Minerva.Exceptions;
 using Minerva.Ingestion;
-using Minerva.Models;
 using Polly;
 using Polly.Retry;
 using OAI = OpenAI.Chat;
@@ -23,24 +19,17 @@ internal interface IChatClientFacade
 
 public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmAvailabilityProbe
 {
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(5);
-
     private readonly OAI.ChatClient _client;
     private readonly RateLimiter _rateLimiter;
     private readonly ResiliencePipeline _resiliencePipeline;
     private readonly IChatClientFacade _chatFacade;
-    private readonly ContextLengthProbe _contextLengthProbe;
-    private readonly HttpMessageHandler? _probeHandler;
-    private readonly ILogger<OpenAICompatibleLlmProvider>? _logger;
 
     public OpenAICompatibleLlmProvider(
         OAI.ChatClient client,
         RateLimiter rateLimiter,
         string modelId,
-        Uri endpoint,
-        ContextLengthProbe contextLengthProbe,
-        ILogger<OpenAICompatibleLlmProvider>? logger = null)
-        : this(client, rateLimiter, modelId, endpoint, contextLengthProbe, chatFacade: null, probeHandler: null, logger)
+        Uri endpoint)
+        : this(client, rateLimiter, modelId, endpoint, chatFacade: null)
     {
     }
 
@@ -49,10 +38,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint,
-        ContextLengthProbe contextLengthProbe,
-        IChatClientFacade? chatFacade,
-        HttpMessageHandler? probeHandler,
-        ILogger<OpenAICompatibleLlmProvider>? logger = null)
+        IChatClientFacade? chatFacade)
     {
         _client = client;
         _rateLimiter = rateLimiter;
@@ -60,9 +46,6 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
             nameof(OpenAICompatibleLlmProvider), endpoint, modelId);
         _resiliencePipeline = BuildResiliencePipeline();
         _chatFacade = chatFacade ?? new SdkChatClientFacade(_client);
-        _contextLengthProbe = contextLengthProbe;
-        _probeHandler = probeHandler;
-        _logger = logger;
     }
 
     public ChatClientMetadata Metadata { get; }
@@ -78,12 +61,30 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         try
         {
             var openAiMessages = messagesList.Select(ToOpenAIMessage).ToList();
-            var completion = await ExecuteOnceAsync(openAiMessages, openAiOptions, cancellationToken);
+            var completion = await _resiliencePipeline.ExecuteAsync(async ct =>
+            {
+                await _rateLimiter.AcquireAsync(ct);
+                try
+                {
+                    return await _chatFacade.CompleteChatAsync(openAiMessages, openAiOptions!, ct);
+                }
+                finally
+                {
+                    _rateLimiter.Release();
+                }
+            }, cancellationToken);
             return ToChatResponse(completion);
         }
         catch (ClientResultException ex) when (ex.Status == 400)
         {
-            return await ShrinkAndRetryAsync(messagesList, openAiOptions, ex, cancellationToken);
+            var body = ReadResponseBody(ex);
+            int inputChars = LastUserMessageLength(messagesList);
+            throw new LlmContextOverflowException(
+                $"LLM rejected request (HTTP 400): {body ?? ex.Message}", ex)
+            {
+                InputChars = inputChars,
+                ServerResponseBody = body,
+            };
         }
         catch (ClientResultException ex)
         {
@@ -101,82 +102,11 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         }
     }
 
-    private async Task<OAI.ChatCompletion> ExecuteOnceAsync(
-        IList<OAI.ChatMessage> openAiMessages,
-        OAI.ChatCompletionOptions? openAiOptions,
-        CancellationToken cancellationToken)
-    {
-        return await _resiliencePipeline.ExecuteAsync(async ct =>
-        {
-            await _rateLimiter.AcquireAsync(ct);
-            try
-            {
-                return await _chatFacade.CompleteChatAsync(openAiMessages, openAiOptions!, ct);
-            }
-            finally
-            {
-                _rateLimiter.Release();
-            }
-        }, cancellationToken);
-    }
-
-    private async Task<ChatResponse> ShrinkAndRetryAsync(
-        List<ChatMessage> originalMessages,
-        OAI.ChatCompletionOptions? openAiOptions,
-        ClientResultException firstFailure,
-        CancellationToken cancellationToken)
-    {
-        var firstBody = ReadResponseBody(firstFailure);
-        int? lastUserIdx = FindLastUserMessageIndex(originalMessages);
-        string? originalText = lastUserIdx is null ? null : originalMessages[lastUserIdx.Value].Text;
-        int originalLen = originalText?.Length ?? 0;
-
-        if (lastUserIdx is null || originalLen < 2)
-        {
-            throw new LlmContextOverflowException(
-                $"LLM rejected request (HTTP 400) and the last user message could not be shrunk further: {firstBody ?? firstFailure.Message}",
-                firstFailure)
-            {
-                InputChars = originalLen,
-                ServerResponseBody = firstBody,
-            };
-        }
-
-        int halvedLen = originalLen / 2;
-        var halvedText = originalText!.Substring(0, halvedLen);
-
-        var halvedMessages = new List<ChatMessage>(originalMessages);
-        halvedMessages[lastUserIdx.Value] = new ChatMessage(ChatRole.User, halvedText);
-
-        _logger?.LogWarning(
-            "LLM rejected input (HTTP 400, last user message {OriginalChars} chars); retrying with halved input ({HalvedChars} chars).",
-            originalLen, halvedLen);
-
-        var halvedOpenAi = halvedMessages.Select(ToOpenAIMessage).ToList();
-
-        try
-        {
-            var completion = await ExecuteOnceAsync(halvedOpenAi, openAiOptions, cancellationToken);
-            return ToChatResponse(completion);
-        }
-        catch (ClientResultException ex)
-        {
-            var secondBody = ReadResponseBody(ex) ?? firstBody;
-            throw new LlmContextOverflowException(
-                $"LLM rejected request (HTTP {ex.Status}) even after halving input from {originalLen} to {halvedLen} chars: {secondBody ?? ex.Message}",
-                ex)
-            {
-                InputChars = originalLen,
-                ServerResponseBody = secondBody,
-            };
-        }
-    }
-
-    private static int? FindLastUserMessageIndex(IReadOnlyList<ChatMessage> messages)
+    private static int LastUserMessageLength(IReadOnlyList<ChatMessage> messages)
     {
         for (int i = messages.Count - 1; i >= 0; i--)
-            if (messages[i].Role == ChatRole.User) return i;
-        return null;
+            if (messages[i].Role == ChatRole.User) return messages[i].Text?.Length ?? 0;
+        return 0;
     }
 
     private static ChatResponse ToChatResponse(OAI.ChatCompletion completion)
@@ -278,10 +208,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         }
     }
 
-    public async Task<PreflightFailure?> PreflightAsync(
-        int configuredMaxContextTokens,
-        ILogger logger,
-        CancellationToken ct = default)
+    public async Task<PreflightFailure?> PreflightAsync(CancellationToken ct = default)
     {
         try
         {
@@ -298,136 +225,6 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
                 $"LLM endpoint at '{Metadata.ProviderUri}' did not respond, or model '{Metadata.DefaultModelId}' is not available: {ex.Message}. Verify the endpoint URL, the API key, and the model name.",
                 ex);
         }
-
-        if (_contextLengthProbe == ContextLengthProbe.None)
-            return null;
-
-        int? probed = await ProbeLoadedContextLengthAsync(ct);
-
-        if (probed is null)
-        {
-            logger.LogWarning(
-                "LLM context-length probe ({Probe}) at {Uri} did not respond as expected; using configured MaxContextTokens={Configured} unverified.",
-                _contextLengthProbe, Metadata.ProviderUri, configuredMaxContextTokens);
-            return null;
-        }
-
-        if (probed.Value < configuredMaxContextTokens)
-        {
-            return new PreflightFailure(
-                "Llm.ContextLength",
-                $"{_contextLengthProbe} reports loaded context length = {probed.Value} tokens, but Chunking.Llm.ContextBudget.MaxContextTokens is configured to {configuredMaxContextTokens}. Either lower MaxContextTokens to <= {probed.Value} or load the model with a larger context window.",
-                null);
-        }
-
-        logger.LogInformation(
-            "LLM context-length probe ({Probe}) reports loaded={Loaded} tokens; configured MaxContextTokens={Configured}. OK.",
-            _contextLengthProbe, probed.Value, configuredMaxContextTokens);
-        return null;
-    }
-
-    public ContextLengthProbe ContextLengthProbe => _contextLengthProbe;
-
-    internal async Task<int?> ProbeLoadedContextLengthAsync(CancellationToken ct = default)
-    {
-        if (_contextLengthProbe == ContextLengthProbe.None)
-            return null;
-
-        var serverRoot = Metadata.ProviderUri!.GetLeftPart(UriPartial.Authority);
-        var modelId = Metadata.DefaultModelId!;
-
-        using var http = CreateProbeHttpClient();
-        try
-        {
-            return _contextLengthProbe switch
-            {
-                ContextLengthProbe.LMStudio => await ProbeLMStudioAsync(http, serverRoot, modelId, ct),
-                ContextLengthProbe.Ollama => await ProbeOllamaAsync(http, serverRoot, modelId, ct),
-                ContextLengthProbe.LlamaCpp => await ProbeLlamaCppAsync(http, serverRoot, ct),
-                _ => null,
-            };
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return null;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
-
-    private HttpClient CreateProbeHttpClient()
-    {
-        HttpClient http = _probeHandler is null
-            ? new HttpClient()
-            : new HttpClient(_probeHandler, disposeHandler: false);
-        http.Timeout = ProbeTimeout;
-        return http;
-    }
-
-    private static async Task<int?> ProbeLMStudioAsync(
-        HttpClient http, string serverRoot, string modelId, CancellationToken ct)
-    {
-        using var resp = await http.GetAsync($"{serverRoot}/api/v0/models", ct);
-        if (!resp.IsSuccessStatusCode) return null;
-        using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-        if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
-            return null;
-
-        foreach (var entry in data.EnumerateArray())
-        {
-            if (!entry.TryGetProperty("id", out var idElem)) continue;
-            if (!string.Equals(idElem.GetString(), modelId, StringComparison.Ordinal)) continue;
-            if (entry.TryGetProperty("loaded_context_length", out var lc) && lc.TryGetInt32(out int n))
-                return n;
-            return null;
-        }
-        return null;
-    }
-
-    private static async Task<int?> ProbeOllamaAsync(
-        HttpClient http, string serverRoot, string modelId, CancellationToken ct)
-    {
-        var body = JsonSerializer.Serialize(new { name = modelId });
-        using var content = new StringContent(body, Encoding.UTF8, "application/json");
-        using var resp = await http.PostAsync($"{serverRoot}/api/show", content, ct);
-        if (!resp.IsSuccessStatusCode) return null;
-        using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-        if (!doc.RootElement.TryGetProperty("parameters", out var parameters)) return null;
-        var paramsText = parameters.GetString();
-        if (string.IsNullOrEmpty(paramsText)) return null;
-
-        foreach (var line in paramsText.Split('\n'))
-        {
-            var trimmed = line.Trim();
-            if (!trimmed.StartsWith("num_ctx", StringComparison.Ordinal)) continue;
-            var rest = trimmed.AsSpan("num_ctx".Length).TrimStart();
-            if (int.TryParse(rest, out int n)) return n;
-        }
-        return null;
-    }
-
-    private static async Task<int?> ProbeLlamaCppAsync(
-        HttpClient http, string serverRoot, CancellationToken ct)
-    {
-        using var resp = await http.GetAsync($"{serverRoot}/props", ct);
-        if (!resp.IsSuccessStatusCode) return null;
-        using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-
-        if (doc.RootElement.TryGetProperty("default_generation_settings", out var settings)
-            && settings.ValueKind == JsonValueKind.Object
-            && settings.TryGetProperty("n_ctx", out var nested)
-            && nested.TryGetInt32(out int nestedN))
-            return nestedN;
-
-        if (doc.RootElement.TryGetProperty("n_ctx", out var top) && top.TryGetInt32(out int topN))
-            return topN;
 
         return null;
     }

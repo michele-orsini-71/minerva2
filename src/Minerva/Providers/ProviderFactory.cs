@@ -1,5 +1,4 @@
 using System.ClientModel;
-using Microsoft.Extensions.Logging;
 using Minerva.Ingestion;
 using Minerva.Models;
 
@@ -35,7 +34,7 @@ public class ProviderFactory
 
     public bool HasLlm => _llm is not null;
 
-    public ILlmClient CreateLlmProvider(ILogger<OpenAICompatibleLlmProvider>? logger = null)
+    public ILlmClient CreateLlmProvider()
     {
         if (_llm is null)
             throw new InvalidOperationException(
@@ -45,7 +44,7 @@ public class ProviderFactory
         var chatClient = client.GetChatClient(_llm.Model);
         var rateLimiter = new RateLimiter(_llm.Concurrency, _llm.RequestsPerMinute);
         return new OpenAICompatibleLlmProvider(
-            chatClient, rateLimiter, _llm.Model, endpoint, _llm.ContextLengthProbe, logger);
+            chatClient, rateLimiter, _llm.Model, endpoint);
     }
 
     private static (OpenAI.OpenAIClient Client, Uri Endpoint) CreateOpenAIClient(

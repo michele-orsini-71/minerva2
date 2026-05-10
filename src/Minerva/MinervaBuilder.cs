@@ -79,8 +79,7 @@ public static class MinervaBuilder
         {
             try
             {
-                llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider(
-                    loggerFactory.CreateLogger<OpenAICompatibleLlmProvider>());
+                llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
                 llmClient = llmProvider;
             }
             catch (ConfigurationException ex)
@@ -130,8 +129,6 @@ public static class MinervaBuilder
             databasePreflight,
             embeddingProvider,
             llmProvider,
-            options.Chunking.Llm?.ContextBudget.MaxContextTokens,
-            loggerFactory.CreateLogger<OpenAICompatibleLlmProvider>(),
             ct);
         if (preflightFailures.Count > 0)
             throw new MinervaStartupException(preflightFailures);
@@ -153,8 +150,6 @@ public static class MinervaBuilder
         DatabasePreflight databasePreflight,
         OpenAICompatibleEmbeddingProvider embeddingProvider,
         OpenAICompatibleLlmProvider? llmProvider,
-        int? configuredMaxContextTokens,
-        ILogger<OpenAICompatibleLlmProvider> llmLogger,
         CancellationToken ct)
     {
         var failures = new List<PreflightFailure>();
@@ -169,10 +164,7 @@ public static class MinervaBuilder
 
         if (llmProvider is not null)
         {
-            // configuredMaxContextTokens is guaranteed non-null when llmProvider is non-null:
-            // both originate from options.Chunking.Llm being present.
-            var llmFailure = await llmProvider.PreflightAsync(
-                configuredMaxContextTokens!.Value, llmLogger, ct);
+            var llmFailure = await llmProvider.PreflightAsync(ct);
             if (llmFailure is not null)
                 failures.Add(llmFailure);
         }

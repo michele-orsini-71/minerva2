@@ -7,6 +7,4 @@ public sealed record LlmProviderOptions
     public string? ApiKey { get; init; }
     public required int Concurrency { get; init; }
     public int? RequestsPerMinute { get; init; }
-    public required ContextLengthProbe ContextLengthProbe { get; init; }
-    public required ContextBudgetOptions ContextBudget { get; init; }
 }

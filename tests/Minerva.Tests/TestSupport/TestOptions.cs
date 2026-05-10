@@ -40,23 +40,13 @@ internal static class TestOptions
         string model = "test-llm",
         string? apiKey = null,
         int concurrency = 1,
-        int? requestsPerMinute = null,
-        ContextLengthProbe contextLengthProbe = ContextLengthProbe.None,
-        ContextBudgetOptions? contextBudget = null) => new()
+        int? requestsPerMinute = null) => new()
     {
         BaseUrl = baseUrl,
         Model = model,
         ApiKey = apiKey,
         Concurrency = concurrency,
         RequestsPerMinute = requestsPerMinute,
-        ContextLengthProbe = contextLengthProbe,
-        ContextBudget = contextBudget ?? new ContextBudgetOptions
-        {
-            MaxContextTokens = 4096,
-            ReservedTokens = 512,
-            CharsPerToken = 3.0,
-            SafetyFactor = 0.9,
-        },
     };
 
     public static IndexerOptions Indexer(

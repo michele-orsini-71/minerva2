@@ -73,14 +73,7 @@ var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(Top
         "BaseUrl": "https://api.anthropic.com/v1",
         "Model": "claude-haiku-4-5",
         "ApiKey": "env:ANTHROPIC_API_KEY",
-        "Concurrency": 1,
-        "ContextLengthProbe": "None",
-        "ContextBudget": {
-          "MaxContextTokens": 4096,
-          "ReservedTokens": 512,
-          "CharsPerToken": 3.0,
-          "SafetyFactor": 0.9
-        }
+        "Concurrency": 1
       }
     }
   }
@@ -130,39 +123,9 @@ Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the s
 | `ChunkerType` | enum | — | **required** (`Custom` or `SemanticKernel`) |
 | `Llm` | `LlmProviderOptions?` | `null` | optional — required to enable summarization / contextualization for large documents |
 
-**`Chunking.Llm`** (`LlmProviderOptions`) — extends the `Embedding` / `Llm` fields above with:
-
-| Field | Type | Default | Required? |
-| --- | --- | --- | --- |
-| `ContextLengthProbe` | enum | — | **required** (`None`, `LMStudio`, `Ollama`, `LlamaCpp`) |
-| `ContextBudget` | `ContextBudgetOptions` | — | **required** (LLM input budget — fields below) |
-
-**`Chunking.Llm.ContextBudget`** (`ContextBudgetOptions`)
-
-| Field | Type | Required? |
-| --- | --- | --- |
-| `MaxContextTokens` | int | **required** (model's full input context, in tokens) |
-| `ReservedTokens` | int | **required** (tokens kept for the prompt + completion; must be `< MaxContextTokens`) |
-| `CharsPerToken` | double | **required** (chars-per-token bridge for the chosen model; typically `3.0`–`4.0`) |
-| `SafetyFactor` | double | **required** (multiplier in `(0, 1]` to leave headroom for tokenization variance) |
-
 #### How segment sizing works
 
-A "segment" is the largest piece of a document that can be processed as one LLM input. The pipeline segments only when a document is too large to fit; small documents skip segmentation entirely.
-
-The per-segment char ceiling is computed as:
-
-- **No `Llm` configured** → ceiling is `MaxSegmentChars`. Large documents are still split into segments of that size; the LLM-driven steps (summarization, contextualization) are skipped.
-- **`Llm` configured** → ceiling is `min(MaxSegmentChars, llmBudget)`, where `llmBudget = (MaxContextTokens − ReservedTokens) × CharsPerToken × SafetyFactor`.
-
-The `ContextBudget` formula translates a token-denominated LLM context window into a char ceiling the chunker can use directly (it has no tokenizer). Each parameter:
-
-- **`MaxContextTokens`**: the full input window the model accepts, in tokens. Get this from the model card.
-- **`ReservedTokens`**: tokens the segment must *not* consume — typically the prompt scaffolding plus the model's expected completion. Subtracted from `MaxContextTokens`.
-- **`CharsPerToken`**: average chars per token for the model's tokenizer. The chunker has no tokenizer, so it estimates token count by char count; `3.0`–`4.0` is a safe range for English text on most BPE tokenizers.
-- **`SafetyFactor`**: a final multiplier in `(0, 1]` (e.g. `0.9`) that absorbs estimation error from `CharsPerToken`. Lower it if you see the LLM rejecting inputs as too long; raise it (toward `1.0`) for tighter packing.
-
-`MaxSegmentChars` is the LLM-independent floor: even with a generous `ContextBudget`, no segment exceeds `MaxSegmentChars`. Use it to cap end-to-end processing cost on pathological documents.
+A "segment" is the largest piece of a document that can be processed as one LLM input. The pipeline segments only when a document is too large to fit; small documents skip segmentation entirely. The per-segment char ceiling is `MaxSegmentChars` — tune it down if the configured LLM rejects inputs as too long.
 
 ## Internal layout
 

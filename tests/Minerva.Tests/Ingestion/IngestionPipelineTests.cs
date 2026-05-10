@@ -242,7 +242,7 @@ public class IngestionPipelineTests
                 if (prompt == "seg-zero")
                     return Task.FromResult("summary-zero");
                 throw new LlmContextOverflowException(
-                    "LLM rejected request (HTTP 400) even after halving input from 100 to 50 chars: too long")
+                    "LLM rejected request (HTTP 400): too long")
                 {
                     InputChars = 100,
                     ServerResponseBody = "too long",
