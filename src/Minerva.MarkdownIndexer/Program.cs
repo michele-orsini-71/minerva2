@@ -4,6 +4,7 @@ using Minerva;
 using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.MarkdownIndexer;
+using NReco.Logging.File;
 
 try
 {
@@ -21,10 +22,27 @@ try
 
     var forceRecreate = args.Contains("--force-recreate");
 
+    var logFilePath = ResolveLogFilePath(config["Logging:File:Path"]);
+    try
+    {
+        EnsureLogFileWritable(logFilePath);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"Cannot write to log file '{logFilePath}': {ex.Message}");
+        return 2;
+    }
+
     using var loggerFactory = LoggerFactory.Create(b =>
     {
         b.AddConfiguration(config.GetSection("Logging"));
         b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; });
+        b.AddFile(logFilePath, opts =>
+        {
+            opts.Append = true;
+            opts.FileSizeLimitBytes = 0;
+            opts.MaxRollingFiles = 0;
+        });
     });
     var programLogger = loggerFactory.CreateLogger("Minerva.MarkdownIndexer");
 
@@ -61,4 +79,27 @@ catch (Exception ex)
 {
     Console.Error.WriteLine($"Unhandled exception: {ex}");
     return 1;
+}
+
+static string ResolveLogFilePath(string? configured)
+{
+    var raw = string.IsNullOrWhiteSpace(configured)
+        ? "~/.minerva/logs/indexer-{Date}.log"
+        : configured;
+    if (raw.StartsWith("~/", StringComparison.Ordinal))
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        raw = Path.Combine(home, raw[2..]);
+    }
+    return raw.Replace("{Date}", DateTime.Now.ToString("yyyy-MM-dd"));
+}
+
+static void EnsureLogFileWritable(string path)
+{
+    var dir = Path.GetDirectoryName(path);
+    if (!string.IsNullOrEmpty(dir))
+    {
+        Directory.CreateDirectory(dir);
+    }
+    using var probe = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
 }
