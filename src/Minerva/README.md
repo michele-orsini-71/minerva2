@@ -29,7 +29,7 @@ ICollectionService Collections { get; }   // CreateAsync, GetAsync, DeleteAsync,
 Key models (`Minerva.Models`):
 
 - `Document(SourceId, Title, Text, Metadata?, Attachments?)`
-- `SearchOptions(TopK, HybridAlpha, ExpandContext, MetadataFilter?)`
+- `SearchOptions(TopK, HybridAlpha, ExpandContext, CandidatePoolMultiplier)`
 - `SearchResult(ChunkId, SourceId, CollectionName, Content, Score, Metadata?, ContextBefore?, ContextAfter?)`
 - `IngestionResult(Added, Updated, Deleted, Unchanged)`
 
