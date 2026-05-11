@@ -110,7 +110,13 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         var results = await _engine.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
-            new SearchOptions(TopK: 5));
+            new SearchOptions
+            {
+                TopK = 5,
+                HybridAlpha = 0.5,
+                ExpandContext = false,
+                CandidatePoolMultiplier = 5,
+            });
         Assert.NotEmpty(results);
         Assert.Equal("doc-a", results[0].SourceId);
 
@@ -124,7 +130,13 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         var afterDelete = await _engine.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
-            new SearchOptions(TopK: 5));
+            new SearchOptions
+            {
+                TopK = 5,
+                HybridAlpha = 0.5,
+                ExpandContext = false,
+                CandidatePoolMultiplier = 5,
+            });
         Assert.DoesNotContain(afterDelete, r => r.SourceId == "doc-a");
     }
 
@@ -132,7 +144,13 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     public async Task SearchAsync_UnknownCollection_Throws()
     {
         await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _engine.SearchAsync("anything", ["does-not-exist"]));
+            _engine.SearchAsync("anything", ["does-not-exist"], new SearchOptions
+            {
+                TopK = 5,
+                HybridAlpha = 0.5,
+                ExpandContext = false,
+                CandidatePoolMultiplier = 5,
+            }));
     }
 
     private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)

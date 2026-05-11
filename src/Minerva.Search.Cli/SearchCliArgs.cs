@@ -10,6 +10,7 @@ internal sealed record SearchCliArgs(
     int TopK,
     double Alpha,
     bool ExpandContext,
+    int CandidatePoolMultiplier,
     OutputFormat Format,
     bool Full,
     int SnippetChars)
@@ -26,6 +27,7 @@ internal sealed record SearchCliArgs(
         int topK = 10;
         double alpha = 0.5;
         bool expandContext = false;
+        int candidatePoolMultiplier = 5;
         var format = OutputFormat.Table;
         bool full = false;
         int snippetChars = 200;
@@ -52,6 +54,10 @@ internal sealed record SearchCliArgs(
                     break;
                 case "--expand-context":
                     expandContext = true;
+                    break;
+                case "--candidate-pool-multiplier":
+                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out candidatePoolMultiplier) || candidatePoolMultiplier <= 0)
+                    { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
                     break;
                 case "--format":
                     if (++i >= args.Length) { err.WriteLine($"Missing value for {a}"); return null; }
@@ -92,7 +98,7 @@ internal sealed record SearchCliArgs(
             return null;
         }
 
-        return new SearchCliArgs(query, collections, topK, alpha, expandContext, format, full, snippetChars);
+        return new SearchCliArgs(query, collections, topK, alpha, expandContext, candidatePoolMultiplier, format, full, snippetChars);
     }
 
     public static void PrintUsage(TextWriter w)
@@ -101,7 +107,7 @@ internal sealed record SearchCliArgs(
             Usage:
               minerva-search <query> --collection <name> [--collection <name> ...]
                              [--top-k 10] [--alpha 0.5]
-                             [--expand-context]
+                             [--expand-context] [--candidate-pool-multiplier 5]
                              [--format table|json] [--full] [--snippet-chars 200]
 
             Options:
@@ -110,6 +116,8 @@ internal sealed record SearchCliArgs(
               -a, --alpha A            Hybrid fusion weight (0..1). 1=pure vector,
                                        0=pure full-text, 0.5=balanced. Default: 0.5.
                   --expand-context     Include neighboring chunks for each hit.
+                  --candidate-pool-multiplier N
+                                       Multiplier on TopK for the per-engine candidate pool. Default: 5.
                   --format FMT         table | json. Default: table.
                   --full               Print full chunk content (overrides --snippet-chars).
                   --snippet-chars N    Snippet length when not --full. Default: 200.

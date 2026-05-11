@@ -11,6 +11,14 @@ public class SearchPipelineTests
 {
     private static readonly float[] QueryVector = [0.1f, 0.2f, 0.3f];
 
+    private static SearchOptions DefaultOptions => new()
+    {
+        TopK = 10,
+        HybridAlpha = 0.5,
+        ExpandContext = false,
+        CandidatePoolMultiplier = 5,
+    };
+
     private static IEmbeddingService MockEmbedder()
     {
         var embedder = Substitute.For<IEmbeddingService>();
@@ -45,7 +53,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "hello", ["c"], new SearchOptions(TopK: 10));
+            "hello", ["c"], DefaultOptions);
 
         // Both search paths should have been hit
         await repo.Received(1).VectorSearchAsync(
@@ -79,7 +87,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], new SearchOptions(ExpandContext: false));
+            "q", ["c"], DefaultOptions with { ExpandContext = false });
 
         Assert.Single(results);
         Assert.Null(results[0].ContextBefore);
@@ -112,7 +120,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], new SearchOptions(ExpandContext: true));
+            "q", ["c"], DefaultOptions with { ExpandContext = true });
 
         Assert.Single(results);
         Assert.Equal("prev-content", results[0].ContextBefore);
@@ -138,7 +146,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c1", "c2"], new SearchOptions(TopK: 10));
+            "q", ["c1", "c2"], DefaultOptions);
 
         Assert.Equal(2, results.Count);
         var collections = results.Select(r => r.CollectionName).ToHashSet();
@@ -157,7 +165,7 @@ public class SearchPipelineTests
             new ContextExpander(repo),
             NullLogger<SearchPipeline>.Instance);
 
-        var results = await pipeline.SearchAsync("q", [], new SearchOptions());
+        var results = await pipeline.SearchAsync("q", [], DefaultOptions);
 
         Assert.Empty(results);
     }
@@ -179,7 +187,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], new SearchOptions(TopK: 5));
+            "q", ["c"], DefaultOptions with { TopK = 5 });
 
         Assert.Equal(5, results.Count);
     }

@@ -36,10 +36,13 @@ try
 
     var engine = await MinervaBuilder.CreateAsync(minervaOptions, loggerFactory, cts.Token);
 
-    var searchOptions = new SearchOptions(
-        TopK: parsed.TopK,
-        HybridAlpha: parsed.Alpha,
-        ExpandContext: parsed.ExpandContext);
+    var searchOptions = new SearchOptions
+    {
+        TopK = parsed.TopK,
+        HybridAlpha = parsed.Alpha,
+        ExpandContext = parsed.ExpandContext,
+        CandidatePoolMultiplier = parsed.CandidatePoolMultiplier,
+    };
 
     var results = await engine.SearchAsync(
         parsed.Query, parsed.Collections, searchOptions, cts.Token);

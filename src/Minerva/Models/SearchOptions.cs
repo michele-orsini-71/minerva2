@@ -1,7 +1,9 @@
 namespace Minerva.Models;
 
-public record SearchOptions(
-    int TopK = 10,
-    double HybridAlpha = 0.5,
-    bool ExpandContext = false,
-    int CandidatePoolMultiplier = 5);
+public sealed record SearchOptions
+{
+    public required int TopK { get; init; }
+    public required double HybridAlpha { get; init; }
+    public required bool ExpandContext { get; init; }
+    public required int CandidatePoolMultiplier { get; init; }
+}

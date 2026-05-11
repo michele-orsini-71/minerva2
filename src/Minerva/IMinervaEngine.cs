@@ -13,6 +13,6 @@ public interface IMinervaEngine
     Task<IReadOnlyList<SearchResult>> SearchAsync(
         string query,
         IReadOnlyList<string> collectionNames,
-        SearchOptions? options = null,
+        SearchOptions options,
         CancellationToken ct = default);
 }
