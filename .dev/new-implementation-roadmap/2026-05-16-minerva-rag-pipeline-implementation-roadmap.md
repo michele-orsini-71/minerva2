@@ -132,12 +132,20 @@ Comfortably under any "lost in the middle" danger zone for current frontier mode
 
 Goal: ship a working baseline. Don't tune anything yet — there's nothing to measure against.
 
+**Carry-over tasks before Phase 1** (details in `2026-05-16-roadmap-phase-0/`):
+
+- **Roll back source-aware dedupe** — currently active in `SearchPipeline`; remove per §3.
+- **Expansion code stays dormant** — `ContextExpander` and `--expand-context` are already wired but off by default. Left in place; lit up in Phase 4.
+- **Split options surface** — see `minerva-search-options.md`: separate `MinervaSearchOptions` from `MinervaIngestOptions` so search-only hosts (CLI, eval harness) don't pad chunking config.
+
 ### Phase 1 — build the eval harness
 
 - 20–30 hand-picked queries with known-good source IDs.
 - Script that runs each query through the pipeline and checks whether the expected source is in top-K.
 - Log per-stage outputs (which chunks survived semantic search, BM25, RRF, etc.) so regressions can be debugged at the right stage.
 - **Baseline Phase 0** on this eval before changing anything.
+
+Details and sub-plans in `2026-05-16-roadmap-phase-1/` (seeded from the `Minerva.Search.Cli` / `Minerva.Search.Bench` plan).
 
 ### Phase 2 — add reranking
 
