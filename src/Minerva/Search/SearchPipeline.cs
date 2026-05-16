@@ -84,22 +84,11 @@ public class SearchPipeline
         var fused = RankFusion.Fuse(
             vectorTask.Result, ftsTask.Result, options.HybridAlpha);
 
-        // Dedup by SourceId — fused is already sorted desc by score,
-        // so the first occurrence of each source is the highest-scoring chunk.
-        var seen = new HashSet<string>();
-        var dedupedBySource = new List<FusedResult>();
-        foreach (var f in fused)
-        {
-            if (seen.Add(f.Chunk.SourceId))
-                dedupedBySource.Add(f);
-        }
-
         _logger.LogDebug(
-            "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused → {Sources} sources",
-            collectionName, vectorTask.Result.Count, ftsTask.Result.Count,
-            fused.Count, dedupedBySource.Count);
+            "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused",
+            collectionName, vectorTask.Result.Count, ftsTask.Result.Count, fused.Count);
 
-        return dedupedBySource.Take(options.TopK).ToList();
+        return fused.Take(options.TopK).ToList();
     }
 
     private static SearchResult ToSearchResult(FusedResult r) =>

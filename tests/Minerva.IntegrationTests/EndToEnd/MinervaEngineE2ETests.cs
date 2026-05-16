@@ -19,7 +19,8 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     private const string EmbeddingModel = "mock-embedding";
 
     private readonly StorageTestFixture _fixture;
-    private readonly IMinervaEngine _engine;
+    private readonly ISearchEngine _search;
+    private readonly IIngestEngine _ingest;
 
     public MinervaEngineE2ETests(StorageTestFixture fixture)
     {
@@ -62,14 +63,14 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         var collections = new CollectionManager(
             collectionRepository, fixture.SchemaInitializer, EmbeddingModel, mockEmbeddings);
 
-        _engine = new MinervaEngine(
+        _search = new MinervaSearchEngine(searchPipeline, collections);
+        _ingest = new MinervaIngestEngine(
             ingestionPipeline,
-            searchPipeline,
             collections,
             chunkRepository,
             EmbeddingModel,
             mockEmbeddings,
-            loggerFactory.CreateLogger<MinervaEngine>());
+            loggerFactory.CreateLogger<MinervaIngestEngine>());
     }
 
     public Task InitializeAsync() => _fixture.CleanupAsync(honorDisableFlag: false);
@@ -93,21 +94,21 @@ public class MinervaEngineE2ETests : IAsyncLifetime
                   "The weekly forecast calls for consistent mild temperatures.");
 
         // 1. First ingest: both docs are new (collection auto-created).
-        var first = await _engine.IngestAsync(CollectionName, AsAsync(docA, docB));
+        var first = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
         Assert.Equal(2, first.Added);
         Assert.Equal(0, first.Updated);
         Assert.Equal(0, first.Deleted);
         Assert.Equal(0, first.Unchanged);
 
         // 2. Re-ingest the same set: both unchanged.
-        var second = await _engine.IngestAsync(CollectionName, AsAsync(docA, docB));
+        var second = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
         Assert.Equal(0, second.Added);
         Assert.Equal(0, second.Updated);
         Assert.Equal(0, second.Deleted);
         Assert.Equal(2, second.Unchanged);
 
         // 3. Search dominated by docA's content.
-        var results = await _engine.SearchAsync(
+        var results = await _search.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
             new SearchOptions
@@ -121,13 +122,13 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         Assert.Equal("doc-a", results[0].SourceId);
 
         // 4. Re-ingest with only docB: docA must be deleted by the diff.
-        var third = await _engine.IngestAsync(CollectionName, AsAsync(docB));
+        var third = await _ingest.IngestAsync(CollectionName, AsAsync(docB));
         Assert.Equal(0, third.Added);
         Assert.Equal(0, third.Updated);
         Assert.Equal(1, third.Deleted);
         Assert.Equal(1, third.Unchanged);
 
-        var afterDelete = await _engine.SearchAsync(
+        var afterDelete = await _search.SearchAsync(
             "relational database PostgreSQL",
             [CollectionName],
             new SearchOptions
@@ -144,7 +145,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     public async Task SearchAsync_UnknownCollection_Throws()
     {
         await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _engine.SearchAsync("anything", ["does-not-exist"], new SearchOptions
+            _search.SearchAsync("anything", ["does-not-exist"], new SearchOptions
             {
                 TopK = 5,
                 HybridAlpha = 0.5,

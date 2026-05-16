@@ -12,7 +12,7 @@ namespace Minerva.ArchitectureTests;
 // Source-code dependencies must point INWARD only (ENTITIES <- USE_CASES <- ADAPTERS <- FRAMEWORK).
 public class LayerDependencyTests
 {
-    private static readonly Assembly Minerva = typeof(IMinervaEngine).Assembly;
+    private static readonly Assembly Minerva = typeof(ISearchEngine).Assembly;
 
     // --- ENTITIES ring ---------------------------------------------------
 

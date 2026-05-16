@@ -4,7 +4,7 @@ using Minerva.Models;
 namespace Minerva.Tests.Configuration;
 
 [Trait("Category", "Configuration")]
-public class MinervaOptionsBinderTests
+public class MinervaIngestOptionsBinderTests
 {
     private const string ValidJson = """
         {
@@ -29,7 +29,7 @@ public class MinervaOptionsBinderTests
     {
         var cfg = ConfigFromJson.Build(ValidJson);
 
-        var options = MinervaOptionsBinder.Bind(cfg);
+        var options = MinervaIngestOptionsBinder.Bind(cfg);
 
         Assert.Equal("Host=h;Database=d", options.ConnectionString);
         Assert.Equal("http://localhost:11434/v1", options.Embedding.BaseUrl);
@@ -49,7 +49,7 @@ public class MinervaOptionsBinderTests
     {
         var cfg = ConfigFromJson.Build(ValidJson);
 
-        var options = MinervaOptionsBinder.Bind(cfg);
+        var options = MinervaIngestOptionsBinder.Bind(cfg);
 
         Assert.Null(options.Chunking.Llm);
     }
@@ -80,7 +80,7 @@ public class MinervaOptionsBinderTests
             }
             """;
 
-        var options = MinervaOptionsBinder.Bind(ConfigFromJson.Build(json));
+        var options = MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json));
 
         Assert.NotNull(options.Chunking.Llm);
         Assert.Equal("http://localhost:1234/v1", options.Chunking.Llm!.BaseUrl);
@@ -109,7 +109,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Single(ex.Failures);
         Assert.Equal("ConnectionString", ex.Failures[0].Path);
@@ -137,7 +137,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Single(ex.Failures);
         Assert.Equal("Embedding.BaseUrl", ex.Failures[0].Path);
@@ -169,7 +169,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Single(ex.Failures);
         Assert.Equal("Chunking.Llm.Model", ex.Failures[0].Path);
@@ -194,7 +194,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         var paths = ex.Failures.Select(f => f.Path).ToList();
         Assert.Contains("ConnectionString", paths);
@@ -226,7 +226,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         var paths = ex.Failures.Select(f => f.Path).ToList();
         Assert.Contains("ConnectionString", paths);              // top-level
@@ -257,7 +257,7 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Single(ex.Failures);
         Assert.Equal("Chunking.ChunkerType", ex.Failures[0].Path);
@@ -285,8 +285,29 @@ public class MinervaOptionsBinderTests
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaOptionsBinder.Bind(ConfigFromJson.Build(json)));
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Contains(ex.Failures, f => f.Path == "Chunking.ChunkOverlap");
+    }
+
+    [Fact]
+    public void Bind_MissingChunkingSection_ReportsSectionRequired()
+    {
+        const string json = """
+            {
+              "ConnectionString": "Host=h;Database=d",
+              "Embedding": {
+                "BaseUrl": "http://localhost:11434/v1",
+                "Model": "nomic",
+                "Concurrency": 1,
+                "BatchSize": 4
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Chunking");
     }
 }

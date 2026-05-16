@@ -7,7 +7,7 @@ namespace Minerva.ArchitectureTests;
 // (and add matching rules in LayerDependencyTests) before the build passes.
 public class NamespaceCoverageTests
 {
-    private static readonly Assembly Minerva = typeof(IMinervaEngine).Assembly;
+    private static readonly Assembly Minerva = typeof(ISearchEngine).Assembly;
 
     // Every top-level Minerva.* namespace must appear here, paired with its
     // Clean Architecture layer. Sub-namespaces (e.g. Minerva.Models.Foo) are
@@ -15,7 +15,7 @@ public class NamespaceCoverageTests
     private static readonly IReadOnlyDictionary<string, string> ClassifiedNamespaces =
         new Dictionary<string, string>
         {
-            ["Minerva"] = "USE_CASES",               // IMinervaEngine, MinervaBuilder, MinervaServices
+            ["Minerva"] = "USE_CASES",               // ISearchEngine, IIngestEngine, builders
             ["Minerva.Models"] = "ENTITIES",
             ["Minerva.Exceptions"] = "ENTITIES",
             ["Minerva.Utilities"] = "ENTITIES",

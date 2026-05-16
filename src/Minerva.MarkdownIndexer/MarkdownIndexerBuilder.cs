@@ -7,7 +7,7 @@ public static class MarkdownIndexerBuilder
 {
     public static Task<MarkdownIndexer> CreateAsync(
         IndexerOptions options,
-        IMinervaEngine engine,
+        IIngestEngine engine,
         ILoggerFactory loggerFactory,
         bool forceRecreate,
         CancellationToken ct = default)

@@ -7,14 +7,14 @@ namespace Minerva.MarkdownIndexer;
 public sealed class MarkdownIndexer
 {
     private readonly MarkdownScanner _scanner;
-    private readonly IMinervaEngine _engine;
+    private readonly IIngestEngine _engine;
     private readonly string _collectionName;
     private readonly bool _forceRecreate;
     private readonly ILogger<MarkdownIndexer> _logger;
 
     public MarkdownIndexer(
         MarkdownScanner scanner,
-        IMinervaEngine engine,
+        IIngestEngine engine,
         string collectionName,
         bool forceRecreate,
         ILogger<MarkdownIndexer> logger)

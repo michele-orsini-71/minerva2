@@ -4,31 +4,27 @@ using Minerva.Collections;
 using Minerva.Exceptions;
 using Minerva.Ingestion;
 using Minerva.Models;
-using Minerva.Search;
 
 namespace Minerva;
 
-internal class MinervaEngine : IMinervaEngine
+internal sealed class MinervaIngestEngine : IIngestEngine
 {
     private readonly IngestionPipeline _ingestionPipeline;
-    private readonly SearchPipeline _searchPipeline;
     private readonly ICollectionService _collections;
     private readonly IChunkWriter _chunkWriter;
     private readonly string _configuredEmbeddingModel;
     private readonly IEmbeddingDimensionProvider _dimensionProvider;
-    private readonly ILogger<MinervaEngine> _logger;
+    private readonly ILogger<MinervaIngestEngine> _logger;
 
-    public MinervaEngine(
+    public MinervaIngestEngine(
         IngestionPipeline ingestionPipeline,
-        SearchPipeline searchPipeline,
         ICollectionService collections,
         IChunkWriter chunkWriter,
         string configuredEmbeddingModel,
         IEmbeddingDimensionProvider dimensionProvider,
-        ILogger<MinervaEngine> logger)
+        ILogger<MinervaIngestEngine> logger)
     {
         _ingestionPipeline = ingestionPipeline;
-        _searchPipeline = searchPipeline;
         _collections = collections;
         _chunkWriter = chunkWriter;
         _configuredEmbeddingModel = configuredEmbeddingModel;
@@ -71,36 +67,6 @@ internal class MinervaEngine : IMinervaEngine
         }
 
         return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
-    }
-
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
-        string query,
-        IReadOnlyList<string> collectionNames,
-        SearchOptions options,
-        CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        if (options.TopK <= 0)
-            throw new ArgumentException(
-                $"TopK must be positive (got {options.TopK}).", nameof(options));
-        if (options.HybridAlpha < 0 || options.HybridAlpha > 1)
-            throw new ArgumentException(
-                $"HybridAlpha must be in [0, 1] (got {options.HybridAlpha}).", nameof(options));
-        if (options.CandidatePoolMultiplier <= 0)
-            throw new ArgumentException(
-                $"CandidatePoolMultiplier must be positive (got {options.CandidatePoolMultiplier}).",
-                nameof(options));
-
-        if (collectionNames.Count == 0)
-            throw new ConfigurationException("At least one collection name must be provided.");
-
-        foreach (var name in collectionNames)
-        {
-            _ = await _collections.GetAsync(name, ct)
-                ?? throw new ConfigurationException($"Collection '{name}' does not exist.");
-        }
-
-        return await _searchPipeline.SearchAsync(query, collectionNames, options, ct);
     }
 
     private async Task PrepareCollectionAsync(string collectionName, bool forceRecreate, CancellationToken ct)

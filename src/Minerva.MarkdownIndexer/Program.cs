@@ -17,7 +17,7 @@ try
         .AddCommandLine(args)
         .Build();
 
-    var minervaOptions = MinervaOptionsBinder.Bind(config.GetSection("Minerva"));
+    var minervaOptions = MinervaIngestOptionsBinder.Bind(config.GetSection("Minerva"));
     var indexerOptions = IndexerOptionsBinder.Bind(config.GetSection("Indexer"));
 
     var forceRecreate = args.Contains("--force-recreate");
@@ -54,7 +54,7 @@ try
         cts.Cancel();
     };
 
-    var engine = await MinervaBuilder.CreateAsync(minervaOptions, loggerFactory, cts.Token);
+    var engine = await MinervaIngestBuilder.CreateAsync(minervaOptions, loggerFactory, cts.Token);
     var indexer = await MarkdownIndexerBuilder.CreateAsync(
         indexerOptions, engine, loggerFactory, forceRecreate, cts.Token);
 
