@@ -491,3 +491,6 @@ chunk-comparison
 
 bin/
 bin-search/
+
+# C# Dev Kit language service cache
+*.lscache
