@@ -63,7 +63,15 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         var collections = new CollectionManager(
             collectionRepository, fixture.SchemaInitializer, EmbeddingModel, mockEmbeddings);
 
-        _search = new MinervaSearchEngine(searchPipeline, collections);
+        var searchDefaults = new SearchOptions
+        {
+            TopK = 5,
+            HybridAlpha = 0.5,
+            CandidatePoolMultiplier = 5,
+            ExpandContext = false,
+        };
+
+        _search = new MinervaSearchEngine(searchPipeline, collections, searchDefaults);
         _ingest = new MinervaIngestEngine(
             ingestionPipeline,
             collections,
@@ -107,17 +115,10 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         Assert.Equal(0, second.Deleted);
         Assert.Equal(2, second.Unchanged);
 
-        // 3. Search dominated by docA's content.
+        // 3. Search dominated by docA's content. Uses engine defaults.
         var results = await _search.SearchAsync(
             "relational database PostgreSQL",
-            [CollectionName],
-            new SearchOptions
-            {
-                TopK = 5,
-                HybridAlpha = 0.5,
-                ExpandContext = false,
-                CandidatePoolMultiplier = 5,
-            });
+            [CollectionName]);
         Assert.NotEmpty(results);
         Assert.Equal("doc-a", results[0].SourceId);
 
@@ -130,14 +131,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
 
         var afterDelete = await _search.SearchAsync(
             "relational database PostgreSQL",
-            [CollectionName],
-            new SearchOptions
-            {
-                TopK = 5,
-                HybridAlpha = 0.5,
-                ExpandContext = false,
-                CandidatePoolMultiplier = 5,
-            });
+            [CollectionName]);
         Assert.DoesNotContain(afterDelete, r => r.SourceId == "doc-a");
     }
 
@@ -145,13 +139,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     public async Task SearchAsync_UnknownCollection_Throws()
     {
         await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _search.SearchAsync("anything", ["does-not-exist"], new SearchOptions
-            {
-                TopK = 5,
-                HybridAlpha = 0.5,
-                ExpandContext = false,
-                CandidatePoolMultiplier = 5,
-            }));
+            _search.SearchAsync("anything", ["does-not-exist"]));
     }
 
     private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)

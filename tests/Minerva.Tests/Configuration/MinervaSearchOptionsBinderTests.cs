@@ -7,12 +7,20 @@ public class MinervaSearchOptionsBinderTests
 {
     private const string ValidJson = """
         {
-          "ConnectionString": "Host=h;Database=d",
-          "Embedding": {
-            "BaseUrl": "http://localhost:11434/v1",
-            "Model": "nomic",
-            "Concurrency": 1,
-            "BatchSize": 4
+          "Minerva": {
+            "ConnectionString": "Host=h;Database=d",
+            "Embedding": {
+              "BaseUrl": "http://localhost:11434/v1",
+              "Model": "nomic",
+              "Concurrency": 1,
+              "BatchSize": 4
+            }
+          },
+          "Search": {
+            "TopK": 10,
+            "HybridAlpha": 0.5,
+            "CandidatePoolMultiplier": 5,
+            "ExpandContext": false
           }
         }
         """;
@@ -30,18 +38,30 @@ public class MinervaSearchOptionsBinderTests
         Assert.Equal(1, options.Embedding.Concurrency);
         Assert.Equal(4, options.Embedding.BatchSize);
         Assert.Null(options.Embedding.ApiKey);
+        Assert.Equal(10, options.TopK);
+        Assert.Equal(0.5, options.HybridAlpha);
+        Assert.Equal(5, options.CandidatePoolMultiplier);
+        Assert.False(options.ExpandContext);
     }
 
     [Fact]
-    public void Bind_MissingConnectionString_ThrowsWithSinglePathFailure()
+    public void Bind_MissingConnectionString_ReportsMinervaConnectionStringFailure()
     {
         const string json = """
             {
-              "Embedding": {
-                "BaseUrl": "http://localhost:11434/v1",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
+              "Minerva": {
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5,
+                "ExpandContext": false
               }
             }
             """;
@@ -49,8 +69,7 @@ public class MinervaSearchOptionsBinderTests
         var ex = Assert.Throws<OptionsValidationException>(
             () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
-        Assert.Single(ex.Failures);
-        Assert.Equal("ConnectionString", ex.Failures[0].Path);
+        Assert.Contains(ex.Failures, f => f.Path == "Minerva.ConnectionString");
     }
 
     [Fact]
@@ -58,12 +77,20 @@ public class MinervaSearchOptionsBinderTests
     {
         const string json = """
             {
-              "ConnectionString": "Host=h;Database=d",
-              "Embedding": {
-                "BaseUrl": "not-a-url",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "not-a-url",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5,
+                "ExpandContext": false
               }
             }
             """;
@@ -71,8 +98,7 @@ public class MinervaSearchOptionsBinderTests
         var ex = Assert.Throws<OptionsValidationException>(
             () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
-        Assert.Single(ex.Failures);
-        Assert.Equal("Embedding.BaseUrl", ex.Failures[0].Path);
+        Assert.Contains(ex.Failures, f => f.Path == "Minerva.Embedding.BaseUrl");
     }
 
     [Fact]
@@ -80,14 +106,128 @@ public class MinervaSearchOptionsBinderTests
     {
         const string json = """
             {
-              "ConnectionString": "Host=h;Database=d"
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d"
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5,
+                "ExpandContext": false
+              }
             }
             """;
 
         var ex = Assert.Throws<OptionsValidationException>(
             () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
-        Assert.Contains(ex.Failures, f => f.Path == "Embedding");
+        Assert.Contains(ex.Failures, f => f.Path == "Minerva.Embedding");
+    }
+
+    [Fact]
+    public void Bind_MissingSearchSection_ReportsSectionRequired()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search");
+    }
+
+    [Fact]
+    public void Bind_MissingSearchTopK_ReportsRequired()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5,
+                "ExpandContext": false
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.TopK");
+    }
+
+    [Fact]
+    public void Bind_NonPositiveTopK_ReportsRangeFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(SearchJsonWith(topK: 0))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.TopK");
+    }
+
+    [Fact]
+    public void Bind_HybridAlphaOutOfRange_ReportsRangeFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(SearchJsonWith(hybridAlpha: 1.5))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.HybridAlpha");
+    }
+
+    [Fact]
+    public void Bind_NonPositiveCandidatePoolMultiplier_ReportsRangeFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(SearchJsonWith(candidatePoolMultiplier: 0))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CandidatePoolMultiplier");
+    }
+
+    [Fact]
+    public void Bind_MissingExpandContext_ReportsRequired()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.ExpandContext");
     }
 
     [Fact]
@@ -97,18 +237,26 @@ public class MinervaSearchOptionsBinderTests
         // if accidentally present, is silently ignored — not an error.
         const string json = """
             {
-              "ConnectionString": "Host=h;Database=d",
-              "Embedding": {
-                "BaseUrl": "http://localhost:11434/v1",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                },
+                "Chunking": {
+                  "TargetChunkSize": 1200,
+                  "ChunkOverlap": 200,
+                  "MaxSegmentChars": 8000,
+                  "ChunkerType": "Custom"
+                }
               },
-              "Chunking": {
-                "TargetChunkSize": 1200,
-                "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom"
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolMultiplier": 5,
+                "ExpandContext": false
               }
             }
             """;
@@ -117,5 +265,34 @@ public class MinervaSearchOptionsBinderTests
 
         Assert.Equal("Host=h;Database=d", options.ConnectionString);
         Assert.Equal("nomic", options.Embedding.Model);
+    }
+
+    private static string SearchJsonWith(
+        int topK = 10,
+        double hybridAlpha = 0.5,
+        int candidatePoolMultiplier = 5,
+        bool expandContext = false)
+    {
+        var alpha = hybridAlpha.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var ec = expandContext ? "true" : "false";
+        return $$"""
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": {{topK}},
+                "HybridAlpha": {{alpha}},
+                "CandidatePoolMultiplier": {{candidatePoolMultiplier}},
+                "ExpandContext": {{ec}}
+              }
+            }
+            """;
     }
 }

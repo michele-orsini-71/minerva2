@@ -7,10 +7,10 @@ internal enum OutputFormat { Table, Json }
 internal sealed record SearchCliArgs(
     string Query,
     IReadOnlyList<string> Collections,
-    int TopK,
-    double Alpha,
-    bool ExpandContext,
-    int CandidatePoolMultiplier,
+    int? TopK,
+    double? Alpha,
+    bool? ExpandContext,
+    int? CandidatePoolMultiplier,
     OutputFormat Format,
     bool Full,
     int SnippetChars)
@@ -24,10 +24,10 @@ internal sealed record SearchCliArgs(
 
         string? query = null;
         var collections = new List<string>();
-        int topK = 10;
-        double alpha = 0.5;
-        bool expandContext = false;
-        int candidatePoolMultiplier = 5;
+        int? topK = null;
+        double? alpha = null;
+        bool? expandContext = null;
+        int? candidatePoolMultiplier = null;
         var format = OutputFormat.Table;
         bool full = false;
         int snippetChars = 200;
@@ -44,21 +44,34 @@ internal sealed record SearchCliArgs(
                     break;
                 case "-k":
                 case "--top-k":
-                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out topK) || topK <= 0)
+                {
+                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) || v <= 0)
                     { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
+                    topK = v;
                     break;
+                }
                 case "-a":
                 case "--alpha":
-                    if (++i >= args.Length || !double.TryParse(args[i], NumberStyles.Float, CultureInfo.InvariantCulture, out alpha) || alpha < 0 || alpha > 1)
+                {
+                    if (++i >= args.Length || !double.TryParse(args[i], NumberStyles.Float, CultureInfo.InvariantCulture, out var v) || v < 0 || v > 1)
                     { err.WriteLine($"Invalid value for {a} (expected 0..1)"); return null; }
+                    alpha = v;
                     break;
+                }
                 case "--expand-context":
-                    expandContext = true;
+                {
+                    if (++i >= args.Length || !bool.TryParse(args[i], out var v))
+                    { err.WriteLine($"Invalid value for {a} (expected true|false)"); return null; }
+                    expandContext = v;
                     break;
+                }
                 case "--candidate-pool-multiplier":
-                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out candidatePoolMultiplier) || candidatePoolMultiplier <= 0)
+                {
+                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) || v <= 0)
                     { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
+                    candidatePoolMultiplier = v;
                     break;
+                }
                 case "--format":
                     if (++i >= args.Length) { err.WriteLine($"Missing value for {a}"); return null; }
                     if (!Enum.TryParse<OutputFormat>(args[i], ignoreCase: true, out format))
@@ -106,18 +119,17 @@ internal sealed record SearchCliArgs(
         w.WriteLine("""
             Usage:
               minerva-search <query> --collection <name> [--collection <name> ...]
-                             [--top-k 10] [--alpha 0.5]
-                             [--expand-context] [--candidate-pool-multiplier 5]
+                             [--top-k N] [--alpha A]
+                             [--expand-context true|false] [--candidate-pool-multiplier N]
                              [--format table|json] [--full] [--snippet-chars 200]
 
             Options:
               -c, --collection NAME    Collection to search (repeatable, required).
-              -k, --top-k N            Top-K results to fuse and return. Default: 10.
-              -a, --alpha A            Hybrid fusion weight (0..1). 1=pure vector,
-                                       0=pure full-text, 0.5=balanced. Default: 0.5.
-                  --expand-context     Include neighboring chunks for each hit.
+              -k, --top-k N            Overrides Search:TopK from config.
+              -a, --alpha A            Overrides Search:HybridAlpha from config (0..1).
+                  --expand-context B   Overrides Search:ExpandContext from config (true|false).
                   --candidate-pool-multiplier N
-                                       Multiplier on TopK for the per-engine candidate pool. Default: 5.
+                                       Overrides Search:CandidatePoolMultiplier from config.
                   --format FMT         table | json. Default: table.
                   --full               Print full chunk content (overrides --snippet-chars).
                   --snippet-chars N    Snippet length when not --full. Default: 200.

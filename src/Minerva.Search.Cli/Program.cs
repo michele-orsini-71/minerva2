@@ -33,18 +33,18 @@ try
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
     var engine = await MinervaSearchBuilder.CreateAsync(
-        config.GetSection("Minerva"), loggerFactory, cts.Token);
+        config, loggerFactory, cts.Token);
 
-    var searchOptions = new SearchOptions
+    var overrides = new SearchOverrides
     {
         TopK = parsed.TopK,
         HybridAlpha = parsed.Alpha,
-        ExpandContext = parsed.ExpandContext,
         CandidatePoolMultiplier = parsed.CandidatePoolMultiplier,
+        ExpandContext = parsed.ExpandContext,
     };
 
     var results = await engine.SearchAsync(
-        parsed.Query, parsed.Collections, searchOptions, cts.Token);
+        parsed.Query, parsed.Collections, overrides, cts.Token);
 
     ResultFormatter.Print(results, parsed, Console.Out);
 

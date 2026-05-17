@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minerva.Configuration;
 using Minerva.Exceptions;
+using Minerva.Models;
 using Minerva.Search;
 
 namespace Minerva;
@@ -9,12 +10,12 @@ namespace Minerva;
 public static class MinervaSearchBuilder
 {
     public static async Task<ISearchEngine> CreateAsync(
-        IConfiguration configurationSection,
+        IConfiguration configuration,
         ILoggerFactory loggerFactory,
         CancellationToken ct = default)
     {
-        // Phase 1: bind + validate options.
-        var options = MinervaSearchOptionsBinder.Bind(configurationSection);
+        // Phase 1: bind + validate options (both Minerva and Search sections).
+        var options = MinervaSearchOptionsBinder.Bind(configuration);
 
         // Phase 2: construct (no I/O). Options arrive pre-validated.
         var core = MinervaCore.Build(options.ConnectionString, options.Embedding, loggerFactory);
@@ -28,6 +29,14 @@ public static class MinervaSearchBuilder
             fullTextSearch,
             contextExpander,
             loggerFactory.CreateLogger<SearchPipeline>());
+
+        var defaults = new SearchOptions
+        {
+            TopK = options.TopK,
+            HybridAlpha = options.HybridAlpha,
+            CandidatePoolMultiplier = options.CandidatePoolMultiplier,
+            ExpandContext = options.ExpandContext,
+        };
 
         // Phase 3: preflight — DB + embedding only. No LLM on the search path.
         var failures = new List<PreflightFailure>();
@@ -46,6 +55,6 @@ public static class MinervaSearchBuilder
         // Phase 4: schema init.
         await core.SchemaInitializer.InitializeAsync(ct);
 
-        return new MinervaSearchEngine(searchPipeline, core.Collections);
+        return new MinervaSearchEngine(searchPipeline, core.Collections, defaults);
     }
 }
