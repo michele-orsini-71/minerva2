@@ -15,7 +15,7 @@ Kept as separate projects rather than one binary with subcommands, per user pref
 ### CLI surface (v1)
 
 ```text
-minerva-search <query> --collection <name> [--collection <name> ...]
+minerva-search <query> --collection <name>
                [--top-k 10]
                [--alpha 0.5]
                [--expand-context]
@@ -23,9 +23,14 @@ minerva-search <query> --collection <name> [--collection <name> ...]
                [--full] [--snippet-chars 200]
 ```
 
-- `--collection` is **required** (no implicit default from config). Picking
-  the corpus is the most important question; a silent default invites
-  mistakes.
+- `--collection` is **required** and **single-valued** (no implicit default
+  from config, not repeatable). Picking the corpus is the most important
+  question; a silent default invites mistakes. Searching across multiple
+  corpora at once is intentionally not supported — RRF, the candidate
+  pool sizes, and the eval harness are all tuned per-collection, and
+  cross-collection score merging is statistically incoherent. If multi-
+  corpus retrieval is ever needed, it belongs above this layer (host
+  fans out, reranks the union).
 - Exit codes: `0` results found, `3` zero results, `2` bad args / startup,
   `1` unhandled.
 - Default log level `Warning` (not `Information` like the indexer) so

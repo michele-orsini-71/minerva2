@@ -53,20 +53,17 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "hello", ["c"], DefaultOptions);
+            "hello", "c", DefaultOptions);
 
-        // Both search paths should have been hit
         await repo.Received(1).VectorSearchAsync(
             "c", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
         await repo.Received(1).FullTextSearchAsync(
             "c", "hello", Arg.Any<int>(), Arg.Any<CancellationToken>());
 
-        // Results are fused (union of both lists) and ordered by score descending
         Assert.Equal(3, results.Count);
         for (int i = 1; i < results.Count; i++)
             Assert.True(results[i - 1].Score >= results[i].Score);
 
-        // "b" appears in both lists and should rank first
         Assert.Equal("b", results[0].ChunkId);
     }
 
@@ -87,7 +84,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], DefaultOptions with { ExpandContext = false });
+            "q", "c", DefaultOptions with { ExpandContext = false });
 
         Assert.Single(results);
         Assert.Null(results[0].ContextBefore);
@@ -120,54 +117,11 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], DefaultOptions with { ExpandContext = true });
+            "q", "c", DefaultOptions with { ExpandContext = true });
 
         Assert.Single(results);
         Assert.Equal("prev-content", results[0].ContextBefore);
         Assert.Equal("next-content", results[0].ContextAfter);
-    }
-
-    [Fact]
-    public async Task SearchAsync_MultiCollection_MergesAcrossCollections()
-    {
-        var repo = Substitute.For<IChunkQuery>();
-        repo.VectorSearchAsync("c1", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(new[] { MakeRecord("c1-a", collection: "c1") });
-        repo.VectorSearchAsync("c2", Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(new[] { MakeRecord("c2-a", collection: "c2") });
-        repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(Array.Empty<ChunkSearchRecord>());
-
-        var pipeline = new SearchPipeline(
-            MockEmbedder(),
-            new VectorSearch(repo),
-            new FullTextSearch(repo),
-            new ContextExpander(repo),
-            NullLogger<SearchPipeline>.Instance);
-
-        var results = await pipeline.SearchAsync(
-            "q", ["c1", "c2"], DefaultOptions);
-
-        Assert.Equal(2, results.Count);
-        var collections = results.Select(r => r.CollectionName).ToHashSet();
-        Assert.Contains("c1", collections);
-        Assert.Contains("c2", collections);
-    }
-
-    [Fact]
-    public async Task SearchAsync_EmptyCollections_ReturnsEmpty()
-    {
-        var repo = Substitute.For<IChunkQuery>();
-        var pipeline = new SearchPipeline(
-            MockEmbedder(),
-            new VectorSearch(repo),
-            new FullTextSearch(repo),
-            new ContextExpander(repo),
-            NullLogger<SearchPipeline>.Instance);
-
-        var results = await pipeline.SearchAsync("q", [], DefaultOptions);
-
-        Assert.Empty(results);
     }
 
     [Fact]
@@ -187,7 +141,7 @@ public class SearchPipelineTests
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
-            "q", ["c"], DefaultOptions with { TopK = 5 });
+            "q", "c", DefaultOptions with { TopK = 5 });
 
         Assert.Equal(5, results.Count);
     }

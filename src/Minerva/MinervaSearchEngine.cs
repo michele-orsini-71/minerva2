@@ -23,10 +23,15 @@ internal sealed class MinervaSearchEngine : ISearchEngine
 
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string query,
-        IReadOnlyList<string> collectionNames,
+        string collectionName,
         SearchOverrides? overrides = null,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(collectionName))
+            throw new ArgumentException(
+                "Collection name must be a non-empty, non-whitespace string.",
+                nameof(collectionName));
+
         var effective = new SearchOptions
         {
             TopK = overrides?.TopK ?? _defaults.TopK,
@@ -51,15 +56,9 @@ internal sealed class MinervaSearchEngine : ISearchEngine
                 $"CandidatePoolSize must be >= TopK (got {effective.CandidatePoolSize}, TopK = {effective.TopK}).",
                 nameof(overrides));
 
-        if (collectionNames.Count == 0)
-            throw new ConfigurationException("At least one collection name must be provided.");
+        _ = await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
 
-        foreach (var name in collectionNames)
-        {
-            _ = await _collections.GetAsync(name, ct)
-                ?? throw new ConfigurationException($"Collection '{name}' does not exist.");
-        }
-
-        return await _searchPipeline.SearchAsync(query, collectionNames, effective, ct);
+        return await _searchPipeline.SearchAsync(query, collectionName, effective, ct);
     }
 }

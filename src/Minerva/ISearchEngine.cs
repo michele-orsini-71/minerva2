@@ -6,7 +6,7 @@ public interface ISearchEngine
 {
     Task<IReadOnlyList<SearchResult>> SearchAsync(
         string query,
-        IReadOnlyList<string> collectionNames,
+        string collectionName,
         SearchOverrides? overrides = null,
         CancellationToken ct = default);
 }

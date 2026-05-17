@@ -118,7 +118,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         // 3. Search dominated by docA's content. Uses engine defaults.
         var results = await _search.SearchAsync(
             "relational database PostgreSQL",
-            [CollectionName]);
+            CollectionName);
         Assert.NotEmpty(results);
         Assert.Equal("doc-a", results[0].SourceId);
 
@@ -131,7 +131,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
 
         var afterDelete = await _search.SearchAsync(
             "relational database PostgreSQL",
-            [CollectionName]);
+            CollectionName);
         Assert.DoesNotContain(afterDelete, r => r.SourceId == "doc-a");
     }
 
@@ -139,7 +139,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     public async Task SearchAsync_UnknownCollection_Throws()
     {
         await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _search.SearchAsync("anything", ["does-not-exist"]));
+            _search.SearchAsync("anything", "does-not-exist"));
     }
 
     private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)

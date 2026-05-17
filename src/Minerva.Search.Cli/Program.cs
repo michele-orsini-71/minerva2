@@ -44,7 +44,7 @@ try
     };
 
     var results = await engine.SearchAsync(
-        parsed.Query, parsed.Collections, overrides, cts.Token);
+        parsed.Query, parsed.Collection, overrides, cts.Token);
 
     ResultFormatter.Print(results, parsed, Console.Out);
 

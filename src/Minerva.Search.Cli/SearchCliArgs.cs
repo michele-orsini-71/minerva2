@@ -6,7 +6,7 @@ internal enum OutputFormat { Table, Json }
 
 internal sealed record SearchCliArgs(
     string Query,
-    IReadOnlyList<string> Collections,
+    string Collection,
     int? TopK,
     double? Alpha,
     bool? ExpandContext,
@@ -23,7 +23,7 @@ internal sealed record SearchCliArgs(
         }
 
         string? query = null;
-        var collections = new List<string>();
+        string? collection = null;
         int? topK = null;
         double? alpha = null;
         bool? expandContext = null;
@@ -40,7 +40,8 @@ internal sealed record SearchCliArgs(
                 case "-c":
                 case "--collection":
                     if (++i >= args.Length) { err.WriteLine($"Missing value for {a}"); return null; }
-                    collections.Add(args[i]);
+                    if (collection is not null) { err.WriteLine($"{a} can only be specified once."); return null; }
+                    collection = args[i];
                     break;
                 case "-k":
                 case "--top-k":
@@ -105,26 +106,26 @@ internal sealed record SearchCliArgs(
             err.WriteLine("Missing query.");
             return null;
         }
-        if (collections.Count == 0)
+        if (collection is null)
         {
-            err.WriteLine("At least one --collection is required.");
+            err.WriteLine("--collection is required.");
             return null;
         }
 
-        return new SearchCliArgs(query, collections, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars);
+        return new SearchCliArgs(query, collection, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars);
     }
 
     public static void PrintUsage(TextWriter w)
     {
         w.WriteLine("""
             Usage:
-              minerva-search <query> --collection <name> [--collection <name> ...]
+              minerva-search <query> --collection <name>
                              [--top-k N] [--alpha A]
                              [--expand-context true|false] [--candidate-pool-size N]
                              [--format table|json] [--full] [--snippet-chars 200]
 
             Options:
-              -c, --collection NAME    Collection to search (repeatable, required).
+              -c, --collection NAME    Collection to search (required).
               -k, --top-k N            Overrides Search:TopK from config.
               -a, --alpha A            Overrides Search:HybridAlpha from config (0..1).
                   --expand-context B   Overrides Search:ExpandContext from config (true|false).
