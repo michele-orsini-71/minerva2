@@ -64,27 +64,27 @@ The `Minerva` section is the full core-library config (see [`src/Minerva/README.
 
 ## Building a standalone binary
 
-`build-markdown-indexer.sh` (at the repo root) publishes a self-contained binary to `bin/`:
+`build-markdown-indexer-cli.sh` (at the repo root) publishes a self-contained binary to `bin-markdown-indexer/`:
 
 ```bash
-./build-markdown-indexer.sh
+./build-markdown-indexer-cli.sh
 ```
 
 Output:
 
-- `bin/markdown-indexer` — the executable
-- `bin/appsettings.json` — copied from the project (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
+- `bin-markdown-indexer/markdown-indexer` — the executable
+- `bin-markdown-indexer/appsettings.json` — copied from the project (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
 
 Run it with:
 
 ```bash
-./bin/markdown-indexer
+./bin-markdown-indexer/markdown-indexer
 ```
 
 For long-running ingestions, detach it from the terminal:
 
 ```bash
-nohup ./bin/markdown-indexer > logs/run.log 2>&1 &
+nohup ./bin-markdown-indexer/markdown-indexer > logs/run.log 2>&1 &
 ```
 
 ## Overriding configuration
@@ -101,7 +101,7 @@ nohup ./bin/markdown-indexer > logs/run.log 2>&1 &
 Drop additional files next to the binary:
 
 ```text
-bin/
+bin-markdown-indexer/
   markdown-indexer
   appsettings.json              # base / defaults
   appsettings.experiment-a.json # only the keys to override
@@ -111,7 +111,7 @@ bin/
 Launch with the matching environment name:
 
 ```bash
-DOTNET_ENVIRONMENT=experiment-a ./bin/markdown-indexer
+DOTNET_ENVIRONMENT=experiment-a ./bin-markdown-indexer/markdown-indexer
 ```
 
 The profile is merged on top of `appsettings.json`, so it only needs the keys that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the `appsettings*.json` glob in the csproj copies them on each build.
@@ -125,13 +125,13 @@ Use `__` (double underscore) as the section separator:
 ```bash
 Indexer__RootPath=/path/to/notes \
 Indexer__CollectionName=experiment-a \
-./bin/markdown-indexer
+./bin-markdown-indexer/markdown-indexer
 ```
 
 ### Command-line args
 
 ```bash
-./bin/markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
+./bin-markdown-indexer/markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
 ```
 
 ## Files

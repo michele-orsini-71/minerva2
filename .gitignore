@@ -491,6 +491,7 @@ chunk-comparison
 
 bin/
 bin-search/
+bin-markdown-indexer/
 
 # C# Dev Kit language service cache
 *.lscache

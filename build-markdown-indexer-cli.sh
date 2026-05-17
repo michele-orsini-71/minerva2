@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT="src/Minerva.MarkdownIndexer/Minerva.MarkdownIndexer.csproj"
 RUNTIME="osx-arm64"
 CONFIG="Release"
-PUBLISH_DIR="bin"
+PUBLISH_DIR="bin-markdown-indexer"
 
 rm -rf "$PUBLISH_DIR"
 dotnet restore "$PROJECT" -r "$RUNTIME"
