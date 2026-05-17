@@ -21,27 +21,35 @@ try
 
     var forceRecreate = args.Contains("--force-recreate");
 
-    var logFilePath = ResolveLogFilePath(config["Logging:File:Path"]);
-    try
+    var configuredLogPath = config["Logging:File:Path"];
+    string? logFilePath = null;
+    if (!string.IsNullOrWhiteSpace(configuredLogPath))
     {
-        EnsureLogFileWritable(logFilePath);
-    }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-    {
-        Console.Error.WriteLine($"Cannot write to log file '{logFilePath}': {ex.Message}");
-        return 2;
+        logFilePath = ResolveLogFilePath(configuredLogPath);
+        try
+        {
+            EnsureLogFileWritable(logFilePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Cannot write to log file '{logFilePath}': {ex.Message}");
+            return 2;
+        }
     }
 
     using var loggerFactory = LoggerFactory.Create(b =>
     {
         b.AddConfiguration(config.GetSection("Logging"));
         b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; });
-        b.AddFile(logFilePath, opts =>
+        if (logFilePath is not null)
         {
-            opts.Append = true;
-            opts.FileSizeLimitBytes = 0;
-            opts.MaxRollingFiles = 0;
-        });
+            b.AddFile(logFilePath, opts =>
+            {
+                opts.Append = true;
+                opts.FileSizeLimitBytes = 0;
+                opts.MaxRollingFiles = 0;
+            });
+        }
     });
     var programLogger = loggerFactory.CreateLogger("Minerva.MarkdownIndexer");
 
@@ -81,11 +89,9 @@ catch (Exception ex)
     return 1;
 }
 
-static string ResolveLogFilePath(string? configured)
+static string ResolveLogFilePath(string configured)
 {
-    var raw = string.IsNullOrWhiteSpace(configured)
-        ? "~/.minerva/logs/indexer-{Date}.log"
-        : configured;
+    var raw = configured;
     if (raw.StartsWith("~/", StringComparison.Ordinal))
     {
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
