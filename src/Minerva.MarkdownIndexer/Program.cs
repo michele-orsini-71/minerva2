@@ -19,8 +19,6 @@ try
 
     var indexerOptions = IndexerOptionsBinder.Bind(config.GetSection("Indexer"));
 
-    var forceRecreate = args.Contains("--force-recreate");
-
     var configuredLogPath = config["Logging:File:Path"];
     string? logFilePath = null;
     if (!string.IsNullOrWhiteSpace(configuredLogPath))
@@ -64,7 +62,7 @@ try
     var engine = await MinervaIngestBuilder.CreateAsync(
         config.GetSection("Minerva"), loggerFactory, cts.Token);
     var indexer = await MarkdownIndexerBuilder.CreateAsync(
-        indexerOptions, engine, loggerFactory, forceRecreate, cts.Token);
+        indexerOptions, engine, loggerFactory, cts.Token);
 
     await indexer.RunAsync(cts.Token);
     return 0;

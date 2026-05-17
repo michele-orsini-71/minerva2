@@ -35,12 +35,12 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     public async Task<IngestionResult> IngestAsync(
         string collectionName,
         IAsyncEnumerable<Document> documents,
-        bool forceRecreate = false,
+        bool allowRecreateOnEmbedderMismatch = false,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
 
-        await PrepareCollectionAsync(collectionName, forceRecreate, ct);
+        await PrepareCollectionAsync(collectionName, allowRecreateOnEmbedderMismatch, ct);
 
         var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
@@ -69,7 +69,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
     }
 
-    private async Task PrepareCollectionAsync(string collectionName, bool forceRecreate, CancellationToken ct)
+    private async Task PrepareCollectionAsync(string collectionName, bool allowRecreateOnEmbedderMismatch, CancellationToken ct)
     {
         var existing = await _collections.GetAsync(collectionName, ct);
 
@@ -86,7 +86,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
             return;
         }
 
-        if (!forceRecreate)
+        if (!allowRecreateOnEmbedderMismatch)
         {
             throw new CollectionEmbedderMismatchException(
                 collectionName,
@@ -95,7 +95,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         }
 
         _logger.LogWarning(
-            "Collection '{Collection}' embedder mismatch and forceRecreate=true; dropping all data and recreating",
+            "Collection '{Collection}' embedder mismatch and AllowRecreateOnEmbedderMismatch=true; dropping all data and recreating",
             collectionName);
         await _collections.DeleteAsync(collectionName, ct);
         await _collections.EnsureAsync(collectionName, description: null, metadata: null, ct);

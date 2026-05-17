@@ -52,10 +52,12 @@ internal static class TestOptions
     public static IndexerOptions Indexer(
         string rootPath,
         string collectionName = "test",
-        IReadOnlyList<string>? excludeDirectories = null) => new()
+        IReadOnlyList<string>? excludeDirectories = null,
+        bool allowRecreateOnEmbedderMismatch = false) => new()
     {
         RootPath = rootPath,
         CollectionName = collectionName,
         ExcludeDirectories = excludeDirectories ?? [".obsidian", ".trash", ".git"],
+        AllowRecreateOnEmbedderMismatch = allowRecreateOnEmbedderMismatch,
     };
 }

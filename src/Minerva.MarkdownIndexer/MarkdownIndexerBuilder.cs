@@ -9,7 +9,6 @@ public static class MarkdownIndexerBuilder
         IndexerOptions options,
         IIngestEngine engine,
         ILoggerFactory loggerFactory,
-        bool forceRecreate,
         CancellationToken ct = default)
     {
         // Phase 2: construct (no I/O). Options arrive pre-validated from the binder.
@@ -24,7 +23,7 @@ public static class MarkdownIndexerBuilder
             scanner,
             engine,
             options.CollectionName,
-            forceRecreate,
+            options.AllowRecreateOnEmbedderMismatch,
             loggerFactory.CreateLogger<MarkdownIndexer>()));
     }
 

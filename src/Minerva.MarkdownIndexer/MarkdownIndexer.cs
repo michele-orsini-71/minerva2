@@ -9,27 +9,27 @@ public sealed class MarkdownIndexer
     private readonly MarkdownScanner _scanner;
     private readonly IIngestEngine _engine;
     private readonly string _collectionName;
-    private readonly bool _forceRecreate;
+    private readonly bool _allowRecreateOnEmbedderMismatch;
     private readonly ILogger<MarkdownIndexer> _logger;
 
     public MarkdownIndexer(
         MarkdownScanner scanner,
         IIngestEngine engine,
         string collectionName,
-        bool forceRecreate,
+        bool allowRecreateOnEmbedderMismatch,
         ILogger<MarkdownIndexer> logger)
     {
         _scanner = scanner;
         _engine = engine;
         _collectionName = collectionName;
-        _forceRecreate = forceRecreate;
+        _allowRecreateOnEmbedderMismatch = allowRecreateOnEmbedderMismatch;
         _logger = logger;
     }
 
     public async Task RunAsync(CancellationToken ct = default)
     {
         var result = await _engine.IngestAsync(
-            _collectionName, EnumerateDocumentsAsync(ct), _forceRecreate, ct);
+            _collectionName, EnumerateDocumentsAsync(ct), _allowRecreateOnEmbedderMismatch, ct);
 
         _logger.LogInformation(
             "Sync: +{Added} ~{Updated} -{Deleted} ={Unchanged} in {Elapsed}",
