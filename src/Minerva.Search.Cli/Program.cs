@@ -60,6 +60,11 @@ catch (MinervaStartupException ex)
     Console.Error.WriteLine(ex.Message);
     return 2;
 }
+catch (ConfigurationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
+}
 catch (OperationCanceledException)
 {
     return 0;
