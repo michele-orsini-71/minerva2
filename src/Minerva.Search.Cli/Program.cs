@@ -23,8 +23,6 @@ try
         .AddEnvironmentVariables()
         .Build();
 
-    var minervaOptions = MinervaSearchOptionsBinder.Bind(config.GetSection("Minerva"));
-
     using var loggerFactory = LoggerFactory.Create(b =>
     {
         b.AddConfiguration(config.GetSection("Logging"));
@@ -34,7 +32,8 @@ try
     using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-    var engine = await MinervaSearchBuilder.CreateAsync(minervaOptions, loggerFactory, cts.Token);
+    var engine = await MinervaSearchBuilder.CreateAsync(
+        config.GetSection("Minerva"), loggerFactory, cts.Token);
 
     var searchOptions = new SearchOptions
     {

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minerva.Configuration;
 using Minerva.Exceptions;
@@ -8,10 +9,13 @@ namespace Minerva;
 public static class MinervaSearchBuilder
 {
     public static async Task<ISearchEngine> CreateAsync(
-        MinervaSearchOptions options,
+        IConfiguration configurationSection,
         ILoggerFactory loggerFactory,
         CancellationToken ct = default)
     {
+        // Phase 1: bind + validate options.
+        var options = MinervaSearchOptionsBinder.Bind(configurationSection);
+
         // Phase 2: construct (no I/O). Options arrive pre-validated.
         var core = MinervaCore.Build(options.ConnectionString, options.Embedding, loggerFactory);
 
