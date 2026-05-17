@@ -18,7 +18,18 @@ internal sealed record MinervaCoreServices(
     IChunkQuery ChunkQuery,
     OpenAICompatibleEmbeddingProvider EmbeddingProvider,
     IEmbeddingService EmbeddingService,
-    ICollectionService Collections);
+    ICollectionService Collections)
+{
+    public async Task<IReadOnlyList<PreflightFailure>> PreflightAsync(CancellationToken ct)
+    {
+        var failures = new List<PreflightFailure>();
+        if (await DatabasePreflight.PreflightAsync(ct) is { } db)
+            failures.Add(db);
+        if (await EmbeddingProvider.PreflightAsync(ct) is { } emb)
+            failures.Add(emb);
+        return failures;
+    }
+}
 
 internal static class MinervaCore
 {

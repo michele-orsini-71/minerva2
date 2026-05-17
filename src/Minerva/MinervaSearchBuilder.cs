@@ -39,16 +39,7 @@ public static class MinervaSearchBuilder
         };
 
         // Phase 3: preflight — DB + embedding only. No LLM on the search path.
-        var failures = new List<PreflightFailure>();
-
-        var storageFailure = await core.DatabasePreflight.PreflightAsync(ct);
-        if (storageFailure is not null)
-            failures.Add(storageFailure);
-
-        var embeddingFailure = await core.EmbeddingProvider.PreflightAsync(ct);
-        if (embeddingFailure is not null)
-            failures.Add(embeddingFailure);
-
+        var failures = await core.PreflightAsync(ct);
         if (failures.Count > 0)
             throw new MinervaStartupException(failures);
 

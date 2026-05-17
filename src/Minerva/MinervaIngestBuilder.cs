@@ -61,22 +61,10 @@ public static class MinervaIngestBuilder
             loggerFactory.CreateLogger<IngestionPipeline>());
 
         // Phase 3: preflight — DB + embedding + LLM (if configured).
-        var failures = new List<PreflightFailure>();
+        var failures = new List<PreflightFailure>(await core.PreflightAsync(ct));
 
-        var storageFailure = await core.DatabasePreflight.PreflightAsync(ct);
-        if (storageFailure is not null)
-            failures.Add(storageFailure);
-
-        var embeddingFailure = await core.EmbeddingProvider.PreflightAsync(ct);
-        if (embeddingFailure is not null)
-            failures.Add(embeddingFailure);
-
-        if (llmProvider is not null)
-        {
-            var llmFailure = await llmProvider.PreflightAsync(ct);
-            if (llmFailure is not null)
-                failures.Add(llmFailure);
-        }
+        if (llmProvider is not null && await llmProvider.PreflightAsync(ct) is { } llmFailure)
+            failures.Add(llmFailure);
 
         if (failures.Count > 0)
             throw new MinervaStartupException(failures);
