@@ -39,7 +39,7 @@ try
     {
         TopK = parsed.TopK,
         HybridAlpha = parsed.Alpha,
-        CandidatePoolMultiplier = parsed.CandidatePoolMultiplier,
+        CandidatePoolSize = parsed.CandidatePoolSize,
         ExpandContext = parsed.ExpandContext,
     };
 

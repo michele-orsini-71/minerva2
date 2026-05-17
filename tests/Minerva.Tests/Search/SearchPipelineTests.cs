@@ -16,7 +16,7 @@ public class SearchPipelineTests
         TopK = 10,
         HybridAlpha = 0.5,
         ExpandContext = false,
-        CandidatePoolMultiplier = 5,
+        CandidatePoolSize = 50,
     };
 
     private static IEmbeddingService MockEmbedder()

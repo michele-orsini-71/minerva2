@@ -67,7 +67,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         {
             TopK = 5,
             HybridAlpha = 0.5,
-            CandidatePoolMultiplier = 5,
+            CandidatePoolSize = 25,
             ExpandContext = false,
         };
 

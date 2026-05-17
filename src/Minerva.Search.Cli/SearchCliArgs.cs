@@ -10,7 +10,7 @@ internal sealed record SearchCliArgs(
     int? TopK,
     double? Alpha,
     bool? ExpandContext,
-    int? CandidatePoolMultiplier,
+    int? CandidatePoolSize,
     OutputFormat Format,
     bool Full,
     int SnippetChars)
@@ -27,7 +27,7 @@ internal sealed record SearchCliArgs(
         int? topK = null;
         double? alpha = null;
         bool? expandContext = null;
-        int? candidatePoolMultiplier = null;
+        int? candidatePoolSize = null;
         var format = OutputFormat.Table;
         bool full = false;
         int snippetChars = 200;
@@ -65,11 +65,11 @@ internal sealed record SearchCliArgs(
                     expandContext = v;
                     break;
                 }
-                case "--candidate-pool-multiplier":
+                case "--candidate-pool-size":
                 {
                     if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) || v <= 0)
                     { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
-                    candidatePoolMultiplier = v;
+                    candidatePoolSize = v;
                     break;
                 }
                 case "--format":
@@ -111,7 +111,7 @@ internal sealed record SearchCliArgs(
             return null;
         }
 
-        return new SearchCliArgs(query, collections, topK, alpha, expandContext, candidatePoolMultiplier, format, full, snippetChars);
+        return new SearchCliArgs(query, collections, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars);
     }
 
     public static void PrintUsage(TextWriter w)
@@ -120,7 +120,7 @@ internal sealed record SearchCliArgs(
             Usage:
               minerva-search <query> --collection <name> [--collection <name> ...]
                              [--top-k N] [--alpha A]
-                             [--expand-context true|false] [--candidate-pool-multiplier N]
+                             [--expand-context true|false] [--candidate-pool-size N]
                              [--format table|json] [--full] [--snippet-chars 200]
 
             Options:
@@ -128,8 +128,8 @@ internal sealed record SearchCliArgs(
               -k, --top-k N            Overrides Search:TopK from config.
               -a, --alpha A            Overrides Search:HybridAlpha from config (0..1).
                   --expand-context B   Overrides Search:ExpandContext from config (true|false).
-                  --candidate-pool-multiplier N
-                                       Overrides Search:CandidatePoolMultiplier from config.
+                  --candidate-pool-size N
+                                       Overrides Search:CandidatePoolSize from config.
                   --format FMT         table | json. Default: table.
                   --full               Print full chunk content (overrides --snippet-chars).
                   --snippet-chars N    Snippet length when not --full. Default: 200.

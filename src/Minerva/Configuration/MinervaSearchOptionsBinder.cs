@@ -30,7 +30,7 @@ public static class MinervaSearchOptionsBinder
 
         int? topK = null;
         double? hybridAlpha = null;
-        int? candidatePoolMultiplier = null;
+        int? candidatePoolSize = null;
         bool? expandContext = null;
 
         if (rawSearch is null)
@@ -55,14 +55,29 @@ public static class MinervaSearchOptionsBinder
             else
                 hybridAlpha = rawSearch.HybridAlpha;
 
-            if (rawSearch.CandidatePoolMultiplier is null)
-                failures.Add(new OptionsFailure("Search.CandidatePoolMultiplier", "is required."));
-            else if (rawSearch.CandidatePoolMultiplier <= 0)
-                failures.Add(new OptionsFailure(
-                    "Search.CandidatePoolMultiplier",
-                    $"must be > 0 (got {rawSearch.CandidatePoolMultiplier})."));
+            if (rawSearch.CandidatePoolSize is null)
+            {
+                failures.Add(new OptionsFailure("Search.CandidatePoolSize", "is required."));
+            }
             else
-                candidatePoolMultiplier = rawSearch.CandidatePoolMultiplier;
+            {
+                if (rawSearch.CandidatePoolSize <= 0)
+                {
+                    failures.Add(new OptionsFailure(
+                        "Search.CandidatePoolSize",
+                        $"must be > 0 (got {rawSearch.CandidatePoolSize})."));
+                }
+                else if (topK is not null && rawSearch.CandidatePoolSize < topK)
+                {
+                    failures.Add(new OptionsFailure(
+                        "Search.CandidatePoolSize",
+                        $"must be >= TopK (got {rawSearch.CandidatePoolSize}, TopK = {topK})."));
+                }
+                else
+                {
+                    candidatePoolSize = rawSearch.CandidatePoolSize;
+                }
+            }
 
             if (rawSearch.ExpandContext is null)
                 failures.Add(new OptionsFailure("Search.ExpandContext", "is required."));
@@ -79,7 +94,7 @@ public static class MinervaSearchOptionsBinder
             Embedding = embedding!,
             TopK = topK!.Value,
             HybridAlpha = hybridAlpha!.Value,
-            CandidatePoolMultiplier = candidatePoolMultiplier!.Value,
+            CandidatePoolSize = candidatePoolSize!.Value,
             ExpandContext = expandContext!.Value,
         };
     }
@@ -95,6 +110,6 @@ internal sealed class RawSearchSectionOptions
 {
     public int? TopK { get; set; }
     public double? HybridAlpha { get; set; }
-    public int? CandidatePoolMultiplier { get; set; }
+    public int? CandidatePoolSize { get; set; }
     public bool? ExpandContext { get; set; }
 }

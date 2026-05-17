@@ -19,7 +19,7 @@ public class MinervaSearchOptionsBinderTests
           "Search": {
             "TopK": 10,
             "HybridAlpha": 0.5,
-            "CandidatePoolMultiplier": 5,
+            "CandidatePoolSize": 50,
             "ExpandContext": false
           }
         }
@@ -40,7 +40,7 @@ public class MinervaSearchOptionsBinderTests
         Assert.Null(options.Embedding.ApiKey);
         Assert.Equal(10, options.TopK);
         Assert.Equal(0.5, options.HybridAlpha);
-        Assert.Equal(5, options.CandidatePoolMultiplier);
+        Assert.Equal(50, options.CandidatePoolSize);
         Assert.False(options.ExpandContext);
     }
 
@@ -60,7 +60,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": 10,
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5,
+                "CandidatePoolSize": 50,
                 "ExpandContext": false
               }
             }
@@ -89,7 +89,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": 10,
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5,
+                "CandidatePoolSize": 50,
                 "ExpandContext": false
               }
             }
@@ -112,7 +112,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": 10,
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5,
+                "CandidatePoolSize": 50,
                 "ExpandContext": false
               }
             }
@@ -163,7 +163,7 @@ public class MinervaSearchOptionsBinderTests
               },
               "Search": {
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5,
+                "CandidatePoolSize": 50,
                 "ExpandContext": false
               }
             }
@@ -194,12 +194,22 @@ public class MinervaSearchOptionsBinderTests
     }
 
     [Fact]
-    public void Bind_NonPositiveCandidatePoolMultiplier_ReportsRangeFailure()
+    public void Bind_NonPositiveCandidatePoolSize_ReportsRangeFailure()
     {
         var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(SearchJsonWith(candidatePoolMultiplier: 0))));
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(SearchJsonWith(candidatePoolSize: 0))));
 
-        Assert.Contains(ex.Failures, f => f.Path == "Search.CandidatePoolMultiplier");
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CandidatePoolSize");
+    }
+
+    [Fact]
+    public void Bind_CandidatePoolSizeLessThanTopK_ReportsRangeFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(
+                ConfigFromJson.Build(SearchJsonWith(topK: 10, candidatePoolSize: 5))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CandidatePoolSize");
     }
 
     [Fact]
@@ -219,7 +229,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": 10,
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5
+                "CandidatePoolSize": 50
               }
             }
             """;
@@ -255,7 +265,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": 10,
                 "HybridAlpha": 0.5,
-                "CandidatePoolMultiplier": 5,
+                "CandidatePoolSize": 50,
                 "ExpandContext": false
               }
             }
@@ -270,7 +280,7 @@ public class MinervaSearchOptionsBinderTests
     private static string SearchJsonWith(
         int topK = 10,
         double hybridAlpha = 0.5,
-        int candidatePoolMultiplier = 5,
+        int candidatePoolSize = 50,
         bool expandContext = false)
     {
         var alpha = hybridAlpha.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -289,7 +299,7 @@ public class MinervaSearchOptionsBinderTests
               "Search": {
                 "TopK": {{topK}},
                 "HybridAlpha": {{alpha}},
-                "CandidatePoolMultiplier": {{candidatePoolMultiplier}},
+                "CandidatePoolSize": {{candidatePoolSize}},
                 "ExpandContext": {{ec}}
               }
             }

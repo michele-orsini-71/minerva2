@@ -34,7 +34,7 @@ public static class MinervaSearchBuilder
         {
             TopK = options.TopK,
             HybridAlpha = options.HybridAlpha,
-            CandidatePoolMultiplier = options.CandidatePoolMultiplier,
+            CandidatePoolSize = options.CandidatePoolSize,
             ExpandContext = options.ExpandContext,
         };
 

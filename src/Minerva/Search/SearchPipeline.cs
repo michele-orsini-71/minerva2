@@ -54,8 +54,9 @@ public class SearchPipeline
         {
             _logger.LogWarning(
                 "Search returned {Actual} results, {Requested} were requested. " +
-                "Candidate pool may be too small for this corpus — consider increasing CandidatePoolMultiplier (currently {Multiplier}).",
-                merged.Count, options.TopK, options.CandidatePoolMultiplier);
+                "The searched collections likely contain too few chunks matching the query — " +
+                "broaden the collection set or ingest more sources.",
+                merged.Count, options.TopK);
         }
 
         // 4. Optional context expansion.
@@ -72,12 +73,10 @@ public class SearchPipeline
         SearchOptions options,
         CancellationToken ct)
     {
-        var candidatePoolSize = options.TopK * options.CandidatePoolMultiplier;
-
         var vectorTask = _vectorSearch.SearchAsync(
-            collectionName, queryEmbedding, candidatePoolSize, ct);
+            collectionName, queryEmbedding, options.CandidatePoolSize, ct);
         var ftsTask = _fullTextSearch.SearchAsync(
-            collectionName, query, candidatePoolSize, ct);
+            collectionName, query, options.CandidatePoolSize, ct);
 
         await Task.WhenAll(vectorTask, ftsTask);
 

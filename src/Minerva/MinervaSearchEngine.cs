@@ -31,8 +31,8 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         {
             TopK = overrides?.TopK ?? _defaults.TopK,
             HybridAlpha = overrides?.HybridAlpha ?? _defaults.HybridAlpha,
-            CandidatePoolMultiplier =
-                overrides?.CandidatePoolMultiplier ?? _defaults.CandidatePoolMultiplier,
+            CandidatePoolSize =
+                overrides?.CandidatePoolSize ?? _defaults.CandidatePoolSize,
             ExpandContext = overrides?.ExpandContext ?? _defaults.ExpandContext,
         };
 
@@ -42,9 +42,13 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         if (effective.HybridAlpha < 0 || effective.HybridAlpha > 1)
             throw new ArgumentException(
                 $"HybridAlpha must be in [0, 1] (got {effective.HybridAlpha}).", nameof(overrides));
-        if (effective.CandidatePoolMultiplier <= 0)
+        if (effective.CandidatePoolSize <= 0)
             throw new ArgumentException(
-                $"CandidatePoolMultiplier must be positive (got {effective.CandidatePoolMultiplier}).",
+                $"CandidatePoolSize must be positive (got {effective.CandidatePoolSize}).",
+                nameof(overrides));
+        if (effective.CandidatePoolSize < effective.TopK)
+            throw new ArgumentException(
+                $"CandidatePoolSize must be >= TopK (got {effective.CandidatePoolSize}, TopK = {effective.TopK}).",
                 nameof(overrides));
 
         if (collectionNames.Count == 0)
