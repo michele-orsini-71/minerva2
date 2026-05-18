@@ -123,7 +123,7 @@ Comfortably under any "lost in the middle" danger zone for current frontier mode
 
 ## Phased rollout
 
-### Phase 0 — current state (before eval harness)
+### *COMPLETED* Phase 0 — current state (before eval harness)
 
 - Hybrid search → top **30–50** per branch
 - RRF → top **8–12**
@@ -175,6 +175,8 @@ The contextualization prefix is roughly 50–100 tokens. On 200-token target chu
 - Re-baseline Phase 2 results after re-indexing before drawing conclusions.
 
 ### Phase 4 — add expansion
+
+**watch out**, see phase-1 docs: eval harness has not been prepared for this step and must be improved
 
 - Use the chunk size chosen in Phase 3.
 - Start at W = 1, merge overlapping windows.
