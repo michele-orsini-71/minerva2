@@ -7,7 +7,7 @@ about to start.
 
 ---
 
-## Phase 1A — Skeleton + dataset validation
+## Phase 1A — Skeleton + dataset validation - COMPLETED
 
 **Deliverable:** `Minerva.Search.Bench` project exists, inherits
 configuration from `Minerva.Search.Cli`, and `bench validate-dataset
