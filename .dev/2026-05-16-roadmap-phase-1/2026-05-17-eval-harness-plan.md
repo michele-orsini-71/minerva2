@@ -224,17 +224,26 @@ decided alongside the expansion-eval metric. Do not populate it in Phase 1
 datasets; data authored against a format we haven't pinned would likely be
 unusable later.
 
-**Canonical form of `gold_sources` entries**: POSIX relative path from the
-corpus root, case-sensitive, no leading `./`. Ingestion must record this
-exact string per chunk so eval-time lookups resolve without normalization.
-This is the load-bearing contract between ingestion and the bench; without
-it, mismatches silently zero out recall and look like retrieval failures.
+**Canonical form of `gold_sources` entries**: opaque indexer-assigned
+source_id strings. The bench treats them as black-box strings and resolves
+them by equality against `chunks.source_id` in Postgres for the target
+collection — no path semantics, no case folding, no normalization. The
+load-bearing contract is therefore not a *format* but two properties of
+the indexer: (a) source_ids are stable across re-ingestion of the same
+logical document, (b) they are stored in Postgres alongside each chunk.
+Different indexers (personal notes, Wikipedia, future corpora) are free
+to mint source_ids in whatever shape suits them; a JSONL dataset is
+implicitly bound to the collection it was authored against, since the
+same logical document gets different source_ids under different indexers.
 
 **Rationale**: Schema lifted from the prior considerations doc with two
-tweaks — the per-record `collection` field is dropped (which collection a
-dataset targets is a property of the *file*, named by the sweep config,
-not of each query), and `gold_sections` is reserved for Phase 4 to avoid
-authoring data against an unpinned format.
+tweaks — the per-record `collection` field is dropped (a dataset is *not*
+bound to one collection: the same hand-curated `gold_sources` are valid
+against any collection that indexed the same logical corpus, e.g. the
+same Wikipedia dump contextualized by different LLMs; the collection is
+chosen by the operator at bench-invocation time, not by the dataset
+author), and `gold_sections` is reserved for Phase 4 to avoid authoring
+data against an unpinned format.
 
 ### Phase 0 baseline configuration is pinned
 
