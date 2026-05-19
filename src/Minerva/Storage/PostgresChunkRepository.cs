@@ -8,7 +8,7 @@ using Pgvector;
 
 namespace Minerva.Storage;
 
-public class PostgresChunkRepository : IChunkWriter, IChunkQuery
+public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
 {
     private readonly NpgsqlDataSource _dataSource;
 
@@ -130,6 +130,24 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery
         while (await reader.ReadAsync(ct))
             result[reader.GetString(0)] = reader.GetString(1);
         return result;
+    }
+
+    public async Task<bool> SourceIdExistsAsync(string collectionName, string sourceId,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT 1 FROM chunks
+            WHERE collection_name = @coll AND source_id = @src
+            LIMIT 1
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("coll", collectionName);
+        cmd.Parameters.AddWithValue("src", sourceId);
+
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result is not null;
     }
 
     public async Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(

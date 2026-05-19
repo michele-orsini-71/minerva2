@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minerva\Minerva.csproj" />
     <ProjectReference Include="..\..\src\Minerva.MarkdownIndexer\Minerva.MarkdownIndexer.csproj" />
+    <ProjectReference Include="..\..\src\Minerva.Search.Bench\Minerva.Search.Bench.csproj" />
   </ItemGroup>
 
   <ItemGroup>

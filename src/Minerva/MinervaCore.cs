@@ -16,6 +16,7 @@ internal sealed record MinervaCoreServices(
     SchemaInitializer SchemaInitializer,
     IChunkWriter ChunkWriter,
     IChunkQuery ChunkQuery,
+    IChunkCatalog ChunkCatalog,
     OpenAICompatibleEmbeddingProvider EmbeddingProvider,
     IEmbeddingService EmbeddingService,
     ICollectionService Collections)
@@ -58,6 +59,7 @@ internal static class MinervaCore
         var chunkRepository = new PostgresChunkRepository(dataSource);
         IChunkWriter chunkWriter = chunkRepository;
         IChunkQuery chunkQuery = chunkRepository;
+        IChunkCatalog chunkCatalog = chunkRepository;
 
         OpenAICompatibleEmbeddingProvider embeddingProvider;
         try
@@ -89,6 +91,7 @@ internal static class MinervaCore
             SchemaInitializer: schemaInitializer,
             ChunkWriter: chunkWriter,
             ChunkQuery: chunkQuery,
+            ChunkCatalog: chunkCatalog,
             EmbeddingProvider: embeddingProvider,
             EmbeddingService: embeddingService,
             Collections: collections);

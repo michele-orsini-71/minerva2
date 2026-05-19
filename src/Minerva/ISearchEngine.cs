@@ -9,4 +9,9 @@ public interface ISearchEngine
         string collectionName,
         SearchOverrides? overrides = null,
         CancellationToken ct = default);
+
+    Task<bool> SourceIdExistsAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default);
 }

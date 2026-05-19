@@ -9,15 +9,18 @@ internal sealed class MinervaSearchEngine : ISearchEngine
 {
     private readonly SearchPipeline _searchPipeline;
     private readonly ICollectionService _collections;
+    private readonly IChunkCatalog _chunkCatalog;
     private readonly SearchOptions _defaults;
 
     public MinervaSearchEngine(
         SearchPipeline searchPipeline,
         ICollectionService collections,
+        IChunkCatalog chunkCatalog,
         SearchOptions defaults)
     {
         _searchPipeline = searchPipeline;
         _collections = collections;
+        _chunkCatalog = chunkCatalog;
         _defaults = defaults;
     }
 
@@ -60,5 +63,25 @@ internal sealed class MinervaSearchEngine : ISearchEngine
             ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
 
         return await _searchPipeline.SearchAsync(query, collectionName, effective, ct);
+    }
+
+    public async Task<bool> SourceIdExistsAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(collectionName))
+            throw new ArgumentException(
+                "Collection name must be a non-empty, non-whitespace string.",
+                nameof(collectionName));
+        if (string.IsNullOrWhiteSpace(sourceId))
+            throw new ArgumentException(
+                "Source id must be a non-empty, non-whitespace string.",
+                nameof(sourceId));
+
+        _ = await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
+
+        return await _chunkCatalog.SourceIdExistsAsync(collectionName, sourceId, ct);
     }
 }

@@ -46,6 +46,6 @@ public static class MinervaSearchBuilder
         // Phase 4: schema init.
         await core.SchemaInitializer.InitializeAsync(ct);
 
-        return new MinervaSearchEngine(searchPipeline, core.Collections, defaults);
+        return new MinervaSearchEngine(searchPipeline, core.Collections, core.ChunkCatalog, defaults);
     }
 }

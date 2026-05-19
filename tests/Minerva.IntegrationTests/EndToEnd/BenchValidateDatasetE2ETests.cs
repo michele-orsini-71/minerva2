@@ -6,23 +6,24 @@ using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
 using Minerva.Models;
 using Minerva.Search;
+using Minerva.Search.Bench.Validation;
 using Minerva.Storage;
 
 namespace Minerva.IntegrationTests.EndToEnd;
 
 [Collection("Storage")]
 [Trait("Category", "E2E")]
-public class MinervaEngineE2ETests : IAsyncLifetime
+public class BenchValidateDatasetE2ETests : IAsyncLifetime
 {
     private const int EmbeddingDimension = 16;
-    private const string CollectionName = "e2e-collection";
+    private const string CollectionName = "bench-e2e-collection";
     private const string EmbeddingModel = "mock-embedding";
 
     private readonly StorageTestFixture _fixture;
     private readonly ISearchEngine _search;
     private readonly IIngestEngine _ingest;
 
-    public MinervaEngineE2ETests(StorageTestFixture fixture)
+    public BenchValidateDatasetE2ETests(StorageTestFixture fixture)
     {
         _fixture = fixture;
 
@@ -85,61 +86,77 @@ public class MinervaEngineE2ETests : IAsyncLifetime
     public Task DisposeAsync() => _fixture.CleanupAsync();
 
     [Fact]
-    public async Task IngestSearchDelete_FullCycle()
+    public async Task ValidateDataset_OnePassOneMiss_ReportsMissAndReturnsFailureCode()
     {
-        var docA = new Document(
-            SourceId: "doc-a",
-            Title: "PostgreSQL Guide",
-            Text: "PostgreSQL is a powerful open-source relational database. " +
-                  "It supports ACID transactions, JSON, and full-text search. " +
-                  "Extensions like pgvector enable similarity search on embeddings.");
+        await SeedAsync("doc-a", "doc-b");
 
-        var docB = new Document(
-            SourceId: "doc-b",
-            Title: "Weather Report",
-            Text: "Today the weather in San Francisco is sunny and mild. " +
-                  "Tomorrow will bring fog in the morning and clear afternoon skies. " +
-                  "The weekly forecast calls for consistent mild temperatures.");
+        var jsonlPath = WriteTempJsonl(
+            """{"id":"q001","query":"about doc a","gold_sources":["doc-a"]}""",
+            """{"id":"q002","query":"about ghost","gold_sources":["doc-z-missing"]}""");
 
-        // 1. First ingest: both docs are new (collection auto-created).
-        var first = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
-        Assert.Equal(2, first.Added);
-        Assert.Equal(0, first.Updated);
-        Assert.Equal(0, first.Deleted);
-        Assert.Equal(0, first.Unchanged);
+        try
+        {
+            using var sw = new StringWriter();
+            var exitCode = await DatasetValidationRunner.RunAsync(
+                _search, jsonlPath, CollectionName, sw);
 
-        // 2. Re-ingest the same set: both unchanged.
-        var second = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
-        Assert.Equal(0, second.Added);
-        Assert.Equal(0, second.Updated);
-        Assert.Equal(0, second.Deleted);
-        Assert.Equal(2, second.Unchanged);
+            var output = sw.ToString();
 
-        // 3. Search dominated by docA's content. Uses engine defaults.
-        var results = await _search.SearchAsync(
-            "relational database PostgreSQL",
-            CollectionName);
-        Assert.NotEmpty(results);
-        Assert.Equal("doc-a", results[0].SourceId);
-
-        // 4. Re-ingest with only docB: docA must be deleted by the diff.
-        var third = await _ingest.IngestAsync(CollectionName, AsAsync(docB));
-        Assert.Equal(0, third.Added);
-        Assert.Equal(0, third.Updated);
-        Assert.Equal(1, third.Deleted);
-        Assert.Equal(1, third.Unchanged);
-
-        var afterDelete = await _search.SearchAsync(
-            "relational database PostgreSQL",
-            CollectionName);
-        Assert.DoesNotContain(afterDelete, r => r.SourceId == "doc-a");
+            Assert.Equal(2, exitCode);
+            Assert.Contains("q002", output);
+            Assert.Contains("doc-z-missing", output);
+            Assert.Contains($"gold_source not found in collection '{CollectionName}'", output);
+            Assert.DoesNotContain("doc-a", output);  // passing entry must not appear in problem groups
+            Assert.Contains("validation failed", output);
+        }
+        finally
+        {
+            File.Delete(jsonlPath);
+        }
     }
 
     [Fact]
-    public async Task SearchAsync_UnknownCollection_Throws()
+    public async Task ValidateDataset_AllPass_ReportsSuccessAndReturnsZero()
     {
-        await Assert.ThrowsAsync<Exceptions.ConfigurationException>(() =>
-            _search.SearchAsync("anything", "does-not-exist"));
+        await SeedAsync("doc-a", "doc-b");
+
+        var jsonlPath = WriteTempJsonl(
+            """{"id":"q001","query":"about doc a","gold_sources":["doc-a"]}""",
+            """{"id":"q002","query":"about doc b","gold_sources":["doc-b","doc-a"]}""");
+
+        try
+        {
+            using var sw = new StringWriter();
+            var exitCode = await DatasetValidationRunner.RunAsync(
+                _search, jsonlPath, CollectionName, sw);
+
+            var output = sw.ToString();
+
+            Assert.Equal(0, exitCode);
+            Assert.Contains("validation passed", output);
+            Assert.Contains("2 entries", output);
+            Assert.Contains("3 gold_sources resolved", output);
+        }
+        finally
+        {
+            File.Delete(jsonlPath);
+        }
+    }
+
+    private async Task SeedAsync(params string[] sourceIds)
+    {
+        var docs = sourceIds.Select(id => new Document(
+            SourceId: id,
+            Title: id,
+            Text: $"Content about {id}. Some additional sentence so the chunker is happy.")).ToArray();
+        await _ingest.IngestAsync(CollectionName, AsAsync(docs));
+    }
+
+    private static string WriteTempJsonl(params string[] lines)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"bench-test-{Guid.NewGuid():N}.jsonl");
+        File.WriteAllLines(path, lines);
+        return path;
     }
 
     private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)
