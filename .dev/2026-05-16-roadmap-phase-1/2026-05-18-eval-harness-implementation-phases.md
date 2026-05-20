@@ -7,7 +7,7 @@ about to start.
 
 ---
 
-## Phase 1A — Skeleton + dataset validation - COMPLETED
+## Phase 1A — Skeleton + dataset validation - CURRENT
 
 **Deliverable:** `Minerva.Search.Bench` project exists, inherits
 configuration from `Minerva.Search.Cli`, and `bench validate-dataset
@@ -20,9 +20,11 @@ If a gold source_id doesn't resolve in the target collection, recall is
 silently zeroed for that query and the failure looks like a retrieval
 problem.
 
+**We are here, we need to implement  [2026-05-19-dataset-authoring-helper.md](2026-05-19-dataset-authoring-helper.md)**
+
 **Done when:** a hand-written JSONL with ~3 queries, validated against
 an existing local collection passed via `--collection`, passes; a
-deliberately broken entry produces a clear error.
+deliberately broken entry produces a clear error. 
 
 ### Resolved decisions
 

@@ -123,7 +123,7 @@ Comfortably under any "lost in the middle" danger zone for current frontier mode
 
 ## Phased rollout
 
-### *COMPLETED* Phase 0 — current state (before eval harness)
+### Phase 0 — current state (before eval harness) *COMPLETED* 
 
 - Hybrid search → top **30–50** per branch
 - RRF → top **8–12**
@@ -138,7 +138,7 @@ Goal: ship a working baseline. Don't tune anything yet — there's nothing to me
 - **Expansion code stays dormant** — `ContextExpander` and `--expand-context` are already wired but off by default. Left in place; lit up in Phase 4.
 - **Split options surface** — see `minerva-search-options.md`: separate `MinervaSearchOptions` from `MinervaIngestOptions` so search-only hosts (CLI, eval harness) don't pad chunking config.
 
-### Phase 1 — build the eval harness
+### Phase 1 — build the eval harness *CURRENT*
 
 - 20–30 hand-picked queries with known-good source IDs.
 - Script that runs each query through the pipeline and checks whether the expected source is in top-K.
