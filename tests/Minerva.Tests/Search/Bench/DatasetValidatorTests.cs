@@ -1,6 +1,8 @@
+using Minerva.Search.Bench.Common;
 using Minerva.Search.Bench.Validation;
 
 namespace Minerva.Tests.Search.Bench;
+
 
 [Trait("Category", "Bench")]
 public class DatasetValidatorTests
