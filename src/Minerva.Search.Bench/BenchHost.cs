@@ -1,0 +1,31 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Minerva;
+
+public static class BenchHost
+{
+    public delegate Task<int> BenchDelegate(ISearchEngine engine, CancellationToken cancellationToken);
+
+    public static async Task<int> RunAsync(BenchDelegate bench)
+    {
+        var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        var config = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile($"appsettings.{env}.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        using var loggerFactory = LoggerFactory.Create(b =>
+        {
+            b.AddConfiguration(config.GetSection("Logging"));
+            b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; });
+        });
+
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+
+        var engine = await MinervaSearchBuilder.CreateAsync(config, loggerFactory, cts.Token);
+        return await bench(engine, cts.Token);
+    }
+}

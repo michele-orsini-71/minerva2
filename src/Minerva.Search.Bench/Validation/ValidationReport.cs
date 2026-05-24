@@ -1,3 +1,5 @@
+using Minerva.Search.Bench.Common;
+
 namespace Minerva.Search.Bench.Validation;
 
 public static class ValidationReport

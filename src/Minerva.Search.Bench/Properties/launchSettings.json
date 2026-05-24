@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Minerva.Search.Bench": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "debug"
+      },
+      "workingDirectory": "$(ProjectDir)../..",
+      "commandLineArgs": "author-dataset fake-path.jsonl --collection test-1"
+    }
+  }
+}

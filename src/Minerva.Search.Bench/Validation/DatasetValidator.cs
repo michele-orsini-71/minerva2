@@ -1,18 +1,7 @@
 using System.Text.Json;
+using Minerva.Search.Bench.Common;
 
 namespace Minerva.Search.Bench.Validation;
-
-public sealed record ValidationIssue(int LineNumber, string? EntryId, string Message);
-
-public sealed record ParsedEntry(
-    int LineNumber,
-    string Id,
-    string Query,
-    IReadOnlyList<string> GoldSources);
-
-public sealed record PureValidationResult(
-    IReadOnlyList<ParsedEntry> Entries,
-    IReadOnlyList<ValidationIssue> Issues);
 
 public static class DatasetValidator
 {

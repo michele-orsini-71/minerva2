@@ -145,10 +145,12 @@ guard ensures the tool can't eat work that wasn't authored in this session.
 
 ## Open Questions
 
-- [ ] Should `:quit` (or EOF) print a short session summary (entries added,
+- [X] Should `:quit` (or EOF) print a short session summary (entries added,
       sources touched) before exiting? Cosmetic, can be deferred.
-- [ ] Naming of the subcommand verb (`author-dataset`, `compose-dataset`,
+      Answer: YES
+- [X] Naming of the subcommand verb (`author-dataset`, `compose-dataset`,
       `dataset-author`, …) — bikeshed during implementation.
+      Answer: author-dataset is fine
 
 ## Research Findings
 

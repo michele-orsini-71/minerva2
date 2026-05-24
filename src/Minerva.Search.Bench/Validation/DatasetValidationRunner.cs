@@ -1,4 +1,5 @@
 using Minerva;
+using Minerva.Search.Bench.Common;
 
 namespace Minerva.Search.Bench.Validation;
 
