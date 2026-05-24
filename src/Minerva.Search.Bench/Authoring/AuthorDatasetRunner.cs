@@ -41,44 +41,6 @@ public static class AuthorDatasetRunner
             entries = [];
         }
             
-        output.WriteLine($"Authoring {datasetPath} against collection '{collection}'.");
-        output.WriteLine("Commands: :search <q> [--n N], :pick <id|rank>, :undo, :quit  (empty line exits compose mode)");
-
-        string? composeAnchor = null;   // null => top-level; non-null => compose mode anchored to this source-id
-
-        while (!ct.IsCancellationRequested)
-        {
-            output.Write(composeAnchor is null ? "> " : $"({composeAnchor})> ");
-            output.Flush();
-
-            var line = Console.ReadLine();
-            if (line is null) break;                       // EOF / Ctrl-D
-            if (composeAnchor is not null && line.Length == 0) { composeAnchor = null; continue; }
-
-            if (line.StartsWith(':'))
-            {
-                var space = line.IndexOf(' ');
-                var cmd  = space < 0 ? line : line[..space];
-                var rest = space < 0 ? ""   : line[(space + 1)..].Trim();
-
-                switch (cmd)
-                {
-                    case ":quit": return 0;
-                    case ":search": /* TODO */ break;
-                    case ":pick":   /* TODO */ break;
-                    case ":undo":   /* TODO */ break;
-                    default: output.WriteLine($"Unknown command: {cmd}"); break;
-                }
-            }
-            else if (composeAnchor is not null)
-            {
-                // TODO: append JSONL entry for (composeAnchor, line)
-            }
-            else
-            {
-                output.WriteLine("Type :search <query> to find a source.");
-            }
-        }
-        return 0;
+        return await AuthoringREPL.RunAsync(engine, datasetPath, collection, output, ct);
     }
 }
