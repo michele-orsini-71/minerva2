@@ -1,12 +1,20 @@
 {
   "profiles": {
-    "Minerva.Search.Bench": {
+    "Minerva.Search.Bench authoring": {
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "author-dataset fake-path.jsonl --collection test-1"
+      "commandLineArgs": "author-dataset test-1-dataset.jsonl --collection test-1"
+    },
+    "Minerva.Search.Bench validating": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "debug"
+      },
+      "workingDirectory": "$(ProjectDir)../..",
+      "commandLineArgs": "validate-dataset test-1-dataset.jsonl --collection test-1"
     }
   }
 }

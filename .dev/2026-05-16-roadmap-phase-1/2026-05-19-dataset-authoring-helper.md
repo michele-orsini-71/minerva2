@@ -1,7 +1,7 @@
 ---
 slug: 2026-05-19-dataset-authoring-helper
 created: 2026-05-19T19:46:03Z
-last_updated: 2026-05-20T05:36:25Z
+last_updated: 2026-05-24T00:00:00Z
 status: finalized
 ---
 
@@ -9,40 +9,44 @@ status: finalized
 
 ## Goal
 
-A small REPL helper, shipped as a subcommand of `Minerva.Search.Bench`, that
-lets the developer author an eval dataset (JSONL) by browsing a chosen
-collection in the DB. Workflow: pick one collection and one output file at
-launch, search the collection to locate a source, `:pick` that source, then
-type one or more queries that should retrieve it. Each query is committed
-immediately as a valid JSONL line in the dataset file. The tool removes the
+A small one-shot helper, shipped as a subcommand of `Minerva.Search.Bench`,
+that lets the developer author eval dataset entries (JSONL) for a single
+source per run. Workflow: pick one collection and one output file at launch,
+enter a search query, pick a source by rank from the displayed results, then
+type one or more queries that should retrieve it. All entries are written to
+the dataset file at the end and the process exits. The tool removes the
 friction of consulting the DB manually and hand-crafting JSON.
 
 ## Constraints and Non-Goals
 
 - One collection per process run; no mid-session switch.
-- One output file per process run; no `:open` / `:close` commands.
+- One output file per process run.
+- One source per process run; to author entries for another source, relaunch.
 - One gold source per entry in v1 (multi-source entries are only authorable by
   hand-editing the JSONL).
-- No REPL support for `notes` or `answer_text` in v1; users can add them by
+- No support for `notes` or `answer_text` in v1; users can add them by
   editing the JSONL afterwards.
 - `gold_sections` is reserved for Phase 4 — the tool never writes it.
 - Not a generic DB browser. Search uses the same Minerva pipeline that the
   dataset will eventually be evaluated against.
+- No REPL, no commands, no `:undo`. The flow is linear; corrections happen
+  by re-running the tool (and hand-editing the JSONL when needed).
 
 ## Decisions
 
 ### Shape and entry point
 
-**Choice**: New subcommand under `Minerva.Search.Bench`, REPL-style.
+**Choice**: New subcommand under `Minerva.Search.Bench`, linear prompt flow.
 **Rationale**: The dataset format, validator, and DB wiring already live in
-Bench; co-locating keeps DI and configuration trivial.
+Bench; co-locating keeps DI and configuration trivial. A linear flow (as
+opposed to a REPL) keeps the code surface tiny while still covering the
+"pick one source, write several queries against it" rhythm.
 
 ### CLI surface
 
 **Choice**: Both the dataset file and the collection are required CLI args.
 **Rationale**: Both are session-wide and don't need to be switchable
-mid-session — relaunching the tool is cheaper than carrying REPL state for a
-switch. Indicative shape:
+mid-session. Indicative shape:
 
 ```
 Minerva.Search.Bench author-dataset --file <path> --collection <name>
@@ -50,11 +54,15 @@ Minerva.Search.Bench author-dataset --file <path> --collection <name>
 
 ### Output file lifecycle
 
-**Choice**: Open the JSONL file at startup; append on every committed entry.
-If the file exists, parse it to seed seen IDs and per-source index counters.
-**Rationale**: Append-on-commit means no "save" step and no risk of losing
-work mid-session. Parsing existing entries keeps ID generation collision-free
-across runs.
+**Choice**: At startup, if the file exists, parse it to seed seen-IDs and
+per-source index counters. During the session, hold the new entries in memory.
+On exit (after the question loop ends with an empty line), append all new
+entries to the file in one write.
+**Rationale**: Buffering in memory keeps the implementation linear and gives
+the developer an implicit "undo" — abandoning the run (Ctrl-C) before the
+final write discards any typos. The session is short enough that holding
+entries in memory is harmless. Parsing existing entries on startup keeps ID
+generation collision-free across runs.
 
 ### Behavior on malformed existing JSONL at startup
 
@@ -63,46 +71,26 @@ across runs.
 counters and may hide a real problem. Forcing the developer to remediate
 manually is safer for a small, hand-curated dataset.
 
-### Search command
+### Linear prompt flow
 
-**Choice**: `:search <query>` shows top-N hits as
-`[rank] source-id score excerpt(~120 chars)`. Default `N = 10`, widen with
-`--n <int>`. Rows are collapsed to one per `source-id`, keeping the
-best-scoring chunk's excerpt; `--n` therefore counts distinct sources, not
-chunks. To return N distinct sources, the implementation over-fetches chunks
-from `ISearchEngine.SearchAsync` and dedupes by `source-id` before display.
-Uses the full Minerva pipeline as currently implemented (vector + FTS hybrid
-with rank fusion).
-**Rationale**: The dataset will be evaluated against the full pipeline, so
-authoring against the same pipeline ensures queries are meaningful relative to
-the production behaviour. Source-id + short excerpt is the minimum surface
-needed to confirm a hit and grab the id to `:pick`. Chunk-level rows would
-faithfully mirror what the engine returns but produce noisy output when a
-long source dominates the top hits; since the dataset records `gold_sources`
-(source-level), the deduped view matches the unit of authoring.
+**Choice**: The tool prompts in this fixed sequence:
 
-### Pick / compose mode
+1. Search query → run `ISearchEngine.SearchAsync`, dedupe by `source-id`
+   keeping the best-scoring chunk per source, display as
+   `[rank] source-id score excerpt(~120 chars)`. Default top-N = 10.
+2. Rank of the source to author for → resolve to a `source-id`. Reject
+   out-of-range values; on rejection, exit (no retry loop in v1).
+3. Question loop: prompt for a question; each non-empty line is buffered as
+   a new entry `{id, query, gold_sources:[<source-id>]}`. An empty line ends
+   the loop.
+4. Write all buffered entries to the file in one append, then exit.
 
-**Choice**: `:pick <source-id | rank>` enters compose mode anchored to that
-source. The argument is either a literal source-id or a rank index from the
-most recent `:search` output (e.g. `:pick 3` = the 3rd row). Rank-form is
-rejected if no `:search` has run in this session. In compose mode, every
-typed line becomes a new JSONL entry `{id, query, gold_sources:[<source-id>]}`,
-appended immediately. An empty line exits compose mode back to the top-level
-REPL. Lines starting with `:` inside compose mode are interpreted as commands
-(e.g. `:undo`, `:quit`); queries cannot start with `:`, which is acceptable
-in practice.
 **Rationale**: The developer's typical flow is "one source, several queries
-(English keyword, Italian semantic, curve-ball)". Compose mode collapses that
-into the natural one-line-per-query rhythm without per-line ceremony.
-Accepting a rank index avoids retyping long source-ids that were just
-displayed on screen.
-
-### Behavior when `:pick` source-id is not in the chosen collection
-
-**Choice**: Friendly error; do not enter compose mode.
-**Rationale**: A typo in the source-id would otherwise produce JSONL entries
-that fail validation later. Failing loud at `:pick` keeps the dataset clean.
+(English keyword, Italian semantic, curve-ball)". A linear pick + question
+loop captures that rhythm without the state-machine surface of a REPL.
+Source-level dedupe matches the unit of authoring (`gold_sources` is a
+source-id list). Using the full pipeline ensures queries are meaningful
+relative to the production behaviour the dataset will be evaluated against.
 
 ### ID generation
 
@@ -119,34 +107,19 @@ the JSONL later you can see "all queries for source X" at a glance. Tolerates
 hand-edited entries without losing the uniqueness guarantee; gaps in the
 sequence (e.g. skipping from `-2` to `-5`) are harmless.
 
-### Undo
-
-**Choice**: `:undo` pops the most recent line from the dataset file
-(truncating at the previous newline) and re-derives per-source counters from
-the remaining lines. It refuses to truncate below the byte offset captured
-when the session opened the file, so pre-session entries are never destroyed.
-Compose mode and top level both accept it. Newline convention is LF.
-**Rationale**: Without undo a single typo permanently pollutes the dataset.
-Truncate-to-previous-newline is the simplest implementation that matches the
-append-only commit model. Re-deriving counters from the remaining lines keeps
-ID generation consistent across cross-source undo sequences; the byte-offset
-guard ensures the tool can't eat work that wasn't authored in this session.
-
 ## Approach Preferences
 
 - Reuse the existing dataset schema and validator (`DatasetValidator`,
   `ParsedEntry`). The tool emits JSONL that the existing validator accepts.
-- Reuse `MinervaSearchEngine` / `ISearchEngine` for `:search`. No
+- Reuse `MinervaSearchEngine` / `ISearchEngine` for the search step. No
   retrieve-only shortcut.
-- Keep the REPL surface tiny: `:search`, `:pick`, `:undo`, `:quit` (or
-  Ctrl-D). Nothing else in v1.
 - No special handling for concurrent runs — the developer launches one
   instance at a time per file.
 
 ## Open Questions
 
-- [X] Should `:quit` (or EOF) print a short session summary (entries added,
-      sources touched) before exiting? Cosmetic, can be deferred.
+- [X] Should the tool print a short session summary (entries added, source
+      authored) before exiting? Cosmetic, can be deferred.
       Answer: YES
 - [X] Naming of the subcommand verb (`author-dataset`, `compose-dataset`,
       `dataset-author`, …) — bikeshed during implementation.

@@ -13,7 +13,7 @@ public static class AuthorDatasetRunner
         TextWriter output,
         CancellationToken ct = default)
     {
-        IReadOnlyList<ParsedEntry> entries;
+        IList<ParsedEntry> entries;
 
         if (File.Exists(datasetPath))
         {
@@ -34,13 +34,13 @@ public static class AuthorDatasetRunner
                 return 2;
             }
 
-            entries = pure.Entries;
+            entries = pure.Entries.ToList();
         }
         else
         {
             entries = [];
         }
-            
-        return await AuthoringREPL.RunAsync(engine, datasetPath, collection, output, ct);
+
+        return await AuthoringEngine.RunAsync(engine, datasetPath, collection, entries, output, ct);
     }
 }
