@@ -4,8 +4,29 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>Minerva 2</Product>
   </PropertyGroup>
   <PropertyGroup>
     <RunSettingsFilePath Condition="Exists('$(MSBuildProjectDirectory)\.runsettings')">$(MSBuildProjectDirectory)\.runsettings</RunSettingsFilePath>
   </PropertyGroup>
+
+  <Target Name="StampGitSha"
+          BeforeTargets="GetAssemblyVersion;GenerateNuspec;CoreCompile"
+          Condition="'$(StampGitVersion)' == 'true'">
+    <Exec Command="git rev-parse --short HEAD"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitShaOutput" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitShaExitCode" />
+    </Exec>
+    <PropertyGroup>
+      <_GitSha Condition="'$(_GitShaExitCode)' == '0'">$(_GitShaOutput.Trim())</_GitSha>
+      <_GitSha Condition="'$(_GitShaExitCode)' != '0'">unknown</_GitSha>
+      <InformationalVersion>$(VersionPrefix)+$(_GitSha)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
 </Project>

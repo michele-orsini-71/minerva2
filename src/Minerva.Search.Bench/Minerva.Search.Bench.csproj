@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>minerva-bench</AssemblyName>
+    <StampGitVersion>true</StampGitVersion>
   </PropertyGroup>
 
   <ItemGroup>

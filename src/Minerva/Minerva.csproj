@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <StampGitVersion>true</StampGitVersion>
+  </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Minerva.Tests" />
     <InternalsVisibleTo Include="Minerva.IntegrationTests" />

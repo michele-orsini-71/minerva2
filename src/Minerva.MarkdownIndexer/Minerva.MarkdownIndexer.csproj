@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>markdown-indexer</AssemblyName>
+    <StampGitVersion>true</StampGitVersion>
   </PropertyGroup>
 
   <ItemGroup>

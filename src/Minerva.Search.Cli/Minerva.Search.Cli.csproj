@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>minerva-search</AssemblyName>
+    <StampGitVersion>true</StampGitVersion>
   </PropertyGroup>
 
   <ItemGroup>
