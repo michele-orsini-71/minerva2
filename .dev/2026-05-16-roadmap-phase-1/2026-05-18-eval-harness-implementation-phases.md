@@ -1,3 +1,10 @@
+---
+slug: 2026-05-18-eval-harness-implementation-phases
+created: 2026-05-17T14:00:00Z
+last_updated: 2026-05-25T00:00:00Z
+parent: 2026-05-17-eval-harness-plan.md
+---
+
 # Eval Harness — Implementation Phases
 
 Derived from `2026-05-17-eval-harness-phase-1.md` (the project brief).
@@ -55,6 +62,27 @@ at one cell than at nine.
 **Done when:** running the bench against a hand-written 5-query JSONL
 produces well-shaped output files, and a notebook can open `metrics.csv`
 with pandas without manual fixing.
+
+### Resolved decisions
+
+- **CLI signature:** `minerva-bench run --sweep <toml-path> --out <dir>`. Both required. `--out` is the parent directory; the bench mints a dated leaf inside it (e.g. `<out>/2026-05-25T14-30-22_<dataset-slug>/`).
+- **Sweep TOML shape:** every knob lives in `[matrix]` as a list, even singletons. snake_case names. 1B's degenerate case is single-element lists; 1C lengthens them with no parser change.
+- **`run.json` Tier 1 fields (in scope for 1B):** `timestamp` (UTC ISO 8601), `bench_version`, `dataset_path`, `collection`, `resolved_sweep` (parsed TOML re-serialized), `cells` (enumerated Cartesian product).
+- **Bench versioning:** `AssemblyInformationalVersion` baked at build time as `<SemVer>+<short-git-sha>` (e.g. `0.1.0+abc1234`) via a hand-rolled MSBuild target reading `git rev-parse`. Same pattern applies to `Minerva.Search.Cli` (and to the ingestor when convenient). Decouples bench runtime from repo location, so the bench can be installed anywhere.
+- **Collection-metadata fields deferred:** embedding model id+version, ingestor commit SHA, DB schema version are *not* in 1B's `run.json`. They depend on a sibling task — a `collection_metadata` row/table in Postgres populated at ingest time. That task is scoped separately and should land before Phase 1D (between 1C and 1D if possible).
+- **Ingestor versioning policy deferred:** the broader question of "what happens when ingestor code changes — reindex required? signature-enforced?" is a Minerva-product policy, not an eval-harness decision. To be added to the main roadmap immediately after Phase 1 ships.
+- **Still to pin before 1B implementation starts:** `details.jsonl` record shape, dated-leaf naming convention (date format, dataset-slug derivation), metric-function unit-test surface.
+
+**Worked 1B sweep example:**
+
+```toml
+dataset = "eval/datasets/wikipedia-top100-v1.jsonl"
+collection = "wikipedia-top100-v1"
+
+[matrix]
+top_k = [10]
+hybrid_alpha = [0.5]
+```
 
 ---
 

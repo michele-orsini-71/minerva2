@@ -1,8 +1,9 @@
 ---
-slug: 2026-05-17-eval-harness-phase-1
+slug: 2026-05-17-eval-harness-plan
 created: 2026-05-17T14:00:00Z
-last_updated: 2026-05-18T18:00:00Z
+last_updated: 2026-05-25T00:00:00Z
 status: finalized
+parent: ../new-implementation-roadmap/2026-05-16-minerva-rag-pipeline-implementation-roadmap.md
 ---
 
 # Eval Harness — Phase 1 of Minerva RAG Implementation Roadmap
@@ -37,6 +38,11 @@ to be judged against.
   repo.**
 - **Tiny synthetic corpora (10–20 docs) are explicitly out.** Too small to
   make retrieval non-trivial; results would not generalize at all.
+- **Ingestor versioning / reindex policy is out of scope.** When the
+  ingestor code changes, what happens to existing collections (force
+  reindex? in-place upgrade? signature enforcement?) is a Minerva-product
+  policy question, not an eval-harness one. To be added to the main
+  roadmap immediately after Phase 1 ships.
 
 ## Decisions
 
@@ -312,16 +318,19 @@ maintain.
   compatibility, and acceptable ingestion time on a developer machine. If
   blocked, fall back to a curated public Markdown set (still medium-sized,
   not tiny).
-- [ ] **Provenance fields in `run.json`.** Concrete list of which
-  identifiers and versions must be captured to honor the reproducibility
-  claim. At minimum: bench commit SHA, indexer commit SHA, embedding model
-  id+version, contextualization model+prompt version, database schema
-  version, resolved sweep config. May also need: timing data, host info
-  (for latency comparability).
-- [ ] **Sweep config TOML schema.** Knob names, range/list/grid syntax,
-  fixed-param syntax, how the dataset path and collection name are
-  declared. Should be documented with a worked example
-  (`phase0-baseline.toml`) before the bench is built.
+- [x] **Provenance fields in `run.json`.** Resolved for Phase 1B:
+  tier-1 fields are `timestamp`, `bench_version` (SemVer + short git SHA,
+  baked at build time via `AssemblyInformationalVersion`), `dataset_path`,
+  `collection`, `resolved_sweep`, `cells`. Tier-2 fields (embedding model
+  id+version, ingestor commit SHA, DB schema version) deferred behind a
+  sibling task to add a `collection_metadata` row/table in Postgres
+  populated at ingest time; expected to land between Phase 1C and Phase 1D.
+- [x] **Sweep config TOML schema.** Resolved: every knob lives in
+  `[matrix]` as a list, including singletons; snake_case names; top-level
+  `dataset` and `collection` scalars. 1B uses single-element lists; 1C
+  lengthens them with no parser change. Worked example in
+  `2026-05-18-eval-harness-implementation-phases.md` under Phase 1B
+  resolved decisions.
 - [ ] **`details.jsonl` schema.** Which scores to record at each stage,
   chunk identifier format (chunk_id? source_id+offset?), size limits if
   any, whether to record full chunk text or just IDs. Trade-off: full text
