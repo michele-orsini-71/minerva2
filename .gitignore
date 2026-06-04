@@ -495,3 +495,6 @@ bin-markdown-indexer/
 
 # C# Dev Kit language service cache
 *.lscache
+
+eval/datasets/private
+eval/sweeps/private
