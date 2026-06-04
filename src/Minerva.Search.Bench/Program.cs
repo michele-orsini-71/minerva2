@@ -24,6 +24,8 @@ try
             return await RunValidateDatasetAsync(verbArgs);
         case "author-dataset":
             return await RunAuthorDatasetAsync(verbArgs);
+        case "run":
+            return await RunBenchAsync(verbArgs);
         default:
             Console.Error.WriteLine($"Unknown verb: {verb}");
             PrintTopLevelUsage(Console.Error);
@@ -73,6 +75,34 @@ static async Task<int> RunAuthorDatasetAsync(string[] verbArgs)
 
     return await BenchHost.RunAsync(async (engine, cancellationToken) => await AuthorDatasetRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
+}
+
+static async Task<int> RunBenchAsync(string[] verbArgs)
+{
+    var parsed = RunBenchArgs.Parse(verbArgs, Console.Error);
+    if (parsed is null)
+    {
+        RunBenchArgs.PrintUsage(Console.Error);
+        return 2;
+    }
+
+    var dir = Path.GetDirectoryName(Path.GetFullPath(parsed.OutputDir));
+    if (!Directory.Exists(dir))
+    {
+        Console.Error.WriteLine($"Directory does not exist: {dir}");
+        return 2;
+    }
+
+    if (!File.Exists(parsed.SweepPath))
+    {
+        Console.Error.WriteLine($"Sweep file not found: {parsed.SweepPath}");
+        return 2;
+    }
+
+    // return await BenchHost.RunAsync(async (engine, cancellationToken) => await AuthorDatasetRunner.RunAsync(
+    //     engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
+
+    return 1; // Not implemented yet
 }
 
 static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
