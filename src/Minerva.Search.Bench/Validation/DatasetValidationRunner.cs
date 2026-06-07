@@ -17,19 +17,9 @@ public static class DatasetValidationRunner
             pure = DatasetValidator.ValidatePure(reader);
 
         var allIssues = new List<ValidationIssue>(pure.Issues);
-        var sourceIdsChecked = 0;
-        foreach (var entry in pure.Entries)
-        {
-            foreach (var src in entry.GoldSources)
-            {
-                sourceIdsChecked++;
-                if (!await engine.SourceIdExistsAsync(collection, src, ct))
-                {
-                    allIssues.Add(new ValidationIssue(entry.LineNumber, entry.Id,
-                        $"gold_source not found in collection '{collection}': '{src}'"));
-                }
-            }
-        }
+        allIssues.AddRange(
+            await GoldSourceChecker.CheckAsync(engine, collection, pure.Entries, ct));
+        var sourceIdsChecked = pure.Entries.Sum(e => e.GoldSources.Count);
 
         ValidationReport.Print(
             allIssues, pure.Entries.Count, sourceIdsChecked, collection, output);

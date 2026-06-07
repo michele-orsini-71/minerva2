@@ -5,6 +5,7 @@ using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Search.Bench;
 using Minerva.Search.Bench.Authoring;
+using Minerva.Search.Bench.Sweep;
 using Minerva.Search.Bench.Validation;
 
 try
@@ -99,10 +100,8 @@ static async Task<int> RunBenchAsync(string[] verbArgs)
         return 2;
     }
 
-    // return await BenchHost.RunAsync(async (engine, cancellationToken) => await AuthorDatasetRunner.RunAsync(
-    //     engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
-
-    return 1; // Not implemented yet
+    return await BenchHost.RunAsync(async (engine, cancellationToken) => await SweepDatasetRunner.RunAsync(
+        engine, parsed.SweepPath, parsed.OutputDir, Console.Out, cancellationToken));
 }
 
 static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
@@ -133,6 +132,7 @@ static void PrintTopLevelUsage(TextWriter w)
         Verbs:
           validate-dataset    Validate a JSONL eval dataset against an indexed collection.
           author-dataset      Builds a JSONL eval dataset
+          run                 Run a sweep and write run.json, metrics.csv, details.jsonl
 
         Run `minerva-bench <verb> --help` for verb-specific help.
 
