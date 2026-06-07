@@ -63,6 +63,26 @@ public class RunJsonWriterTests
     }
 
     [Fact]
+    public void PlusSign_IsWrittenLiterally_NotEscaped()
+    {
+        var config = Config();
+        var cells = CellEnumerator.Enumerate(config.Matrix);
+        var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
+        try
+        {
+            RunJsonWriter.Write(path, Timestamp, "0.1.0+abc1234", config, cells);
+            var raw = File.ReadAllText(path);
+
+            Assert.Contains("0.1.0+abc1234", raw);
+            Assert.DoesNotContain("\\u002B", raw);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Cells_AreCartesianProduct_AsObjects()
     {
         var root = WriteAndParse();

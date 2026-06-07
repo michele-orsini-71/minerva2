@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Minerva.Search.Bench.Common;
 
@@ -5,7 +6,11 @@ namespace Minerva.Search.Bench.Sweep;
 
 public static class DetailsJsonlWriter
 {
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = false };
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = false,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     public static void Write(
         string path,

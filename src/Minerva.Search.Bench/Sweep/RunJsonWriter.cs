@@ -1,11 +1,16 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Minerva.Search.Bench.Sweep;
 
 public static class RunJsonWriter
 {
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     public static void Write(
         string path,

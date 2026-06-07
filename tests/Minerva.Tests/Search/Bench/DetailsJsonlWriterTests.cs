@@ -75,6 +75,21 @@ public class DetailsJsonlWriterTests
     }
 
     [Fact]
+    public void NonAscii_IsWrittenLiterally_NotEscaped()
+    {
+        var entries = new[] { new ParsedEntry(1, "q1", "vulnerabilità", ["g"]) };
+        var results = new[]
+        {
+            new CellQueryResult("q1", Cell(10), new MetricScores(1, 1, 1, 1), 1, null, []),
+        };
+
+        var lines = WriteAndReadLines(entries, results);
+
+        Assert.Contains("vulnerabilità", lines[0]);
+        Assert.DoesNotContain("\\u00E0", lines[0]);
+    }
+
+    [Fact]
     public void LineCount_EqualsResultCount()
     {
         var entries = new[]

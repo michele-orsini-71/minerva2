@@ -47,7 +47,7 @@ deliberately broken entry produces a clear error.
 
 ---
 
-## Phase 1B — Single-cell run path
+## Phase 1B — Single-cell run path - COMPLETED
 
 **Deliverable:** `bench run --sweep <path>` works for the degenerate
 case — a sweep config with one matrix cell, dataset of a few queries.
