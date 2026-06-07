@@ -86,7 +86,7 @@ hybrid_alpha = [0.5]
 
 ---
 
-## Phase 1C — Sweep matrix + per-query metrics across cells
+## Phase 1C — Sweep matrix + per-query metrics across cells  - COMPLETED
 
 **Deliverable:** the bench runs the full Cartesian product of the TOML
 `[matrix]`, emits one row per (query × cell) in `metrics.csv` and one

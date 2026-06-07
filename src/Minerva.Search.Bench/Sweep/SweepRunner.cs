@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using Minerva.Search.Bench.Common;
 using Minerva.Search.Bench.Validation;
@@ -83,7 +84,43 @@ public static class SweepDatasetRunner
         if (errorCount > 0)
             output.WriteLine($"  ({errorCount} queries errored — see the 'error' column)");
 
+        PrintCellSummary(output, cells, results);
+
         return 0;
+    }
+
+    // Aggregate Recall@K and MRR@10 per cell, averaged over the queries that
+    // scored (errored queries carry no scores and are excluded from the mean).
+    private static void PrintCellSummary(
+        TextWriter output, IReadOnlyList<Cell> cells, IReadOnlyList<CellQueryResult> results)
+    {
+        output.WriteLine();
+        output.WriteLine("Aggregate per cell (mean over scored queries):");
+
+        foreach (var cell in cells)
+        {
+            var label = string.Join(" ", cell.Values.Select(kv =>
+                $"{kv.Key}={Convert.ToString(kv.Value, CultureInfo.InvariantCulture)}"));
+
+            var scores = results
+                .Where(r => ReferenceEquals(r.Cell, cell) && r.Scores is not null)
+                .Select(r => r.Scores!)
+                .ToList();
+
+            if (scores.Count == 0)
+            {
+                output.WriteLine($"  [{label}] no scored queries");
+                continue;
+            }
+
+            output.WriteLine(
+                $"  [{label}] " +
+                $"R@5={scores.Average(s => s.RecallAt5):F3} " +
+                $"R@10={scores.Average(s => s.RecallAt10):F3} " +
+                $"R@20={scores.Average(s => s.RecallAt20):F3} " +
+                $"MRR@10={scores.Average(s => s.MrrAt10):F3} " +
+                $"(n={scores.Count})");
+        }
     }
 
     private static string BenchVersion()
