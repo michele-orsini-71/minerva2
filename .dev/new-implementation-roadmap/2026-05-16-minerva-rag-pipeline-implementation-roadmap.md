@@ -145,7 +145,12 @@ Goal: ship a working baseline. Don't tune anything yet — there's nothing to me
 - Log per-stage outputs (which chunks survived semantic search, BM25, RRF, etc.) so regressions can be debugged at the right stage.
 - **Baseline Phase 0** on this eval before changing anything.
 
-Details and sub-plans in `2026-05-16-roadmap-phase-1/` (seeded from the `Minerva.Search.Cli` / `Minerva.Search.Bench` plan).
+Canonical phase-1 docs in `../roadmap-phase-1/`: `phase-1-spec.md` (decisions,
+output contract, schema) and `phase-1-progress.md` (slice status, next
+actions). 1A–1C are done; 1D (ship the public seed set + committed baseline +
+notebook) is next. Completed investigations live in
+`../roadmap-phase-1/completed/`; superseded drafts in
+`../roadmap-phase-1/archive/`.
 
 ### Phase 2 — add reranking
 
@@ -207,6 +212,31 @@ With reranking, chunk size, and expansion in place and the eval as ground truth:
 | Rerank output K | — | 8–12 |
 | Expansion W | 0 | 0 → 1 → 2 (via eval) |
 | Final LLM input | ~2k tokens | ~5–10k tokens |
+
+---
+
+## Cross-phase backlog
+
+Items promoted from phase-1 detail docs because they are product-level, not
+eval-harness decisions. They are not tied to a single phase.
+
+- **Real BM25.** The lexical branch currently ranks with Postgres `ts_rank`,
+  which is not true BM25 (no IDF or length normalization). Genuine BM25 needs
+  a Postgres extension (ParadeDB / `pg_search`, or VectorChord-bm25). Out of
+  scope now; revisit if the lexical branch underperforms once it is being
+  measured. (From `roadmap-phase-1/completed/2026-06-07-fts-simple-fix.md`.)
+- **Per-document language detection.** The corpus is mixed Italian/English.
+  The FTS fix uses the `'simple'` config, which does not stem either language.
+  Per-document language detection (selecting the right analyzer at ingest) is
+  the correct long-term answer; deferred. (Same source.)
+- **Ingestor versioning / reindex policy.** When ingestor code changes, what
+  happens to existing collections — force reindex? in-place upgrade?
+  signature enforcement? This is a Minerva-product policy question, flagged
+  for decision immediately after Phase 1 ships.
+- **`collection_metadata` in Postgres.** A row/table populated at ingest time
+  holding embedding model id+version, ingestor commit SHA, and DB schema
+  version. It unblocks `run.json` tier-2 provenance fields in the eval
+  harness. Sibling task, ideally landed before Phase 1D.
 
 ---
 
