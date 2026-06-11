@@ -37,7 +37,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             INSERT INTO chunks (id, collection_name, source_id, chunk_index, content, content_hash,
                                contextual_prefix, embedding, fts_vector, metadata)
             VALUES (@id, @coll, @src, @idx, @content, @hash, @prefix,
-                    @embedding, to_tsvector('english', @fts_content), @metadata)
+                    @embedding, to_tsvector('simple', @fts_content), @metadata)
             """;
 
         foreach (var chunk in chunks)
@@ -206,12 +206,20 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         string collectionName, string query, int topK,
         CancellationToken ct = default)
     {
+        // websearch_to_tsquery parses raw user input safely but ANDs the terms,
+        // which yields ~0 matches for natural-language queries. Relaxing the
+        // top-level '&' operators to '|' gives BM25-like partial matching:
+        // documents that contain more of the terms rank higher via ts_rank.
+        // Phrase ('<->') and negation operators are left untouched.
         const string sql = """
+            WITH q AS (
+                SELECT replace(websearch_to_tsquery('simple', @query)::text, ' & ', ' | ')::tsquery AS tsq
+            )
             SELECT id, source_id, collection_name, chunk_index, content, metadata,
                    prev_chunk_id, next_chunk_id,
-                   ts_rank(fts_vector, plainto_tsquery('english', @query)) AS rank
-            FROM chunks
-            WHERE collection_name = @coll AND fts_vector @@ plainto_tsquery('english', @query)
+                   ts_rank(fts_vector, q.tsq) AS rank
+            FROM chunks, q
+            WHERE collection_name = @coll AND fts_vector @@ q.tsq
             ORDER BY rank DESC
             LIMIT @topk
             """;
