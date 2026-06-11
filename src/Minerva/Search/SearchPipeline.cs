@@ -32,6 +32,17 @@ public class SearchPipeline
         SearchOptions options,
         CancellationToken ct = default)
     {
+        // Fusion needs the pool meaningfully deeper than TopK; otherwise each branch
+        // contributes too few candidates to recover a gold ranked deep in a single
+        // branch. pool < TopK is already a hard error in MinervaSearchEngine; warn when
+        // the pool is less than 1.5x TopK (little headroom).
+        const double minPoolRatio = 1.5;
+        if (options.CandidatePoolSize < options.TopK * minPoolRatio)
+            _logger.LogWarning(
+                "CandidatePoolSize ({Pool}) is below {Ratio}x TopK ({TopK}); fusion has little " +
+                "reranking depth. A larger pool (commonly 5-10x TopK) improves recall.",
+                options.CandidatePoolSize, minPoolRatio, options.TopK);
+
         var embeddings = await _embeddingService.EmbedAsync([query], ct: ct);
         var queryEmbedding = embeddings[0];
 
