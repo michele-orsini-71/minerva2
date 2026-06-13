@@ -144,9 +144,11 @@ stored — derivable from `metrics.csv`, single source of truth.
 `bench_version` (SemVer + short git SHA, baked at build via
 `AssemblyInformationalVersion`), `dataset_path`, `collection`,
 `resolved_sweep`, `cells` (enumerated Cartesian product).
-**Tier 2 (deferred):** embedding model id+version, ingestor commit SHA, DB
-schema version — depend on the `collection_metadata` sibling task (now on the
-roadmap).
+**Tier 2:** the collection's full provenance block — embedding model +
+dimension, chunker config, contextualization model + the two prompt versions,
+ingestor commit SHA, DB schema version. Sourced from `collection_metadata` and
+stamped into `run.json` by Phase D of
+[`collection-metadata-design.md`](collection-metadata-design.md).
 
 ### Metrics: Recall@5, Recall@10, Recall@20, MRR@10
 

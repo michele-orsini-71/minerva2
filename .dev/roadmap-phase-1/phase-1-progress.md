@@ -23,7 +23,7 @@ observable.
 | 1B | Single-cell `run` path, three output files | ✅ done |
 | 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
 | — | FTS-returns-0-hits fix (gating, found by 1C) | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
-| pre-1D | Versioning (`--version`, tags) + `collection_metadata`, before the Wikipedia ingest | ⏳ do first |
+| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | 🔄 `--version` done; `collection_metadata` next; tags (Gap B) pending |
 | 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook | ⏳ blocked on pre-1D |
 | 1E-α | `gen-queries` authoring helper | ◻ optional |
 | 1E-β | End-to-end answer accuracy (LLM-as-judge) | ◻ optional |
@@ -78,11 +78,13 @@ closed first. **1D is blocked on these two.**
 
 ### Versioning (low-hanging — close the noise)
 
-- [ ] **`--version` flag (Gap A).** Expose the baked `InformationalVersion`
-  (`<VersionPrefix>+<git-sha>`, already produced by the `StampGitSha` target in
-  `Directory.Build.props`) as a `--version` flag on each shippable CLI:
-  `Minerva.Search.Cli`, `Minerva.Search.Bench`, `Minerva.MarkdownIndexer`.
-  Fixes minerva1's one weakness (its `--version` was hardcoded).
+- [x] **`--version` flag (Gap A).** ✅ done — commit `1f06210`. Exposes the
+  baked `InformationalVersion` (`<VersionPrefix>+<git-sha>`, produced by the
+  `StampGitSha` target in `Directory.Build.props`) as `--version` / `-v` on each
+  shippable CLI: `Minerva.Search.Cli`, `Minerva.Search.Bench`,
+  `Minerva.MarkdownIndexer`. The flag short-circuits eagerly: it prints the
+  version and exits 0 before any other argument is validated. Fixes minerva1's
+  one weakness (its `--version` was hardcoded).
 - [ ] **Release convention (Gap B).** Adopt `vX.Y.Z` git tags and a
   `CHANGELOG.md`. Lockstep single version is already achieved by
   `Directory.Build.props` (`VersionPrefix = 0.1.0`) — no bump script or
@@ -91,15 +93,23 @@ closed first. **1D is blocked on these two.**
 
 ### `collection_metadata` (bake before the ingest)
 
-- [ ] A per-collection metadata row/table, written at ingest, holding:
-  embedding model id+version, contextualization model + prompt version,
-  ingestor commit SHA, chunker config (target size, overlap), DB schema
-  version.
+Full design — the complete `collections.metadata` field catalogue, the
+invariant/last-run/excluded split, the two-owner (core vs client) model, the
+reingest guard, and the phase cut — is in
+[`collection-metadata-design.md`](collection-metadata-design.md). Summary of the
+phases:
+
+- [ ] **A** — schema + typed `CollectionProvenance` round-trip (migration `003`
+  drops the `embedding_model` / `embedding_dimension` columns into the bag).
+- [ ] **B** — prompt-version constants + populate provenance at ingest.
+- [ ] **C** — enforcement: generalized reingest guard + rename
+  `AllowRecreateOnEmbedderMismatch` → `AllowRecreateOnConfigMismatch`.
+- [ ] **D** — bench stamps the collection's provenance into `run.json` (the
+  deferred tier-2 provenance).
+- [ ] **E** — indexer `client` metadata + soft source-root guard (separable;
+  does not block 1D).
 - [ ] Re-ingest the test collections and the new Wikipedia collection with the
   metadata populated, so every collection is self-describing from creation.
-- [ ] Unblocks `run.json` tier-2 provenance in the bench (previously deferred)
-  and is the data foundation for the ingestor reindex-policy decision on the
-  roadmap.
 
 ### Contextualizer setting for the 1D ingest
 

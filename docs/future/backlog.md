@@ -18,8 +18,9 @@ exploratory chats. Low confidence by design — revisit before acting.
 - **Chunk expansion ±W** → roadmap Phase 4.
 - **Real BM25** (Postgres extension) and **per-document language detection** →
   roadmap "Cross-phase backlog".
-- **Ingestor versioning / reindex policy** and **`collection_metadata` table**
-  → roadmap "Cross-phase backlog".
+- **Ingestor versioning / reindex policy** → roadmap "Cross-phase backlog";
+  **`collection_metadata`** → designed in
+  `../../.dev/roadmap-phase-1/collection-metadata-design.md` (pre-1D).
 
 ## Retrieval and answer quality
 
@@ -137,8 +138,10 @@ structure-aware chunking, dedupe. The gaps, in priority order:
 3. **Query understanding / expansion**.
 4. **Answer generation with citations**.
 5. **Observability**.
-6. **Per-collection embedding-model fingerprint** — overlaps with the
-   `collection_metadata` roadmap item.
+6. **Per-collection embedding-model fingerprint** — subsumed by the
+   `collection_metadata` work, designed in
+   `../../.dev/roadmap-phase-1/collection-metadata-design.md` (the embedding
+   model and dimension are guarded invariants in the provenance block).
 
 The guiding point: good RAG is not about the latest models or more
 abstractions, but about evaluation and measurement discipline.

@@ -153,7 +153,8 @@ notebook) is next. Completed investigations live in
 `../roadmap-phase-1/archive/`.
 
 **Before 1D, two fixed points land first** — close the versioning gaps
-(`--version` flag, `vX.Y.Z` tags) and add `collection_metadata` — so the
+(`--version` flag ✅ done; `vX.Y.Z` tags pending) and add `collection_metadata`
+(designed in `../roadmap-phase-1/collection-metadata-design.md`) — so the
 Wikipedia ingest creates documented collections rather than retrofitting
 provenance later. Checklist in `../roadmap-phase-1/phase-1-progress.md`
 ("Before Phase 1D"). The corpus is ingested with `qwen2.5` (gemma4 shelved on
@@ -238,10 +239,12 @@ eval-harness decisions. They are not tied to a single phase.
   the correct long-term answer; deferred. (Same source.)
 - **Ingestor versioning / reindex policy.** When ingestor code changes, what
   happens to existing collections — force reindex? in-place upgrade?
-  signature enforcement? A Minerva-product policy question, enabled by
-  `collection_metadata` (the pre-1D task in
-  `../roadmap-phase-1/phase-1-progress.md`, which records what produced each
-  collection). Decide after Phase 1 ships.
+  signature enforcement? A Minerva-product policy question. The pre-1D
+  `collection_metadata` work already settles the *config-drift* case (the
+  reingest guard hard-fails on a changed invariant; see
+  `../roadmap-phase-1/collection-metadata-design.md`). What remains here is the
+  *code-drift* case — changes pinned only by the recorded ingestor SHA, not
+  guarded. Decide after Phase 1 ships.
 - **Model comparison & performance report** (research, after Phase 2) — see
   `docs/future/backlog.md`. Reconsider gemma4 / other local + online models;
   ingest per model; run the bench; publish a status report.
