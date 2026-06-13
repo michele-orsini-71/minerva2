@@ -11,7 +11,7 @@ concentrated in the fattest documents.
 |---|---|---|
 | `test-2` | FTS-only, no LLM | 1821 |
 | `qwen2-5` | vector + small LLM (Qwen 2.5) | 1824 |
-| `test-1` | vector + heavier LLM / slower path | 1811 |
+| `test-1` | vector + heavier LLM (Gemma 4 e4b) / slower path | 1811 |
 
 **Method.** Each document's chunks share one `created_at` (one transaction per
 document, `NOW()` = transaction start), so timing resolution is **per-document,
@@ -28,7 +28,7 @@ bucket at the auto-detected valley:
 |---|---|---|---|---|---|
 | `test-2` (FTS-only) | 920 | 901 | 0.069 s | 0.33 s | ~600 s (10 min) |
 | `qwen2-5` (small LLM) | 972 | 852 | 0.070 s | 5.32 s | ~38,500 s (10.7 h) |
-| `test-1` (heavy LLM) | 989 | 822 | 0.094 s | 99.63 s | ~188,700 s (52.4 h) |
+| `test-1` (heavy LLM - Gemma 4 e4b) | 989 | 822 | 0.094 s | 99.63 s | ~188,700 s (52.4 h) |
 
 ## What the split shows
 

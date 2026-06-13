@@ -98,13 +98,33 @@ require a **sidecar Python service** (sentence-transformers, open_clip, MLX,
 Nomic Embed Vision, or Jina CLIP), not LM Studio. Treat as "no clean path yet";
 revisit only if multimodal becomes a priority.
 
-## Smaller contextualization model — comparison to run
+## Model comparison & performance report (after the reranker)
 
-`gemma-4-e4b` is slow (hours per update). Before committing to a model, run a
-**3-way comparison** on the eval harness: (a) no prefix, (b) small-model
-prefix, (c) large-model prefix — measuring retrieval quality against cost.
-Candidate small models: Gemma 2 2B (Q4_K_M), Qwen 2.5 3B Instruct, Llama 3.2
-3B. See also `docs/measurements/model-speedups.md`.
+**Current decision:** `qwen2.5` is the standing contextualization model;
+`gemma4` is shelved — ruled out for bulk ingest on cost (~5× qwen, ~300×
+no-context). Because the eval measures *relative* deltas with the
+contextualizer held fixed, the absolute model choice does not block
+development. Recorded in the roadmap "On resume" fixed points.
+
+**Future task** — to run once the implementation is on solid bases (after
+Phase 2, the reranker, and possibly after further development): reconsider the
+contextualization (and embedding) model properly, and produce a publishable
+performance report.
+
+- Research other **local** candidates (e.g. Gemma 2 2B Q4_K_M, Qwen 2.5 3B
+  Instruct, Llama 3.2 3B) and include some **online / API** models for
+  contrast.
+- Ingest the corpus under each candidate into separate collections.
+- Run the bench across them and produce a **status report of app retrieval
+  performance** — suitable to publish (e.g. in the README).
+- Judge gemma4's viability together with the serving-speed levers in
+  `docs/measurements/model-speedups.md` (speculative decoding, MLX).
+
+This is a cross-collection comparison (re-ingest per model), so it is
+deliberately deferred — not on the critical path for tuning the pipeline. The
+one in-band absolute check worth running earlier is context vs no-context
+(is the contextualization step worth its cost), on the already-indexed
+personal-notes collections.
 
 ## "What makes a good RAG" — priorities
 

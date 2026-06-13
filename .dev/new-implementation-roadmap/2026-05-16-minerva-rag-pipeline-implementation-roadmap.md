@@ -152,6 +152,13 @@ notebook) is next. Completed investigations live in
 `../roadmap-phase-1/completed/`; superseded drafts in
 `../roadmap-phase-1/archive/`.
 
+**Before 1D, two fixed points land first** — close the versioning gaps
+(`--version` flag, `vX.Y.Z` tags) and add `collection_metadata` — so the
+Wikipedia ingest creates documented collections rather than retrofitting
+provenance later. Checklist in `../roadmap-phase-1/phase-1-progress.md`
+("Before Phase 1D"). The corpus is ingested with `qwen2.5` (gemma4 shelved on
+cost; eval measures relative deltas with the contextualizer held fixed).
+
 ### Phase 2 — add reranking
 
 - Bump hybrid search to top **100–150** per branch.
@@ -231,12 +238,13 @@ eval-harness decisions. They are not tied to a single phase.
   the correct long-term answer; deferred. (Same source.)
 - **Ingestor versioning / reindex policy.** When ingestor code changes, what
   happens to existing collections — force reindex? in-place upgrade?
-  signature enforcement? This is a Minerva-product policy question, flagged
-  for decision immediately after Phase 1 ships.
-- **`collection_metadata` in Postgres.** A row/table populated at ingest time
-  holding embedding model id+version, ingestor commit SHA, and DB schema
-  version. It unblocks `run.json` tier-2 provenance fields in the eval
-  harness. Sibling task, ideally landed before Phase 1D.
+  signature enforcement? A Minerva-product policy question, enabled by
+  `collection_metadata` (the pre-1D task in
+  `../roadmap-phase-1/phase-1-progress.md`, which records what produced each
+  collection). Decide after Phase 1 ships.
+- **Model comparison & performance report** (research, after Phase 2) — see
+  `docs/future/backlog.md`. Reconsider gemma4 / other local + online models;
+  ingest per model; run the bench; publish a status report.
 
 ---
 
