@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 
 namespace Minerva.Search.Cli;
 
@@ -13,7 +14,8 @@ internal sealed record SearchCliArgs(
     int? CandidatePoolSize,
     OutputFormat Format,
     bool Full,
-    int SnippetChars)
+    int SnippetChars,
+    bool version)
 {
     public static SearchCliArgs? Parse(string[] args, TextWriter err)
     {
@@ -31,6 +33,13 @@ internal sealed record SearchCliArgs(
         var format = OutputFormat.Table;
         bool full = false;
         int snippetChars = 200;
+        bool versionAsked = false;
+
+        if (args.Contains("--version") || args.Contains("-v"))
+        {
+            versionAsked = true;
+            return new SearchCliArgs("", "", topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars, versionAsked);
+        }
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -85,6 +94,8 @@ internal sealed record SearchCliArgs(
                     if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out snippetChars) || snippetChars <= 0)
                     { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
                     break;
+                case "--version":
+
                 default:
                     if (a.StartsWith('-'))
                     {
@@ -112,7 +123,11 @@ internal sealed record SearchCliArgs(
             return null;
         }
 
-        return new SearchCliArgs(query, collection, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars);
+        return new SearchCliArgs(query, collection, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars, versionAsked);
+    }
+    public static void PrintVersion(TextWriter w)
+    {
+        w.WriteLine($"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}");
     }
 
     public static void PrintUsage(TextWriter w)

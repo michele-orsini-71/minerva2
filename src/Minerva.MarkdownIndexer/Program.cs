@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minerva;
@@ -8,6 +9,12 @@ using NReco.Logging.File;
 
 try
 {
+    if (args.Contains("-v") || args.Contains("--version"))
+    {
+        PrintVersion(Console.Out);
+        return 0;
+    }
+
     var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
     var config = new ConfigurationBuilder()
         .SetBasePath(AppContext.BaseDirectory)
@@ -106,4 +113,9 @@ static void EnsureLogFileWritable(string path)
         Directory.CreateDirectory(dir);
     }
     using var probe = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+}
+
+static void PrintVersion(TextWriter w)
+{
+    w.WriteLine($"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}");
 }

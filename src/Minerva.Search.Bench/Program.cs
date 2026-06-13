@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Minerva;
+using System.Reflection;
 using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Search.Bench;
@@ -10,10 +8,16 @@ using Minerva.Search.Bench.Validation;
 
 try
 {
-    if (args.Length == 0 || args[0] is "-h" or "--help")
+    if (args.Length == 0 || args.Contains("-h") || args.Contains("--help"))
     {
         PrintTopLevelUsage(Console.Out);
         return args.Length == 0 ? 2 : 0;
+    }
+
+    if (args.Contains("-v") || args.Contains("--version"))
+    {
+        PrintVersion(Console.Out);
+        return 0;
     }
 
     var verb = args[0];
@@ -121,6 +125,11 @@ static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
 
     return await BenchHost.RunAsync(async (engine, cancellationToken) => await DatasetValidationRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
+}
+
+static void PrintVersion(TextWriter w)
+{
+    w.WriteLine($"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}");
 }
 
 static void PrintTopLevelUsage(TextWriter w)

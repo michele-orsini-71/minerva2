@@ -13,7 +13,13 @@ try
     {
         SearchCliArgs.PrintUsage(Console.Error);
         return 2;
-    }
+    } 
+
+    if (parsed.version)
+    {
+        SearchCliArgs.PrintVersion(Console.Out);
+        return 0;
+    } 
 
     var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
     var config = new ConfigurationBuilder()
