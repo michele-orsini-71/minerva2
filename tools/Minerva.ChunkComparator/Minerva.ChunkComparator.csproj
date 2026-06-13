@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Minerva\Minerva.csproj" />
+    <ProjectReference Include="..\..\src\Minerva\Minerva.csproj" />
   </ItemGroup>
 
 </Project>

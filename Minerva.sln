@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.IntegrationTests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.ArchitectureTests", "tests\Minerva.ArchitectureTests\Minerva.ArchitectureTests.csproj", "{4205E18F-0EDF-4C2D-8680-67D914962BD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.ChunkComparator", "src\Minerva.ChunkComparator\Minerva.ChunkComparator.csproj", "{21BD604B-FEF7-4355-B0D9-60F766F90E94}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.ChunkComparator", "tools\Minerva.ChunkComparator\Minerva.ChunkComparator.csproj", "{21BD604B-FEF7-4355-B0D9-60F766F90E94}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Search.Cli", "src\Minerva.Search.Cli\Minerva.Search.Cli.csproj", "{9DF34E55-B653-4D6D-9494-D3B77EDD7425}"
 EndProject
