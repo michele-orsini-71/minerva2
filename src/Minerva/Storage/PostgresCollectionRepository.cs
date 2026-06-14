@@ -105,18 +105,26 @@ public class PostgresCollectionRepository : ICollectionRepository
 
     private static Collection ReadCollection(NpgsqlDataReader reader)
     {
-        var metadataJson = reader.GetString(2);
-        var bag = JsonSerializer.Deserialize<MetadataBag>(metadataJson, MetadataJsonOptions)
-            ?? throw new InvalidOperationException(
-                $"Collection '{reader.GetString(0)}' has unreadable metadata.");
+        try
+        {
+            var metadataJson = reader.GetString(2);
+            var bag = JsonSerializer.Deserialize<MetadataBag>(metadataJson, MetadataJsonOptions)
+                ?? throw new InvalidOperationException(
+                    $"Collection '{reader.GetString(0)}' has unreadable metadata.");
 
-        return new Collection(
-            Name: reader.GetString(0),
-            Description: reader.IsDBNull(1) ? null : reader.GetString(1),
-            Provenance: bag.Provenance,
-            Client: bag.Client,
-            CreatedAt: reader.GetFieldValue<DateTimeOffset>(3),
-            LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(4));
+            return new Collection(
+                Name: reader.GetString(0),
+                Description: reader.IsDBNull(1) ? null : reader.GetString(1),
+                Provenance: bag.Provenance,
+                Client: bag.Client,
+                CreatedAt: reader.GetFieldValue<DateTimeOffset>(3),
+                LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(4));
+        }
+        catch (Exception ex) when (ex is InvalidCastException or ArgumentNullException or JsonException)
+        {
+            throw new InvalidOperationException(
+                $"Collection '{reader.GetString(0)}' has malformed or unreadable metadata.");
+        }
     }
 
     private static void AddMetadataParameter(NpgsqlCommand cmd, string name, Collection collection)

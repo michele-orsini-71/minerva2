@@ -1,1 +1,1 @@
-DELETE FROM collections WHERE name = '<collection>';
+DELETE FROM collections WHERE name = :'name';

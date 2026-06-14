@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Minerva.Models;
 
 namespace Minerva.Search.Bench.Sweep;
 
@@ -17,7 +18,8 @@ public static class RunJsonWriter
         DateTimeOffset timestamp,
         string benchVersion,
         SweepConfig config,
-        IReadOnlyList<Cell> cells)
+        IReadOnlyList<Cell> cells,
+        Collection collection)
     {
         var manifest = new
         {
@@ -26,6 +28,7 @@ public static class RunJsonWriter
             bench_version = benchVersion,
             dataset_path = config.Dataset,
             collection = config.Collection,
+            collectionDetails = collection,
             resolved_sweep = new
             {
                 dataset = config.Dataset,

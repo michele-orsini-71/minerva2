@@ -74,7 +74,8 @@ public static class SweepDatasetRunner
             return 2;
         }
 
-        RunJsonWriter.Write(Path.Combine(leaf, "run.json"), timestamp, benchVersion, sweep, cells);
+        var collection = await engine.QueryCollectionInfoAsync(sweep.Collection);
+        RunJsonWriter.Write(Path.Combine(leaf, "run.json"), timestamp, benchVersion, sweep, cells, collection);
         MetricsCsvWriter.Write(
             Path.Combine(leaf, "metrics.csv"), sweep.Matrix.Keys.ToList(), results);
         DetailsJsonlWriter.Write(Path.Combine(leaf, "details.jsonl"), entries, results);

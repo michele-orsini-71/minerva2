@@ -43,3 +43,32 @@ to check whether `pgvector` is available on the server at all.
 
 - [delete-collection.sql](delete-collection.sql) — remove a collection by name.
   Replace `<collection>`. Destructive — double-check the name first.
+
+## Sample usages
+
+```sh
+~ % psql -h localhost -U username -d minerva -c "SELECT * from collections"
+  name   | description | metadata |          created_at           |        last_updated_at        
+---------+-------------+----------+-------------------------------+-------------------------------
+ test-1  |             |          | 2026-05-03 19:51:05.499802+02 | 2026-05-03 19:51:05.499802+02
+ test-2  |             |          | 2026-05-07 12:08:33.731655+02 | 2026-05-07 12:08:33.731655+02
+ qwen2-5 |             |          | 2026-05-10 10:14:47.896628+02 | 2026-05-10 10:14:47.896628+02
+(3 rows)
+
+~ % psql -h localhost -U username -d minerva -f "delete-collection.sql" -v name=test-2 
+
+~ % psql -h localhost -U username -d minerva                               
+psql (18.4 (Homebrew), server 18.3 (Homebrew))
+Type "help" for help.
+
+minerva=# SELECT * from collections;
+  name   | description | metadata |          created_at           |        last_updated_at        
+---------+-------------+----------+-------------------------------+-------------------------------
+ test-1  |             |          | 2026-05-03 19:51:05.499802+02 | 2026-05-03 19:51:05.499802+02
+ test-2  |             |          | 2026-05-07 12:08:33.731655+02 | 2026-05-07 12:08:33.731655+02
+ qwen2-5 |             |          | 2026-05-10 10:14:47.896628+02 | 2026-05-10 10:14:47.896628+02
+(3 rows)
+
+minerva=# quit
+~ % 
+```

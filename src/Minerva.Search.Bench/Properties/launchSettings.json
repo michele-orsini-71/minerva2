@@ -1,5 +1,13 @@
 {
   "profiles": {
+    "Minerva.Search.Bench running": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "debug"
+      },
+      "workingDirectory": "$(ProjectDir)../..",
+      "commandLineArgs": "run --sweep eval/sweeps/private/personal-notes-debug.toml --out eval/results"
+    },
     "Minerva.Search.Bench authoring": {
       "commandName": "Project",
       "environmentVariables": {

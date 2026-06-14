@@ -14,4 +14,6 @@ public interface ISearchEngine
         string collectionName,
         string sourceId,
         CancellationToken ct = default);
+
+    Task<Collection> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
 }

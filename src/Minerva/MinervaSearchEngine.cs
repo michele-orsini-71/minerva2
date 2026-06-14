@@ -84,4 +84,11 @@ internal sealed class MinervaSearchEngine : ISearchEngine
 
         return await _chunkCatalog.SourceIdExistsAsync(collectionName, sourceId, ct);
     }
+
+    public async Task<Collection> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default)
+    {
+        return await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
+
+    }
 }
