@@ -83,7 +83,7 @@ internal static class MinervaCore
 
         ICollectionRepository collectionRepository = new PostgresCollectionRepository(dataSource);
         ICollectionService collections = new CollectionManager(
-            collectionRepository, schemaInitializer, embedding.Model, embeddingProvider);
+            collectionRepository, schemaInitializer);
 
         return new MinervaCoreServices(
             DataSource: dataSource,

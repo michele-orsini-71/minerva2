@@ -7,6 +7,6 @@ public interface IIngestEngine
     Task<IngestionResult> IngestAsync(
         string collectionName,
         IAsyncEnumerable<Document> documents,
-        bool allowRecreateOnEmbedderMismatch = false,
+        bool allowRecreateOnConfigMismatch = false,
         CancellationToken ct = default);
 }

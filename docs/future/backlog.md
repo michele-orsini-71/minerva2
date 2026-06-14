@@ -81,6 +81,19 @@ exploratory chats. Low confidence by design — revisit before acting.
   different vector dimension than an existing collection, the check fails with
   clear remediation and the user decides (drop + rebuild, or revert). Automatic
   rebuild is deferred.
+- **Where the drift-recovery policy lives — core vs front-end.** Today core both
+  *guards* and *recreates*: `PrepareCollectionAsync` compares the stored
+  invariants against the configured set and, gated by a per-call
+  `allowRecreateOnConfigMismatch` flag the front-end passes, either throws
+  `CollectionConfigMismatchException` or drops-and-recreates. The destructive
+  action lives in the library. An alternative separation: core becomes a pure
+  always-throw guard (never deletes), and each front-end catches the exception
+  and decides whether to wipe-and-reingest. This keeps the library from ever
+  silently destroying data and makes recovery a client policy — relevant as more
+  indexers (MCP, Obsidian) arrive, each potentially wanting different recovery
+  behaviour. Does not affect the collection format, so it can be revisited
+  anytime. Decide together with the review of previous (Python) Minerva
+  behaviour, which is still pending.
 
 ## Obsidian support (potential plugin)
 

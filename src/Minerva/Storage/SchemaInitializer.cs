@@ -72,6 +72,18 @@ public partial class SchemaInitializer : ICollectionProvisioner
         }
     }
 
+    public async Task<string> GetCurrentSchemaVersionAsync(CancellationToken ct = default)
+    {
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand("SELECT MAX(name) FROM _migrations", conn);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        if (result is not string name)
+            throw new InvalidOperationException("No migrations have been applied.");
+        // _migrations stores file names (e.g. "003_collection_provenance.sql");
+        // the recorded schema version drops the extension.
+        return name.EndsWith(".sql", StringComparison.Ordinal) ? name[..^4] : name;
+    }
+
     public async Task EnsureHnswIndexAsync(string collectionName, int dimension,
         CancellationToken ct = default)
     {

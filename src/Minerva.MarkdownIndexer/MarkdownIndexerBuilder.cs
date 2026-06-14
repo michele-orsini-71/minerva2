@@ -23,7 +23,7 @@ public static class MarkdownIndexerBuilder
             scanner,
             engine,
             options.CollectionName,
-            options.AllowRecreateOnEmbedderMismatch,
+            options.AllowRecreateOnConfigMismatch,
             loggerFactory.CreateLogger<MarkdownIndexer>()));
     }
 

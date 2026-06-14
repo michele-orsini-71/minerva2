@@ -4,6 +4,10 @@ namespace Minerva.Ingestion;
 
 public class DocumentSummarizer : IDocumentSummarizer
 {
+    // Bump when SystemPrompt changes: the summary conditions every chunk's
+    // context, so the prompt text is a content determinant of the stored bytes.
+    public const string PromptVersion = "1";
+
     private const string SystemPrompt =
         "Summarize the following document in one paragraph. Focus on the main topics, " +
         "key concepts, and structure. This summary will be used to provide context " +

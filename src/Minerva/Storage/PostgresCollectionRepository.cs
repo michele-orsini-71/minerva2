@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Minerva.Collections;
 using Minerva.Models;
 using Npgsql;
@@ -8,6 +9,13 @@ namespace Minerva.Storage;
 
 public class PostgresCollectionRepository : ICollectionRepository
 {
+    private static readonly JsonSerializerOptions MetadataJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
     private readonly NpgsqlDataSource _dataSource;
 
     public PostgresCollectionRepository(NpgsqlDataSource dataSource)
@@ -18,8 +26,7 @@ public class PostgresCollectionRepository : ICollectionRepository
     public async Task<Collection?> GetAsync(string name, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT name, description, embedding_model, embedding_dimension,
-                   metadata, created_at, last_updated_at
+            SELECT name, description, metadata, created_at, last_updated_at
             FROM collections WHERE name = @name
             """;
 
@@ -34,8 +41,7 @@ public class PostgresCollectionRepository : ICollectionRepository
     public async Task<IReadOnlyList<Collection>> ListAsync(CancellationToken ct = default)
     {
         const string sql = """
-            SELECT name, description, embedding_model, embedding_dimension,
-                   metadata, created_at, last_updated_at
+            SELECT name, description, metadata, created_at, last_updated_at
             FROM collections ORDER BY name
             """;
 
@@ -54,17 +60,15 @@ public class PostgresCollectionRepository : ICollectionRepository
     public async Task CreateAsync(Collection collection, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO collections (name, description, embedding_model, embedding_dimension, metadata)
-            VALUES (@name, @description, @embedding_model, @embedding_dimension, @metadata)
+            INSERT INTO collections (name, description, metadata)
+            VALUES (@name, @description, @metadata)
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("name", collection.Name);
         cmd.Parameters.AddWithValue("description", (object?)collection.Description ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("embedding_model", collection.EmbeddingModel);
-        cmd.Parameters.AddWithValue("embedding_dimension", collection.EmbeddingDimension);
-        AddJsonbParameter(cmd, "metadata", collection.Metadata);
+        AddMetadataParameter(cmd, "metadata", collection);
 
         await cmd.ExecuteNonQueryAsync(ct);
     }
@@ -74,8 +78,6 @@ public class PostgresCollectionRepository : ICollectionRepository
         const string sql = """
             UPDATE collections
             SET description = @description,
-                embedding_model = @embedding_model,
-                embedding_dimension = @embedding_dimension,
                 metadata = @metadata,
                 last_updated_at = NOW()
             WHERE name = @name
@@ -85,9 +87,7 @@ public class PostgresCollectionRepository : ICollectionRepository
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("name", collection.Name);
         cmd.Parameters.AddWithValue("description", (object?)collection.Description ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("embedding_model", collection.EmbeddingModel);
-        cmd.Parameters.AddWithValue("embedding_dimension", collection.EmbeddingDimension);
-        AddJsonbParameter(cmd, "metadata", collection.Metadata);
+        AddMetadataParameter(cmd, "metadata", collection);
 
         await cmd.ExecuteNonQueryAsync(ct);
     }
@@ -105,26 +105,31 @@ public class PostgresCollectionRepository : ICollectionRepository
 
     private static Collection ReadCollection(NpgsqlDataReader reader)
     {
-        var metadataJson = reader.IsDBNull(4) ? null : reader.GetString(4);
-        var metadata = metadataJson is not null
-            ? JsonSerializer.Deserialize<Dictionary<string, object>>(metadataJson)
-            : null;
+        var metadataJson = reader.GetString(2);
+        var bag = JsonSerializer.Deserialize<MetadataBag>(metadataJson, MetadataJsonOptions)
+            ?? throw new InvalidOperationException(
+                $"Collection '{reader.GetString(0)}' has unreadable metadata.");
 
         return new Collection(
             Name: reader.GetString(0),
             Description: reader.IsDBNull(1) ? null : reader.GetString(1),
-            EmbeddingModel: reader.GetString(2),
-            EmbeddingDimension: reader.GetInt32(3),
-            Metadata: metadata,
-            CreatedAt: reader.GetFieldValue<DateTimeOffset>(5),
-            LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(6));
+            Provenance: bag.Provenance,
+            Client: bag.Client,
+            CreatedAt: reader.GetFieldValue<DateTimeOffset>(3),
+            LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(4));
     }
 
-    private static void AddJsonbParameter(NpgsqlCommand cmd, string name,
-        Dictionary<string, object>? value)
+    private static void AddMetadataParameter(NpgsqlCommand cmd, string name, Collection collection)
     {
-        var param = new NpgsqlParameter(name, NpgsqlDbType.Jsonb);
-        param.Value = value is not null ? JsonSerializer.Serialize(value) : DBNull.Value;
+        var bag = new MetadataBag(collection.Provenance, collection.Client);
+        var param = new NpgsqlParameter(name, NpgsqlDbType.Jsonb)
+        {
+            Value = JsonSerializer.Serialize(bag, MetadataJsonOptions),
+        };
         cmd.Parameters.Add(param);
     }
+
+    private sealed record MetadataBag(
+        CollectionProvenance Provenance,
+        Dictionary<string, object>? Client);
 }

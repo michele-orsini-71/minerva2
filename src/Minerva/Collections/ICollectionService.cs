@@ -1,4 +1,3 @@
-using Minerva.Exceptions;
 using Minerva.Models;
 
 namespace Minerva.Collections;
@@ -7,10 +6,8 @@ public interface ICollectionService
 {
     Task<Collection> CreateAsync(
         string name,
-        string embeddingModel,
-        int embeddingDimension,
+        CollectionProvenance provenance,
         string? description = null,
-        Dictionary<string, object>? metadata = null,
         CancellationToken ct = default);
 
     Task<Collection?> GetAsync(string name, CancellationToken ct = default);
@@ -19,7 +16,7 @@ public interface ICollectionService
 
     Task<Collection> EnsureAsync(
         string name,
+        CollectionProvenance provenance,
         string? description = null,
-        Dictionary<string, object>? metadata = null,
         CancellationToken ct = default);
 }

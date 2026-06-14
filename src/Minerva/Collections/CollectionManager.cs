@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Minerva.Exceptions;
-using Minerva.Ingestion;
 using Minerva.Models;
 
 namespace Minerva.Collections;
@@ -12,36 +11,23 @@ public partial class CollectionManager : ICollectionService
 
     private readonly ICollectionRepository _collectionRepository;
     private readonly ICollectionProvisioner _provisioner;
-    private readonly string _configuredEmbeddingModel;
-    private readonly IEmbeddingDimensionProvider _dimensionProvider;
 
     public CollectionManager(
         ICollectionRepository collectionRepository,
-        ICollectionProvisioner provisioner,
-        string configuredEmbeddingModel,
-        IEmbeddingDimensionProvider dimensionProvider)
+        ICollectionProvisioner provisioner)
     {
         _collectionRepository = collectionRepository;
         _provisioner = provisioner;
-        _configuredEmbeddingModel = configuredEmbeddingModel;
-        _dimensionProvider = dimensionProvider;
     }
 
     public async Task<Collection> CreateAsync(
         string name,
-        string embeddingModel,
-        int embeddingDimension,
+        CollectionProvenance provenance,
         string? description = null,
-        Dictionary<string, object>? metadata = null,
         CancellationToken ct = default)
     {
         ValidateName(name);
-        ValidateNoLiteralApiKeys(metadata);
-
-        if (string.IsNullOrWhiteSpace(embeddingModel))
-            throw new ConfigurationException("Embedding model must be a non-empty string.");
-        if (embeddingDimension <= 0)
-            throw new ConfigurationException("Embedding dimension must be positive.");
+        ValidateProvenance(provenance);
 
         if (await _collectionRepository.GetAsync(name, ct) is not null)
             throw new ConfigurationException($"Collection '{name}' already exists.");
@@ -49,12 +35,11 @@ public partial class CollectionManager : ICollectionService
         var collection = new Collection(
             Name: name,
             Description: description,
-            EmbeddingModel: embeddingModel,
-            EmbeddingDimension: embeddingDimension,
-            Metadata: metadata);
+            Provenance: provenance);
 
         await _collectionRepository.CreateAsync(collection, ct);
-        await _provisioner.EnsureHnswIndexAsync(name, embeddingDimension, ct);
+        await _provisioner.EnsureHnswIndexAsync(
+            name, provenance.Invariants.EmbeddingDimension, ct);
 
         return (await _collectionRepository.GetAsync(name, ct)) ?? collection;
     }
@@ -70,16 +55,15 @@ public partial class CollectionManager : ICollectionService
 
     public async Task<Collection> EnsureAsync(
         string name,
+        CollectionProvenance provenance,
         string? description = null,
-        Dictionary<string, object>? metadata = null,
         CancellationToken ct = default)
     {
         var existing = await _collectionRepository.GetAsync(name, ct);
         if (existing is not null)
             return existing;
 
-        var dimension = await _dimensionProvider.GetDimensionAsync(ct);
-        return await CreateAsync(name, _configuredEmbeddingModel, dimension, description, metadata, ct);
+        return await CreateAsync(name, provenance, description, ct);
     }
 
     private static void ValidateName(string name)
@@ -89,6 +73,15 @@ public partial class CollectionManager : ICollectionService
         if (!NamePattern.IsMatch(name))
             throw new ConfigurationException(
                 $"Collection name '{name}' is invalid: must be alphanumeric or hyphens.");
+    }
+
+    private static void ValidateProvenance(CollectionProvenance provenance)
+    {
+        var invariants = provenance.Invariants;
+        if (string.IsNullOrWhiteSpace(invariants.EmbeddingModel))
+            throw new ConfigurationException("Embedding model must be a non-empty string.");
+        if (invariants.EmbeddingDimension <= 0)
+            throw new ConfigurationException("Embedding dimension must be positive.");
     }
 
     private static void ValidateNoLiteralApiKeys(Dictionary<string, object>? metadata)

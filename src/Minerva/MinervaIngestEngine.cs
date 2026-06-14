@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Minerva.Collections;
 using Minerva.Exceptions;
@@ -14,6 +15,8 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     private readonly IChunkWriter _chunkWriter;
     private readonly string _configuredEmbeddingModel;
     private readonly IEmbeddingDimensionProvider _dimensionProvider;
+    private readonly ChunkingOptions _chunking;
+    private readonly string _schemaVersion;
     private readonly ILogger<MinervaIngestEngine> _logger;
 
     public MinervaIngestEngine(
@@ -22,6 +25,8 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         IChunkWriter chunkWriter,
         string configuredEmbeddingModel,
         IEmbeddingDimensionProvider dimensionProvider,
+        ChunkingOptions chunking,
+        string schemaVersion,
         ILogger<MinervaIngestEngine> logger)
     {
         _ingestionPipeline = ingestionPipeline;
@@ -29,18 +34,20 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         _chunkWriter = chunkWriter;
         _configuredEmbeddingModel = configuredEmbeddingModel;
         _dimensionProvider = dimensionProvider;
+        _chunking = chunking;
+        _schemaVersion = schemaVersion;
         _logger = logger;
     }
 
     public async Task<IngestionResult> IngestAsync(
         string collectionName,
         IAsyncEnumerable<Document> documents,
-        bool allowRecreateOnEmbedderMismatch = false,
+        bool allowRecreateOnConfigMismatch = false,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
 
-        await PrepareCollectionAsync(collectionName, allowRecreateOnEmbedderMismatch, ct);
+        await PrepareCollectionAsync(collectionName, allowRecreateOnConfigMismatch, ct);
 
         var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
@@ -69,35 +76,82 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
     }
 
-    private async Task PrepareCollectionAsync(string collectionName, bool allowRecreateOnEmbedderMismatch, CancellationToken ct)
+    private async Task PrepareCollectionAsync(string collectionName, bool allowRecreateOnConfigMismatch, CancellationToken ct)
     {
+        var provenance = await BuildProvenanceAsync(ct);
         var existing = await _collections.GetAsync(collectionName, ct);
 
         if (existing is null)
         {
-            await _collections.EnsureAsync(collectionName, description: null, metadata: null, ct);
+            await _collections.EnsureAsync(collectionName, provenance, description: null, ct);
             return;
         }
 
-        var configuredDimension = await _dimensionProvider.GetDimensionAsync(ct);
-        if (existing.EmbeddingModel == _configuredEmbeddingModel
-            && existing.EmbeddingDimension == configuredDimension)
-        {
+        var drifts = DiffInvariants(existing.Provenance.Invariants, provenance.Invariants);
+        if (drifts.Count == 0)
             return;
-        }
 
-        if (!allowRecreateOnEmbedderMismatch)
-        {
-            throw new CollectionEmbedderMismatchException(
-                collectionName,
-                existing.EmbeddingModel, existing.EmbeddingDimension,
-                _configuredEmbeddingModel, configuredDimension);
-        }
+        if (!allowRecreateOnConfigMismatch)
+            throw new CollectionConfigMismatchException(collectionName, drifts);
 
         _logger.LogWarning(
-            "Collection '{Collection}' embedder mismatch and AllowRecreateOnEmbedderMismatch=true; dropping all data and recreating",
-            collectionName);
+            "Collection '{Collection}' config mismatch and AllowRecreateOnConfigMismatch=true; dropping all data and recreating. Drifted: {Drifted}",
+            collectionName, string.Join(", ", drifts.Select(d => d.Field)));
         await _collections.DeleteAsync(collectionName, ct);
-        await _collections.EnsureAsync(collectionName, description: null, metadata: null, ct);
+        await _collections.EnsureAsync(collectionName, provenance, description: null, ct);
     }
+
+    private static List<InvariantDrift> DiffInvariants(
+        CollectionInvariants stored, CollectionInvariants configured)
+    {
+        var drifts = new List<InvariantDrift>();
+
+        void Compare(string field, object? a, object? b)
+        {
+            if (!Equals(a, b))
+                drifts.Add(new InvariantDrift(field, a?.ToString(), b?.ToString()));
+        }
+
+        Compare("embeddingModel", stored.EmbeddingModel, configured.EmbeddingModel);
+        Compare("embeddingDimension", stored.EmbeddingDimension, configured.EmbeddingDimension);
+        Compare("chunkerType", stored.ChunkerType, configured.ChunkerType);
+        Compare("targetChunkSize", stored.TargetChunkSize, configured.TargetChunkSize);
+        Compare("chunkOverlap", stored.ChunkOverlap, configured.ChunkOverlap);
+        Compare("maxSegmentChars", stored.MaxSegmentChars, configured.MaxSegmentChars);
+        Compare("contextualizationEnabled", stored.ContextualizationEnabled, configured.ContextualizationEnabled);
+        Compare("contextualizationModel", stored.ContextualizationModel, configured.ContextualizationModel);
+        Compare("summarizerPromptVersion", stored.SummarizerPromptVersion, configured.SummarizerPromptVersion);
+        Compare("contextualizerPromptVersion", stored.ContextualizerPromptVersion, configured.ContextualizerPromptVersion);
+
+        return drifts;
+    }
+
+    private async Task<CollectionProvenance> BuildProvenanceAsync(CancellationToken ct)
+    {
+        var dimension = await _dimensionProvider.GetDimensionAsync(ct);
+        var contextualizationEnabled = _chunking.Llm is not null;
+
+        var invariants = new CollectionInvariants(
+            EmbeddingModel: _configuredEmbeddingModel,
+            EmbeddingDimension: dimension,
+            ChunkerType: _chunking.ChunkerType,
+            TargetChunkSize: _chunking.TargetChunkSize,
+            ChunkOverlap: _chunking.ChunkOverlap,
+            MaxSegmentChars: _chunking.MaxSegmentChars,
+            ContextualizationEnabled: contextualizationEnabled,
+            ContextualizationModel: contextualizationEnabled ? _chunking.Llm!.Model : null,
+            SummarizerPromptVersion: contextualizationEnabled ? DocumentSummarizer.PromptVersion : null,
+            ContextualizerPromptVersion: contextualizationEnabled ? ChunkContextualizer.PromptVersion : null);
+
+        var lastRun = new CollectionLastRun(
+            IngestorVersion: IngestorVersion,
+            SchemaVersion: _schemaVersion);
+
+        return new CollectionProvenance(invariants, lastRun);
+    }
+
+    private static string IngestorVersion =>
+        typeof(MinervaIngestEngine).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? "unknown";
 }

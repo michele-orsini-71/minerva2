@@ -39,10 +39,10 @@ public static partial class IndexerOptionsBinder
         if (raw.ExcludeDirectories is null)
             failures.Add(new OptionsFailure(stagePrefix + "ExcludeDirectories", "is required (use [] for none)."));
 
-        if (raw.AllowRecreateOnEmbedderMismatch is null)
+        if (raw.AllowRecreateOnConfigMismatch is null)
             failures.Add(new OptionsFailure(
-                stagePrefix + "AllowRecreateOnEmbedderMismatch",
-                "is required (true to permit dropping a collection whose embedder no longer matches)."));
+                stagePrefix + "AllowRecreateOnConfigMismatch",
+                "is required (true to permit dropping a collection whose build configuration no longer matches)."));
 
         if (failures.Count > before) return null;
 
@@ -51,7 +51,7 @@ public static partial class IndexerOptionsBinder
             RootPath = raw.RootPath!,
             CollectionName = raw.CollectionName!,
             ExcludeDirectories = ImmutableArray.CreateRange(raw.ExcludeDirectories!),
-            AllowRecreateOnEmbedderMismatch = raw.AllowRecreateOnEmbedderMismatch!.Value,
+            AllowRecreateOnConfigMismatch = raw.AllowRecreateOnConfigMismatch!.Value,
         };
     }
 
@@ -64,5 +64,5 @@ internal sealed class RawIndexerOptions
     public string? RootPath { get; set; }
     public string? CollectionName { get; set; }
     public string[]? ExcludeDirectories { get; set; }
-    public bool? AllowRecreateOnEmbedderMismatch { get; set; }
+    public bool? AllowRecreateOnConfigMismatch { get; set; }
 }

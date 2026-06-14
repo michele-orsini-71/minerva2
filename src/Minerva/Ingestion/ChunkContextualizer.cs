@@ -4,6 +4,10 @@ namespace Minerva.Ingestion;
 
 public class ChunkContextualizer : IChunkContextualizer
 {
+    // Bump when PromptTemplate changes: the contextual prefix it produces is
+    // embedded, so the prompt text is a content determinant of the stored bytes.
+    public const string PromptVersion = "1";
+
     private const string PromptTemplate =
         """
         <document>

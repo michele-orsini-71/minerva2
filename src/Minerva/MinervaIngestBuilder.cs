@@ -71,6 +71,7 @@ public static class MinervaIngestBuilder
 
         // Phase 4: schema init.
         await core.SchemaInitializer.InitializeAsync(ct);
+        var schemaVersion = await core.SchemaInitializer.GetCurrentSchemaVersionAsync(ct);
 
         return new MinervaIngestEngine(
             ingestionPipeline,
@@ -78,6 +79,8 @@ public static class MinervaIngestBuilder
             core.ChunkWriter,
             options.Embedding.Model,
             core.EmbeddingProvider,
+            options.Chunking,
+            schemaVersion,
             loggerFactory.CreateLogger<MinervaIngestEngine>());
     }
 }
