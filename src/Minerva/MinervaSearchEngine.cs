@@ -89,6 +89,5 @@ internal sealed class MinervaSearchEngine : ISearchEngine
     {
         return await _collections.GetAsync(collectionName, ct)
             ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
-
     }
 }
