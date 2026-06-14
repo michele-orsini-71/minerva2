@@ -53,11 +53,31 @@ internal static class TestOptions
         string rootPath,
         string collectionName = "test",
         IReadOnlyList<string>? excludeDirectories = null,
-        bool allowRecreateOnEmbedderMismatch = false) => new()
+        bool allowRecreateOnConfigMismatch = false) => new()
     {
         RootPath = rootPath,
         CollectionName = collectionName,
         ExcludeDirectories = excludeDirectories ?? [".obsidian", ".trash", ".git"],
-        AllowRecreateOnEmbedderMismatch = allowRecreateOnEmbedderMismatch,
+        AllowRecreateOnConfigMismatch = allowRecreateOnConfigMismatch,
     };
+
+    public static CollectionProvenance Provenance(
+        string embeddingModel = "test-embedding",
+        int embeddingDimension = 1024,
+        ChunkerType chunkerType = ChunkerType.Custom,
+        int targetChunkSize = 1200,
+        int chunkOverlap = 200,
+        int maxSegmentChars = 8000,
+        bool contextualizationEnabled = false,
+        string? contextualizationModel = null,
+        string? summarizerPromptVersion = null,
+        string? contextualizerPromptVersion = null,
+        string ingestorVersion = "0.0.0-test",
+        string schemaVersion = "003_collection_provenance") =>
+        new(
+            new CollectionInvariants(
+                embeddingModel, embeddingDimension, chunkerType, targetChunkSize,
+                chunkOverlap, maxSegmentChars, contextualizationEnabled,
+                contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
+            new CollectionLastRun(ingestorVersion, schemaVersion));
 }

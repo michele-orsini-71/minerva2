@@ -1,7 +1,7 @@
 using Minerva.Collections;
 using Minerva.Exceptions;
-using Minerva.Ingestion;
 using Minerva.Models;
+using Minerva.Tests.TestSupport;
 using NSubstitute;
 
 namespace Minerva.Tests.Collections;
@@ -13,18 +13,19 @@ public class CollectionManagerTests
     private const string ValidModel = "text-embedding-3-small";
     private const int ValidDimension = 1536;
 
+    private static CollectionProvenance ValidProvenance(
+        string model = ValidModel, int dimension = ValidDimension) =>
+        TestOptions.Provenance(embeddingModel: model, embeddingDimension: dimension);
+
     private static CollectionManager CreateManager(
         out ICollectionRepository repo,
         out ICollectionProvisioner provisioner)
     {
         repo = Substitute.For<ICollectionRepository>();
         provisioner = Substitute.For<ICollectionProvisioner>();
-        var dimensionProvider = Substitute.For<IEmbeddingDimensionProvider>();
-        dimensionProvider.GetDimensionAsync(Arg.Any<CancellationToken>())
-            .Returns(ValidDimension);
         repo.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((Collection?)null);
-        return new CollectionManager(repo, provisioner, ValidModel, dimensionProvider);
+        return new CollectionManager(repo, provisioner);
     }
 
     [Theory]
@@ -41,7 +42,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(name, ValidModel, ValidDimension));
+            mgr.CreateAsync(name, ValidProvenance()));
     }
 
     [Theory]
@@ -55,45 +56,13 @@ public class CollectionManagerTests
     {
         var mgr = CreateManager(out var repo, out var provisioner);
         repo.GetAsync(name, Arg.Any<CancellationToken>())
-            .Returns((Collection?)null, new Collection(name, null, ValidModel, ValidDimension, null));
+            .Returns((Collection?)null, new Collection(name, null, ValidProvenance()));
 
-        var result = await mgr.CreateAsync(name, ValidModel, ValidDimension);
+        var result = await mgr.CreateAsync(name, ValidProvenance());
 
         Assert.Equal(name, result.Name);
         await provisioner.Received(1).EnsureHnswIndexAsync(
             name, ValidDimension, Arg.Any<CancellationToken>());
-    }
-
-    [Theory]
-    [InlineData("sk-abc123")]
-    [InlineData("SK-abc123")]
-    [InlineData("AIzaSyExampleKey")]
-    [InlineData("key-xyz")]
-    public async Task CreateAsync_MetadataContainsLiteralApiKey_Throws(string suspiciousValue)
-    {
-        var mgr = CreateManager(out _, out _);
-        var metadata = new Dictionary<string, object> { ["apiKey"] = suspiciousValue };
-
-        await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidModel, ValidDimension, metadata: metadata));
-    }
-
-    [Fact]
-    public async Task CreateAsync_MetadataWithNonKeyStrings_Succeeds()
-    {
-        var mgr = CreateManager(out var repo, out _);
-        repo.GetAsync(ValidName, Arg.Any<CancellationToken>())
-            .Returns((Collection?)null, new Collection(ValidName, null, ValidModel, ValidDimension, null));
-        var metadata = new Dictionary<string, object>
-        {
-            ["owner"] = "team-a",
-            ["note"] = "contains the word key but is not one",
-        };
-
-        var result = await mgr.CreateAsync(
-            ValidName, ValidModel, ValidDimension, metadata: metadata);
-
-        Assert.NotNull(result);
     }
 
     [Fact]
@@ -102,7 +71,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, "", ValidDimension));
+            mgr.CreateAsync(ValidName, ValidProvenance(model: "")));
     }
 
     [Theory]
@@ -113,7 +82,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidModel, dimension));
+            mgr.CreateAsync(ValidName, ValidProvenance(dimension: dimension)));
     }
 
     [Fact]
@@ -121,10 +90,10 @@ public class CollectionManagerTests
     {
         var mgr = CreateManager(out var repo, out var provisioner);
         repo.GetAsync(ValidName, Arg.Any<CancellationToken>())
-            .Returns(new Collection(ValidName, null, ValidModel, ValidDimension, null));
+            .Returns(new Collection(ValidName, null, ValidProvenance()));
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidModel, ValidDimension));
+            mgr.CreateAsync(ValidName, ValidProvenance()));
 
         await provisioner.DidNotReceive().EnsureHnswIndexAsync(
             Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());

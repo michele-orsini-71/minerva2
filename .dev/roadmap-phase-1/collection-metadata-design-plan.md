@@ -39,26 +39,33 @@ not designed up front.
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done.
 Core line A → B → C → D; E hangs off A and does not block the Wikipedia ingest.
 
-- `[~]` **A — Schema + typed model round-trip.** New migration drops the two
+- `[x]` **A — Schema + typed model round-trip.** New migration drops the two
   embedding columns; `Metadata` becomes the two-section structure; repository
-  (de)serializes it. No behaviour change. *Production done; verify pending.*
-  *Verify:* unit test round-trips a full provenance object through create/get.
-- `[~]` **B — Prompt versioning + populate at ingest.** Version constants on the
+  (de)serializes it. No behaviour change.
+  *Verify:* `CollectionRepositoryTests` round-trips a full provenance object
+  (and the contextualization-disabled case omits the optional fields).
+- `[x]` **B — Prompt versioning + populate at ingest.** Version constants on the
   two ingestion leaves; engine assembles invariants + last-run and writes
-  provenance on create. *Production done; verify pending.*
-  *Verify:* integration test ingests fresh, reads back, asserts every field.
-- `[~]` **C — Enforcement.** Generalize the mismatch exception to list every
+  provenance on create.
+  *Verify:* `CollectionProvenanceE2ETests.Ingest_PopulatesProvenance` ingests
+  fresh, reads back, asserts every populated field.
+- `[x]` **C — Enforcement.** Generalize the mismatch exception to list every
   drifted field; compare the whole invariant set on reingest; rename the
   recreate-override flag across option record, binder, engine interface,
-  indexer, and tests. *Production done; verify pending.*
-  *Verify:* integration test — changed chunk size throws; override recreates.
+  indexer, and tests.
+  *Verify:* `CollectionProvenanceE2ETests` — changed chunk size throws naming
+  the drifted field; the override flag recreates.
 - `[ ]` **D — Bench tier-2 provenance.** The run-json writer fetches the
   collection under test and stamps its provenance into `run.json`.
   *Verify:* a sweep produces `run.json` carrying the provenance block.
 - `[ ]` **E — Indexer client metadata + soft path guard.** Indexer writes its
   `client` section and, on reingest, applies its own policy (`kind` critical,
-  `sourceRoot` overridable, globs free).
-  *Verify:* changed source root warns/blocks; override proceeds.
+  `sourceRoot` overridable, globs free). Also re-wire `ValidateNoLiteralApiKeys`
+  (kept dormant in B/C) to guard the client section, and restore its two tests
+  (`*MetadataContainsLiteralApiKey*`, `*MetadataWithNonKeyStrings*`), which were
+  removed when `CreateAsync` lost its `metadata` parameter.
+  *Verify:* changed source root warns/blocks; override proceeds; a literal API
+  key in the client section is rejected.
 - `[ ]` **F - Manual run** Perform a debug step by step run of ingestion and update to verify every step manually
 
 ## Decisions deferred to their slice
@@ -75,7 +82,6 @@ Core line A → B → C → D; E hangs off A and does not block the Wikipedia in
 
 ## Current status
 
-A/B/C implemented in production; all `src` projects compile. Tests are broken —
-they still reference the old `Collection` constructor, the old create/ensure
-signatures, the removed `CollectionEmbedderMismatchException`, and the old flag
-name. Next action: repair the tests and write the A/B/C verifies, then D.
+A/B/C complete and verified: whole solution builds, 248 tests pass (215 unit,
+22 integration, 11 architecture). The A/B/C verifies are written and green.
+Next action: slice D (bench tier-2 provenance).

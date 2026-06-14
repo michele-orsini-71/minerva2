@@ -61,7 +61,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
             loggerFactory.CreateLogger<SearchPipeline>());
 
         var collections = new CollectionManager(
-            collectionRepository, fixture.SchemaInitializer, EmbeddingModel, mockEmbeddings);
+            collectionRepository, fixture.SchemaInitializer);
 
         var searchDefaults = new SearchOptions
         {
@@ -78,6 +78,8 @@ public class MinervaEngineE2ETests : IAsyncLifetime
             chunkRepository,
             EmbeddingModel,
             mockEmbeddings,
+            chunking,
+            "003_collection_provenance",
             loggerFactory.CreateLogger<MinervaIngestEngine>());
     }
 
