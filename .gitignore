@@ -498,3 +498,4 @@ bin-markdown-indexer/
 
 eval/datasets/private
 eval/sweeps/private
+eval/results/private
