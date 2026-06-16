@@ -44,14 +44,20 @@ public static partial class IndexerOptionsBinder
                 stagePrefix + "AllowRecreateOnConfigMismatch",
                 "is required (true to permit dropping a collection whose build configuration no longer matches)."));
 
+        if (raw.AllowSourceRootChange is null)
+            failures.Add(new OptionsFailure(
+                stagePrefix + "AllowSourceRootChange",
+                "is required (true to allow to reindex a collection even if its root path no longer matches)."));
+
         if (failures.Count > before) return null;
 
         return new IndexerOptions
         {
             RootPath = raw.RootPath!,
             CollectionName = raw.CollectionName!,
-            ExcludeDirectories = ImmutableArray.CreateRange(raw.ExcludeDirectories!),
+            ExcludeDirectories = [.. raw.ExcludeDirectories!],
             AllowRecreateOnConfigMismatch = raw.AllowRecreateOnConfigMismatch!.Value,
+            AllowSourceRootChange = raw.AllowSourceRootChange!.Value
         };
     }
 
@@ -65,4 +71,5 @@ internal sealed class RawIndexerOptions
     public string? CollectionName { get; set; }
     public string[]? ExcludeDirectories { get; set; }
     public bool? AllowRecreateOnConfigMismatch { get; set; }
+    public bool? AllowSourceRootChange { get; set; }
 }

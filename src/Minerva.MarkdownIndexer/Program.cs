@@ -68,8 +68,10 @@ try
 
     var engine = await MinervaIngestBuilder.CreateAsync(
         config.GetSection("Minerva"), loggerFactory, cts.Token);
+    var searchEngine = await MinervaSearchBuilder.CreateAsync(
+        config.GetSection("Minerva"), loggerFactory, cts.Token);
     var indexer = await MarkdownIndexerBuilder.CreateAsync(
-        indexerOptions, engine, loggerFactory, cts.Token);
+        indexerOptions, engine, searchEngine, loggerFactory, cts.Token);
 
     await indexer.RunAsync(cts.Token);
     return 0;

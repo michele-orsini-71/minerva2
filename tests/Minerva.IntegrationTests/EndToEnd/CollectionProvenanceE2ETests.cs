@@ -4,6 +4,7 @@ using Minerva.Collections;
 using Minerva.Exceptions;
 using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
+using Minerva.IntegrationTests.TestSupport;
 using Minerva.Models;
 using Minerva.Storage;
 
@@ -36,7 +37,7 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
         var chunking = Chunking(targetChunkSize: 512);
         var engine = await BuildEngineAsync(chunking);
 
-        await engine.IngestAsync(CollectionName, OneDoc());
+        await engine.IngestAsync(CollectionName, TestProvenance.Client(), OneDoc());
 
         var collection = await _collections.GetAsync(CollectionName);
         Assert.NotNull(collection);
@@ -63,12 +64,12 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
     public async Task Reingest_ChangedChunkSize_Throws()
     {
         var first = await BuildEngineAsync(Chunking(targetChunkSize: 512));
-        await first.IngestAsync(CollectionName, OneDoc());
+        await first.IngestAsync(CollectionName, TestProvenance.Client(), OneDoc());
 
         var second = await BuildEngineAsync(Chunking(targetChunkSize: 1024));
 
         var ex = await Assert.ThrowsAsync<CollectionConfigMismatchException>(() =>
-            second.IngestAsync(CollectionName, OneDoc()));
+            second.IngestAsync(CollectionName, TestProvenance.Client(), OneDoc()));
         Assert.Contains(ex.Drifts, d => d.Field == "targetChunkSize");
     }
 
@@ -77,10 +78,10 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
     public async Task Reingest_ChangedChunkSize_WithOverride_Recreates()
     {
         var first = await BuildEngineAsync(Chunking(targetChunkSize: 512));
-        await first.IngestAsync(CollectionName, OneDoc());
+        await first.IngestAsync(CollectionName, TestProvenance.Client(), OneDoc());
 
         var second = await BuildEngineAsync(Chunking(targetChunkSize: 1024));
-        await second.IngestAsync(CollectionName, OneDoc(), allowRecreateOnConfigMismatch: true);
+        await second.IngestAsync(CollectionName, TestProvenance.Client(), OneDoc(), allowRecreateOnConfigMismatch: true);
 
         var collection = await _collections.GetAsync(CollectionName);
         Assert.NotNull(collection);

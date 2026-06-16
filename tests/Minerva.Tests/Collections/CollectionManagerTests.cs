@@ -17,6 +17,9 @@ public class CollectionManagerTests
         string model = ValidModel, int dimension = ValidDimension) =>
         TestOptions.Provenance(embeddingModel: model, embeddingDimension: dimension);
 
+    private static ClientProvenance ValidClient() =>
+        new("test-client", new Dictionary<string, object>());
+
     private static CollectionManager CreateManager(
         out ICollectionRepository repo,
         out ICollectionProvisioner provisioner)
@@ -42,7 +45,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(name, ValidProvenance()));
+            mgr.CreateAsync(name, ValidProvenance(), ValidClient()));
     }
 
     [Theory]
@@ -56,9 +59,9 @@ public class CollectionManagerTests
     {
         var mgr = CreateManager(out var repo, out var provisioner);
         repo.GetAsync(name, Arg.Any<CancellationToken>())
-            .Returns((Collection?)null, new Collection(name, null, ValidProvenance()));
+            .Returns((Collection?)null, new Collection(name, null, ValidProvenance(), ValidClient()));
 
-        var result = await mgr.CreateAsync(name, ValidProvenance());
+        var result = await mgr.CreateAsync(name, ValidProvenance(), ValidClient());
 
         Assert.Equal(name, result.Name);
         await provisioner.Received(1).EnsureHnswIndexAsync(
@@ -71,7 +74,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidProvenance(model: "")));
+            mgr.CreateAsync(ValidName, ValidProvenance(model: ""), ValidClient()));
     }
 
     [Theory]
@@ -82,7 +85,7 @@ public class CollectionManagerTests
         var mgr = CreateManager(out _, out _);
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidProvenance(dimension: dimension)));
+            mgr.CreateAsync(ValidName, ValidProvenance(dimension: dimension), ValidClient()));
     }
 
     [Fact]
@@ -90,12 +93,46 @@ public class CollectionManagerTests
     {
         var mgr = CreateManager(out var repo, out var provisioner);
         repo.GetAsync(ValidName, Arg.Any<CancellationToken>())
-            .Returns(new Collection(ValidName, null, ValidProvenance()));
+            .Returns(new Collection(ValidName, null, ValidProvenance(), ValidClient()));
 
         await Assert.ThrowsAsync<ConfigurationException>(() =>
-            mgr.CreateAsync(ValidName, ValidProvenance()));
+            mgr.CreateAsync(ValidName, ValidProvenance(), ValidClient()));
 
         await provisioner.DidNotReceive().EnsureHnswIndexAsync(
             Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("sk-abc123")]
+    [InlineData("SK-abc123")]
+    [InlineData("AIzaSyExampleKey")]
+    [InlineData("key-xyz")]
+    public async Task CreateAsync_ClientDataContainsLiteralApiKey_Throws(string suspiciousValue)
+    {
+        var mgr = CreateManager(out _, out _);
+        var client = new ClientProvenance(
+            "test-client", new Dictionary<string, object> { ["apiKey"] = suspiciousValue });
+
+        await Assert.ThrowsAsync<ConfigurationException>(() =>
+            mgr.CreateAsync(ValidName, ValidProvenance(), client));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ClientDataWithNonKeyStrings_Succeeds()
+    {
+        var mgr = CreateManager(out var repo, out _);
+        repo.GetAsync(ValidName, Arg.Any<CancellationToken>())
+            .Returns((Collection?)null, new Collection(ValidName, null, ValidProvenance(), ValidClient()));
+        var client = new ClientProvenance(
+            "test-client",
+            new Dictionary<string, object>
+            {
+                ["owner"] = "team-a",
+                ["note"] = "contains the word key but is not one",
+            });
+
+        var result = await mgr.CreateAsync(ValidName, ValidProvenance(), client);
+
+        Assert.NotNull(result);
     }
 }

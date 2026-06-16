@@ -7,6 +7,7 @@ public interface ICollectionService
     Task<Collection> CreateAsync(
         string name,
         CollectionProvenance provenance,
+        ClientProvenance clientProvenance,
         string? description = null,
         CancellationToken ct = default);
 
@@ -17,6 +18,7 @@ public interface ICollectionService
     Task<Collection> EnsureAsync(
         string name,
         CollectionProvenance provenance,
+        ClientProvenance clientProvenance,
         string? description = null,
         CancellationToken ct = default);
 }

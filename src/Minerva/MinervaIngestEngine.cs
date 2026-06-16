@@ -41,13 +41,14 @@ internal sealed class MinervaIngestEngine : IIngestEngine
 
     public async Task<IngestionResult> IngestAsync(
         string collectionName,
+        ClientProvenance clientProvenance,
         IAsyncEnumerable<Document> documents,
         bool allowRecreateOnConfigMismatch = false,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
 
-        await PrepareCollectionAsync(collectionName, allowRecreateOnConfigMismatch, ct);
+        await PrepareCollectionAsync(collectionName, clientProvenance, allowRecreateOnConfigMismatch, ct);
 
         var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
@@ -76,14 +77,14 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
     }
 
-    private async Task PrepareCollectionAsync(string collectionName, bool allowRecreateOnConfigMismatch, CancellationToken ct)
+    private async Task PrepareCollectionAsync(string collectionName, ClientProvenance clientProvenance, bool allowRecreateOnConfigMismatch, CancellationToken ct)
     {
         var provenance = await BuildProvenanceAsync(ct);
         var existing = await _collections.GetAsync(collectionName, ct);
 
         if (existing is null)
         {
-            await _collections.EnsureAsync(collectionName, provenance, description: null, ct);
+            await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description: null, ct);
             return;
         }
 
@@ -98,7 +99,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
             "Collection '{Collection}' config mismatch and AllowRecreateOnConfigMismatch=true; dropping all data and recreating. Drifted: {Drifted}",
             collectionName, string.Join(", ", drifts.Select(d => d.Field)));
         await _collections.DeleteAsync(collectionName, ct);
-        await _collections.EnsureAsync(collectionName, provenance, description: null, ct);
+        await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description: null, ct);
     }
 
     private static List<InvariantDrift> DiffInvariants(

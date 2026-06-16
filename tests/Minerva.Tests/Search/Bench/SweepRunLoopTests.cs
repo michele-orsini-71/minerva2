@@ -19,6 +19,10 @@ public class SweepRunLoopTests
         public Task<bool> SourceIdExistsAsync(
             string collectionName, string sourceId, CancellationToken ct = default)
             => Task.FromResult(true);
+
+        public Task<Collection?> QueryCollectionInfoAsync(
+            string collectionName, CancellationToken ct = default)
+            => throw new NotImplementedException();
     }
 
     private static SearchResult Hit(string sourceId)

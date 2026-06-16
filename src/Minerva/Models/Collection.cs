@@ -4,7 +4,7 @@ public record Collection(
     string Name,
     string? Description,
     CollectionProvenance Provenance,
-    Dictionary<string, object>? Client = null,
+    ClientProvenance ClientProvenance,
     DateTimeOffset CreatedAt = default,
     DateTimeOffset LastUpdatedAt = default)
 {

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Minerva.Collections;
 using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
+using Minerva.IntegrationTests.TestSupport;
 using Minerva.Models;
 using Minerva.Search;
 using Minerva.Storage;
@@ -104,14 +105,14 @@ public class MinervaEngineE2ETests : IAsyncLifetime
                   "The weekly forecast calls for consistent mild temperatures.");
 
         // 1. First ingest: both docs are new (collection auto-created).
-        var first = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
+        var first = await _ingest.IngestAsync(CollectionName, TestProvenance.Client(), AsAsync(docA, docB));
         Assert.Equal(2, first.Added);
         Assert.Equal(0, first.Updated);
         Assert.Equal(0, first.Deleted);
         Assert.Equal(0, first.Unchanged);
 
         // 2. Re-ingest the same set: both unchanged.
-        var second = await _ingest.IngestAsync(CollectionName, AsAsync(docA, docB));
+        var second = await _ingest.IngestAsync(CollectionName, TestProvenance.Client(), AsAsync(docA, docB));
         Assert.Equal(0, second.Added);
         Assert.Equal(0, second.Updated);
         Assert.Equal(0, second.Deleted);
@@ -125,7 +126,7 @@ public class MinervaEngineE2ETests : IAsyncLifetime
         Assert.Equal("doc-a", results[0].SourceId);
 
         // 4. Re-ingest with only docB: docA must be deleted by the diff.
-        var third = await _ingest.IngestAsync(CollectionName, AsAsync(docB));
+        var third = await _ingest.IngestAsync(CollectionName, TestProvenance.Client(), AsAsync(docB));
         Assert.Equal(0, third.Added);
         Assert.Equal(0, third.Updated);
         Assert.Equal(1, third.Deleted);

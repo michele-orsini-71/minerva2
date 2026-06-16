@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Minerva.Collections;
 using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
+using Minerva.IntegrationTests.TestSupport;
 using Minerva.Models;
 using Minerva.Search;
 using Minerva.Search.Bench.Sweep;
@@ -151,7 +152,7 @@ public class BenchRunE2ETests : IAsyncLifetime
             SourceId: id,
             Title: id,
             Text: $"Content about {id}. Some additional sentence so the chunker is happy.")).ToArray();
-        await _ingest.IngestAsync(CollectionName, AsAsync(docs));
+        await _ingest.IngestAsync(CollectionName, TestProvenance.Client(), AsAsync(docs));
     }
 
     private static async IAsyncEnumerable<Document> AsAsync(params Document[] docs)

@@ -23,7 +23,7 @@ observable.
 | 1B | Single-cell `run` path, three output files | ✅ done |
 | 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
 | — | FTS-returns-0-hits fix (gating, found by 1C) | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
-| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | 🔄 `--version` done; `collection_metadata` next; tags (Gap B) pending |
+| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | 🔄 `collection_metadata` A–E done (253 tests green); reingest + tags (Gap B) pending |
 | 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook | ⏳ blocked on pre-1D |
 | 1E-α | `gen-queries` authoring helper | ◻ optional |
 | 1E-β | End-to-end answer accuracy (LLM-as-judge) | ◻ optional |
@@ -99,17 +99,20 @@ reingest guard, and the phase cut — is in
 [`collection-metadata-design.md`](collection-metadata-design.md). Summary of the
 phases:
 
-- [ ] **A** — schema + typed `CollectionProvenance` round-trip (migration `003`
+- [x] **A** — schema + typed `CollectionProvenance` round-trip (migration `003`
   drops the `embedding_model` / `embedding_dimension` columns into the bag).
-- [ ] **B** — prompt-version constants + populate provenance at ingest.
-- [ ] **C** — enforcement: generalized reingest guard + rename
+- [x] **B** — prompt-version constants + populate provenance at ingest.
+- [x] **C** — enforcement: generalized reingest guard + rename
   `AllowRecreateOnEmbedderMismatch` → `AllowRecreateOnConfigMismatch`.
-- [ ] **D** — bench stamps the collection's provenance into `run.json` (the
+- [x] **D** — bench stamps the collection's provenance into `run.json` (the
   deferred tier-2 provenance).
-- [ ] **E** — indexer `client` metadata + soft source-root guard (separable;
-  does not block 1D).
+- [x] **E** — indexer `client` metadata + soft source-root guard (separable;
+  does not block 1D). Implementation complete; the source-root automated tests
+  are deferred to `docs/future/backlog.md` (no indexer test project yet).
 - [ ] Re-ingest the test collections and the new Wikipedia collection with the
   metadata populated, so every collection is self-describing from creation.
+  *In progress:* old collections (no client section) now fail the read-boundary
+  guard; `mynotes-nollm` still needs reingesting under the slice-E indexer.
 
 ### Contextualizer setting for the 1D ingest
 

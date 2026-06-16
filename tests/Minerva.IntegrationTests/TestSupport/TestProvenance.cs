@@ -23,4 +23,9 @@ internal static class TestProvenance
                 chunkOverlap, maxSegmentChars, contextualizationEnabled,
                 contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
             new CollectionLastRun(ingestorVersion, schemaVersion));
+
+    public static ClientProvenance Client(
+        string kind = "markdown-indexer",
+        Dictionary<string, object>? data = null) =>
+        new(kind, data ?? new Dictionary<string, object>());
 }

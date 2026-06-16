@@ -14,7 +14,8 @@ public class IndexerOptionsBinderTests
               "RootPath": "/some/path",
               "CollectionName": "my-notes",
               "ExcludeDirectories": [".git", ".obsidian"],
-              "AllowRecreateOnConfigMismatch": true
+              "AllowRecreateOnConfigMismatch": true,
+              "AllowSourceRootChange": false
             }
             """;
 
@@ -41,6 +42,7 @@ public class IndexerOptionsBinderTests
         Assert.Contains("CollectionName", paths);
         Assert.Contains("ExcludeDirectories", paths);
         Assert.Contains("AllowRecreateOnConfigMismatch", paths);
+        Assert.Contains("AllowSourceRootChange", paths);
     }
 
     [Fact]
@@ -51,7 +53,8 @@ public class IndexerOptionsBinderTests
               "RootPath": "/x",
               "CollectionName": "bad name!",
               "ExcludeDirectories": [],
-              "AllowRecreateOnConfigMismatch": false
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceRootChange": false
             }
             """;
 
@@ -70,7 +73,8 @@ public class IndexerOptionsBinderTests
               "RootPath": "/x",
               "CollectionName": "ok",
               "ExcludeDirectories": [],
-              "AllowRecreateOnConfigMismatch": false
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceRootChange": false
             }
             """;
 

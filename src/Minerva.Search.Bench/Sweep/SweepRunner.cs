@@ -74,7 +74,13 @@ public static class SweepDatasetRunner
             return 2;
         }
 
-        var collection = await engine.QueryCollectionInfoAsync(sweep.Collection);
+        var collection = await engine.QueryCollectionInfoAsync(sweep.Collection, ct);
+        if (collection == null)
+        {
+            output.WriteLine($"Collection '{sweep.Collection}' does not exist.");
+            return 2;
+        }
+
         RunJsonWriter.Write(Path.Combine(leaf, "run.json"), timestamp, benchVersion, sweep, cells, collection);
         MetricsCsvWriter.Write(
             Path.Combine(leaf, "metrics.csv"), sweep.Matrix.Keys.ToList(), results);

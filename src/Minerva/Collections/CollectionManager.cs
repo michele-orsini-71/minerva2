@@ -23,11 +23,13 @@ public partial class CollectionManager : ICollectionService
     public async Task<Collection> CreateAsync(
         string name,
         CollectionProvenance provenance,
+        ClientProvenance clientProvenance,
         string? description = null,
         CancellationToken ct = default)
     {
         ValidateName(name);
         ValidateProvenance(provenance);
+        ValidateNoLiteralApiKeys(clientProvenance.data);
 
         if (await _collectionRepository.GetAsync(name, ct) is not null)
             throw new ConfigurationException($"Collection '{name}' already exists.");
@@ -35,7 +37,9 @@ public partial class CollectionManager : ICollectionService
         var collection = new Collection(
             Name: name,
             Description: description,
-            Provenance: provenance);
+            Provenance: provenance,
+            ClientProvenance: clientProvenance);
+
 
         await _collectionRepository.CreateAsync(collection, ct);
         await _provisioner.EnsureHnswIndexAsync(
@@ -56,6 +60,7 @@ public partial class CollectionManager : ICollectionService
     public async Task<Collection> EnsureAsync(
         string name,
         CollectionProvenance provenance,
+        ClientProvenance clientProvenance,
         string? description = null,
         CancellationToken ct = default)
     {
@@ -63,8 +68,9 @@ public partial class CollectionManager : ICollectionService
         if (existing is not null)
             return existing;
 
-        return await CreateAsync(name, provenance, description, ct);
+        return await CreateAsync(name, provenance, clientProvenance, description, ct);
     }
+
 
     private static void ValidateName(string name)
     {
@@ -74,6 +80,7 @@ public partial class CollectionManager : ICollectionService
             throw new ConfigurationException(
                 $"Collection name '{name}' is invalid: must be alphanumeric or hyphens.");
     }
+
 
     private static void ValidateProvenance(CollectionProvenance provenance)
     {

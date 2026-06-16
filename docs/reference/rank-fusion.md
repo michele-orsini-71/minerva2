@@ -11,7 +11,7 @@ al. 2009), with a few project-specific twists. Code lives in
    and reused across all collections. Per collection, vector and full-text
    search run **in parallel**, producing two ranked lists.
 2. **Per-collection candidate pool** (`SearchCollectionAsync`).
-   ```
+  ```csharp
    candidatePoolSize = TopK * CandidatePoolMultiplier   // default 10 * 5 = 50
    ```
    Both legs are asked for `candidatePoolSize` results. The pool is
@@ -21,7 +21,7 @@ al. 2009), with a few project-specific twists. Code lives in
    "vector-with-FTS-tiebreaks". Oversampling gives RRF room to reward chunks
    that appear in both lists.
 3. **Rank fusion** (`RankFusion.Fuse`).
-   ```
+   ```csharp
    score(chunk) = alpha       * 1 / (k + vectorRank)
                 + (1 - alpha) * 1 / (k + ftsRank)
    ```
@@ -65,7 +65,7 @@ source-to-chunk ratio.
 
 Two ranked lists of 10 items each, `alpha = 0.5`:
 
-```
+```csharp
 vector: ['2','3','4','1','5','6','12','8','9','10']
 fts:    ['1','8','2','3','4','15','6','7','9','10']
 ```

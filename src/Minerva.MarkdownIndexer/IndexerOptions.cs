@@ -6,4 +6,5 @@ public sealed record IndexerOptions
     public required string CollectionName { get; init; }
     public required IReadOnlyList<string> ExcludeDirectories { get; init; }
     public required bool AllowRecreateOnConfigMismatch { get; init; }
+    public required bool AllowSourceRootChange { get; init; }
 }

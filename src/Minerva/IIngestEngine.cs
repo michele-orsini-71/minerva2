@@ -6,6 +6,7 @@ public interface IIngestEngine
 {
     Task<IngestionResult> IngestAsync(
         string collectionName,
+        ClientProvenance clientProvenance,
         IAsyncEnumerable<Document> documents,
         bool allowRecreateOnConfigMismatch = false,
         CancellationToken ct = default);

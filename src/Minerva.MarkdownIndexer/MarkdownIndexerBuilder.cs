@@ -8,6 +8,7 @@ public static class MarkdownIndexerBuilder
     public static Task<MarkdownIndexer> CreateAsync(
         IndexerOptions options,
         IIngestEngine engine,
+        ISearchEngine searchEngine,
         ILoggerFactory loggerFactory,
         CancellationToken ct = default)
     {
@@ -22,8 +23,8 @@ public static class MarkdownIndexerBuilder
         return Task.FromResult(new MarkdownIndexer(
             scanner,
             engine,
-            options.CollectionName,
-            options.AllowRecreateOnConfigMismatch,
+            searchEngine,
+            options,
             loggerFactory.CreateLogger<MarkdownIndexer>()));
     }
 

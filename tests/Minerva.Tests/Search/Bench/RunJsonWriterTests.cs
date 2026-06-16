@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Minerva.Models;
 using Minerva.Search.Bench.Sweep;
+using Minerva.Tests.TestSupport;
 
 namespace Minerva.Tests.Search.Bench;
 
@@ -9,6 +11,10 @@ public class RunJsonWriterTests
 {
     private static readonly DateTimeOffset Timestamp =
         new(2026, 6, 5, 14, 30, 22, TimeSpan.Zero);
+
+    private static readonly Collection TestCollection = new(
+        "personal-notes-v1", null, TestOptions.Provenance(),
+        new ClientProvenance("test-client", new Dictionary<string, object>()));
 
     private static SweepConfig Config() => new()
     {
@@ -28,7 +34,7 @@ public class RunJsonWriterTests
         var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
         try
         {
-            RunJsonWriter.Write(path, Timestamp, "0.1.0+test", config, cells);
+            RunJsonWriter.Write(path, Timestamp, "0.1.0+test", config, cells, TestCollection);
             return JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
         }
         finally
@@ -70,7 +76,7 @@ public class RunJsonWriterTests
         var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
         try
         {
-            RunJsonWriter.Write(path, Timestamp, "0.1.0+abc1234", config, cells);
+            RunJsonWriter.Write(path, Timestamp, "0.1.0+abc1234", config, cells, TestCollection);
             var raw = File.ReadAllText(path);
 
             Assert.Contains("0.1.0+abc1234", raw);

@@ -112,24 +112,30 @@ public class PostgresCollectionRepository : ICollectionRepository
                 ?? throw new InvalidOperationException(
                     $"Collection '{reader.GetString(0)}' has unreadable metadata.");
 
+            if (bag.Client is null || bag.Provenance is null)
+            {
+                throw new InvalidOperationException(
+                    $"Collection '{reader.GetString(0)}' has incomplete metadata; recreate it");
+            }
+
             return new Collection(
                 Name: reader.GetString(0),
                 Description: reader.IsDBNull(1) ? null : reader.GetString(1),
                 Provenance: bag.Provenance,
-                Client: bag.Client,
+                ClientProvenance: bag.Client,
                 CreatedAt: reader.GetFieldValue<DateTimeOffset>(3),
                 LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(4));
         }
         catch (Exception ex) when (ex is InvalidCastException or ArgumentNullException or JsonException)
         {
             throw new InvalidOperationException(
-                $"Collection '{reader.GetString(0)}' has malformed or unreadable metadata.");
+                $"Collection '{reader.GetString(0)}' has malformed or unreadable metadata.", ex);
         }
     }
 
     private static void AddMetadataParameter(NpgsqlCommand cmd, string name, Collection collection)
     {
-        var bag = new MetadataBag(collection.Provenance, collection.Client);
+        var bag = new MetadataBag(collection.Provenance, collection.ClientProvenance);
         var param = new NpgsqlParameter(name, NpgsqlDbType.Jsonb)
         {
             Value = JsonSerializer.Serialize(bag, MetadataJsonOptions),
@@ -139,5 +145,5 @@ public class PostgresCollectionRepository : ICollectionRepository
 
     private sealed record MetadataBag(
         CollectionProvenance Provenance,
-        Dictionary<string, object>? Client);
+        ClientProvenance Client);
 }

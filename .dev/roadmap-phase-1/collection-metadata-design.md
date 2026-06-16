@@ -76,12 +76,18 @@ and `embedding_dimension` columns are dropped and fold into `provenance`.
   },
   "client": {
     "kind": "markdown-indexer",
-    "sourceRoot": "/home/user/vault",
-    "includeGlobs": ["**/*.md"],
-    "excludeGlobs": ["**/archive/**"]
+    "data": {
+      "sourceRoot": "/home/user/vault"
+    }
   }
 }
 ```
+
+> Implemented shape (slice E): the `client` section is a typed
+> `ClientProvenance(kind, data)` record, not a flat object. `kind` is a mandatory
+> envelope field; everything front-end-specific lives in the opaque `data` map.
+> The markdown indexer currently writes only `sourceRoot` into `data`; globs are
+> "free" (not stored).
 
 ### `provenance.invariants` — guarded, drift is a hard error
 
@@ -116,11 +122,14 @@ field.
 
 | Key | Type | Notes |
 |-----|------|-------|
-| `kind` | string | Discriminator, so multiple front-end types are distinguishable (`"markdown-indexer"`, later `"mcp"`, `"obsidian"`). |
-| (front-end fields) | any | Whatever the front-end writes. For the markdown indexer, see the indexer section at the end. |
+| `kind` | string | Mandatory discriminator (`"markdown-indexer"`, later `"mcp"`, `"obsidian"`). |
+| `data` | map | Opaque to core. Front-end fields; for the markdown indexer see the indexer section. |
 
-Core reads and writes this section as an opaque blob and never inspects its
-contents.
+Core enforces only that `kind` is present (the envelope contract) and never
+inspects `data`. A read-time boundary guard in `ReadCollection` rejects a
+collection whose `client` (or `provenance`) section is missing, so the
+non-nullable model is honest for every downstream reader. The client-envelope
+`version` stamp is deferred to `docs/future/backlog.md`.
 
 ### Excluded — never stored
 

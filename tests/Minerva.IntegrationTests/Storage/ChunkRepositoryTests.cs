@@ -26,7 +26,8 @@ public class ChunkRepositoryTests : IAsyncLifetime
     {
         await _fixture.CleanupAsync(honorDisableFlag: false);
         await _collRepo.CreateAsync(new Collection(CollectionName, null,
-            TestProvenance.Create(embeddingModel: "test-model", embeddingDimension: Dimension)));
+            TestProvenance.Create(embeddingModel: "test-model", embeddingDimension: Dimension),
+            TestProvenance.Client()));
         await _fixture.SchemaInitializer.EnsureHnswIndexAsync(CollectionName, Dimension);
     }
 

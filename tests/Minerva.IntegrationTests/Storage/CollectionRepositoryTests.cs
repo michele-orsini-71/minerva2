@@ -36,7 +36,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
             contextualizerPromptVersion: "1",
             ingestorVersion: "0.1.0+abc1234",
             schemaVersion: "003_collection_provenance");
-        var collection = new Collection("test-coll", "A test collection", provenance);
+        var collection = new Collection("test-coll", "A test collection", provenance, TestProvenance.Client());
 
         await _repo.CreateAsync(collection);
         var retrieved = await _repo.GetAsync("test-coll");
@@ -71,7 +71,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
         var provenance = TestProvenance.Create(
             embeddingModel: "bge-m3", embeddingDimension: 1024,
             contextualizationEnabled: false);
-        await _repo.CreateAsync(new Collection("no-ctx", null, provenance));
+        await _repo.CreateAsync(new Collection("no-ctx", null, provenance, TestProvenance.Client()));
 
         var retrieved = await _repo.GetAsync("no-ctx");
 
@@ -94,9 +94,9 @@ public class CollectionRepositoryTests : IAsyncLifetime
     public async Task List_ReturnsAllCollections()
     {
         await _repo.CreateAsync(new Collection("coll-a", null,
-            TestProvenance.Create(embeddingModel: "model-a", embeddingDimension: 768)));
+            TestProvenance.Create(embeddingModel: "model-a", embeddingDimension: 768), TestProvenance.Client()));
         await _repo.CreateAsync(new Collection("coll-b", null,
-            TestProvenance.Create(embeddingModel: "model-b", embeddingDimension: 1536)));
+            TestProvenance.Create(embeddingModel: "model-b", embeddingDimension: 1536), TestProvenance.Client()));
 
         var list = await _repo.ListAsync();
 
@@ -109,10 +109,10 @@ public class CollectionRepositoryTests : IAsyncLifetime
     public async Task Update_ChangesFields()
     {
         await _repo.CreateAsync(new Collection("update-coll", "old desc",
-            TestProvenance.Create(embeddingModel: "model", embeddingDimension: 768)));
+            TestProvenance.Create(embeddingModel: "model", embeddingDimension: 768), TestProvenance.Client()));
 
         var updated = new Collection("update-coll", "new desc",
-            TestProvenance.Create(embeddingModel: "model-v2", embeddingDimension: 1024));
+            TestProvenance.Create(embeddingModel: "model-v2", embeddingDimension: 1024), TestProvenance.Client());
         await _repo.UpdateAsync(updated);
 
         var retrieved = await _repo.GetAsync("update-coll");
@@ -126,7 +126,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
     public async Task Delete_RemovesCollection()
     {
         await _repo.CreateAsync(new Collection("delete-coll", null,
-            TestProvenance.Create(embeddingModel: "model", embeddingDimension: 768)));
+            TestProvenance.Create(embeddingModel: "model", embeddingDimension: 768), TestProvenance.Client()));
         await _repo.DeleteAsync("delete-coll");
 
         var result = await _repo.GetAsync("delete-coll");
@@ -136,20 +136,17 @@ public class CollectionRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ClientSection_RoundTrips_AsJsonb()
     {
-        var client = new Dictionary<string, object>
-        {
-            ["kind"] = "markdown-indexer",
-            ["sourceRoot"] = "/home/user/vault",
-        };
+        var client = new ClientProvenance(
+            "markdown-indexer",
+            new Dictionary<string, object> { ["sourceRoot"] = "/home/user/vault" });
         var collection = new Collection("client-coll", null,
-            TestProvenance.Create(), Client: client);
+            TestProvenance.Create(), client);
 
         await _repo.CreateAsync(collection);
         var retrieved = await _repo.GetAsync("client-coll");
 
         Assert.NotNull(retrieved);
-        Assert.NotNull(retrieved.Client);
-        Assert.Equal("markdown-indexer", retrieved.Client["kind"].ToString());
-        Assert.Equal("/home/user/vault", retrieved.Client["sourceRoot"].ToString());
+        Assert.Equal("markdown-indexer", retrieved.ClientProvenance.kind);
+        Assert.Equal("/home/user/vault", retrieved.ClientProvenance.data["sourceRoot"].ToString());
     }
 }

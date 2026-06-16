@@ -55,18 +55,27 @@ Core line A → B → C → D; E hangs off A and does not block the Wikipedia in
   indexer, and tests.
   *Verify:* `CollectionProvenanceE2ETests` — changed chunk size throws naming
   the drifted field; the override flag recreates.
-- `[ ]` **D — Bench tier-2 provenance.** The run-json writer fetches the
+- `[x]` **D — Bench tier-2 provenance.** The run-json writer fetches the
   collection under test and stamps its provenance into `run.json`.
   *Verify:* a sweep produces `run.json` carrying the provenance block.
-- `[ ]` **E — Indexer client metadata + soft path guard.** Indexer writes its
+  Confirmed by a manual sweep against `mynotes-nollm`.
+- `[x]` **E — Indexer client metadata + soft path guard.** Indexer writes its
   `client` section and, on reingest, applies its own policy (`kind` critical,
-  `sourceRoot` overridable, globs free). Also re-wire `ValidateNoLiteralApiKeys`
-  (kept dormant in B/C) to guard the client section, and restore its two tests
-  (`*MetadataContainsLiteralApiKey*`, `*MetadataWithNonKeyStrings*`), which were
-  removed when `CreateAsync` lost its `metadata` parameter.
-  *Verify:* changed source root warns/blocks; override proceeds; a literal API
-  key in the client section is rejected.
-- `[ ]` **F - Manual run** Perform a debug step by step run of ingestion and update to verify every step manually
+  `sourceRoot` overridable, globs free, missing/foreign provenance rejected).
+  `ValidateNoLiteralApiKeys` re-wired to guard the client `data`, and its two
+  tests restored (`*ClientDataContainsLiteralApiKey*`, `*ClientDataWithNonKeyStrings*`).
+  The `client` section is a typed `ClientProvenance(kind, data)` record: core
+  mandates `kind` (envelope contract) and treats `data` as opaque. A read-time
+  boundary guard in `ReadCollection` rejects incomplete metadata (a collection
+  ingested before this slice has no client section and now fails fast on read).
+  *Verify:* the literal-API-key rejection is covered by unit tests. The
+  source-root automated verifies (changed root blocks; override proceeds) are
+  **deferred to the backlog** — they need an indexer test project; see
+  `docs/future/backlog.md`. Guard behaviour confirmed manually.
+- `[~]` **F — Manual run.** Debug step-by-step run to verify every stage.
+  Bench search path + `run.json` provenance confirmed against `mynotes-nollm`.
+  Remaining: reingest `mynotes-nollm` under the slice-E indexer so it carries a
+  client section (it predates E, so the read-boundary guard now rejects it).
 
 ## Decisions deferred to their slice
 
@@ -76,12 +85,22 @@ Core line A → B → C → D; E hangs off A and does not block the Wikipedia in
   guards *and* recreates, gated by the flag) vs front-end (core pure always-throw
   guard, each indexer catches and decides). Parked in `docs/future/backlog.md`;
   does not affect the collection format.
-- **(E)** Whether the indexer's path guard reuses the core override flag or adds
-  its own. Proposed default: a separate `AllowSourceRootChange`, mirroring the
-  existing opt-in pattern.
+- **(E)** ~~Whether the indexer's path guard reuses the core override flag or adds
+  its own.~~ Resolved: a separate `AllowSourceRootChange` flag, mirroring
+  `AllowRecreateOnConfigMismatch` (validated for presence in the indexer binder).
+- **(future, no slice)** Client-envelope schema versioning — stamp a `version`
+  before deploy, defer the handler. Recorded in `docs/future/backlog.md`.
 
 ## Current status
 
-A/B/C complete and verified: whole solution builds, 248 tests pass (215 unit,
-22 integration, 11 architecture). The A/B/C verifies are written and green.
-Next action: slice D (bench tier-2 provenance).
+A–E complete: whole solution builds, 253 tests pass (220 unit, 22 integration,
+11 architecture). D verified by a manual sweep; E's literal-API-key verify is
+green, its source-root verifies are deferred to the backlog (no indexer test
+project yet). Slice F is in progress — bench search and `run.json` provenance
+confirmed; the only remaining step is the manual reingest of `mynotes-nollm`
+(a runtime action, not a code change).
+
+Three pre-deploy follow-ups are parked in `docs/future/backlog.md`: a
+`MarkdownIndexerException`/`CollectionMetadataException` family for clean error
+reporting, the indexer source-root guard tests, and the client-envelope
+`version` stamp.
