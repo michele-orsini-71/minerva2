@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | `IEmbeddingDimensionProvider` interface + provider implementation | ⬜ Not Started |
 | **2** | Switch runtime caller; delete dead injection | ⬜ Not Started |
 | **3** | Unit tests (cancellation-poisoning, failure-caching, success-caching) | ⬜ Not Started |
@@ -105,14 +105,14 @@ Test cases:
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Embedding/IEmbeddingDimensionProvider.cs` | Single-method interface |
 | `tests/Minerva.UnitTests/Embedding/EmbeddingDimensionProviderTests.cs` | Concurrency / cancellation / failure-caching tests |
 
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Embedding/OpenAICompatibleEmbeddingProvider.cs` | Implement `IEmbeddingDimensionProvider`; `Lazy<Task<int>>` field with `CT.None` factory; private `ProbeDimensionCoreAsync` calling `_client` directly (bypass Polly + RateLimiter); translate SDK exceptions to `ProviderUnavailableException` |
 | `src/Minerva/DI/ServiceCollectionExtensions.cs` | Register the same provider instance under `IEmbeddingDimensionProvider` (forwarding registration) |
 | `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` | Delete `ProbeEmbeddingDimensionAsync`; remove `IEmbeddingGenerator` ctor parameter; inject `IEmbeddingDimensionProvider`; switch caller to `GetDimensionAsync(ct)` |
@@ -120,7 +120,7 @@ Test cases:
 ### Deleted
 
 | Element | Reason |
-|---------|--------|
+| --------- | -------- |
 | `MarkdownSyncService.ProbeEmbeddingDimensionAsync` (method body) | Replaced by `IEmbeddingDimensionProvider.GetDimensionAsync` |
 | `MarkdownSyncService` constructor parameter `IEmbeddingGenerator<string, Embedding<float>>` | Was never registered in DI (latent bug); no longer needed |
 

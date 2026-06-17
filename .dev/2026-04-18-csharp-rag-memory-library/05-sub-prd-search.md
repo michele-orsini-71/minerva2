@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create VectorSearch | ✅ Complete |
 | **2** | Create FullTextSearch | ✅ Complete |
 | **3** | Create RankFusion | ✅ Complete |
@@ -90,7 +90,7 @@ public static class RankFusion
 ```
 
 RRF formula per chunk:
-```
+```text
 score = alpha * (1 / (k + vector_rank)) + (1 - alpha) * (1 / (k + fts_rank))
 ```
 
@@ -179,7 +179,7 @@ For multi-collection search, fuse results per collection first, then merge acros
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Search/VectorSearch.cs` | pgvector cosine distance query |
 | `src/Minerva/Search/FullTextSearch.cs` | PostgreSQL ts_rank full-text query |
 | `src/Minerva/Search/RankFusion.cs` | Reciprocal Rank Fusion merge |

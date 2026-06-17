@@ -1,11 +1,11 @@
 # Eval harness considerations
 
- > let's talk about the eval harness what is the general idea that arrives from this article? https://www.anthropic.com/engineering/contextual-retrieval
+ > let's talk about the eval harness what is the general idea that arrives from this article? [contextual-retrieval article](https://www.anthropic.com/engineering/contextual-retrieval)
 > - I have one or more collections (my notes and for example some wikipedia subsets, I have kiwix zim files, the 100 most popular articles, all wikipedia history ...)
 > - I set pairs of query and a list of hits (maybe I also need the the perfect hit). What are hits? the article or the chunks, I suspect the original anthropic article mentions the chunk, this is what is returned by the retriever (all that dedup reasoning made me think so, do they use document and chunk interchangeably?)
 > - run the queries and calculate context recall and context retrieval
 
-#### Chunk vs. document — what the Anthropic article actually does
+## Chunk vs. document — what the Anthropic article actually does
 
 You're right to suspect they use the terms loosely. Looking at how their eval is described:
 
@@ -22,7 +22,7 @@ But here's the catch: **chunk-level ground truth is annoying to build and brittl
 
 This is robust across re-chunking and re-indexing. You only need chunk-level ground truth if you care about pinpointing the _specific_ paragraph, which matters for some specialized use cases but probably not yours.
 
-#### Recommended ground-truth schema
+## Recommended ground-truth schema
 
 Something like:
 
@@ -46,7 +46,7 @@ json
 
 A query can have **multiple** gold sources — sometimes the answer genuinely requires synthesizing across documents.
 
-#### Metrics — what to actually compute
+## Metrics — what to actually compute
 
 You mentioned "context recall and context retrieval". Slight terminology cleanup, since RAG eval has a confusing vocabulary:
 
@@ -63,9 +63,9 @@ You mentioned "context recall and context retrieval". Slight terminology cleanup
 
 **My suggestion**: start with **Recall@K** (for K = 5, 10, 20) and **MRR@10**. Two numbers, deterministic, fast, no LLM in the loop. They'll tell you 90% of what you need for Phases 2–6.
 
-#### The harness itself — minimum viable shape
+## The harness itself — minimum viable shape
 
-```
+```text
 eval/
   datasets/
     personal-notes-v1.jsonl       # one query per line
@@ -90,7 +90,7 @@ eval/
 - **Per-stage logging** within a query — after semantic search, after BM25, after RRF, after rerank — so a regression can be localized to the right stage.
 - **Deterministic** where possible. Fix embedding model version, fix reranker version, fix the random seed if anything stochastic is involved. Otherwise reruns of "the same" pipeline differ, and you can't tell change from noise.
 
-#### Building the datasets — practical tips
+## Building the datasets — practical tips
 
 This is the part everyone underestimates:
 
@@ -101,7 +101,7 @@ This is the part everyone underestimates:
 - **LLM-assisted authoring**: Claude can read a document and generate plausible queries + gold spans. Useful for bulk, but **review every one** — LLM-generated queries are often too on-the-nose (vocabulary mirrors the doc, so retrieval is artificially easy).
 - **Wikipedia subsets are great for this** because the corpus is public, you can share/discuss queries without leaking personal info, and answers are checkable.
 
-#### Two collections, two ground-truth files
+## Two collections, two ground-truth files
 
 You mentioned multiple collections — personal notes, Wikipedia subsets. These should be **separate eval datasets**, run independently. Reasons:
 
@@ -109,7 +109,7 @@ You mentioned multiple collections — personal notes, Wikipedia subsets. These 
 - Personal notes and Wikipedia have very different characteristics — Wikipedia is well-structured, your notes are more idiosyncratic. Conflating them hides where problems live.
 - Running them separately lets you see if a change that helps Wikipedia hurts your notes (very possible).
 
-#### What to defer
+## What to defer
 
 Don't build these in v1:
 
@@ -118,7 +118,7 @@ Don't build these in v1:
 - **Auto-generated query banks at scale**. Start hand-curated; you'll have better insight into why things fail.
 - **Statistical significance testing**. With 30 queries the variance is high; just look at the per-query diffs.
 
-#### To recap your mental model
+## To recap your mental model
 
 - Ground truth: **`(query, gold_source_ids)`** pairs. Source-level, not chunk-level — survives re-chunking.
 - Metric: **Recall@K** plus **MRR@10**, computed by checking if retrieved chunks come from gold sources.
@@ -127,8 +127,7 @@ Don't build these in v1:
 
 When you actually start building, the order I'd suggest: write 5 queries by hand → write the dumbest possible runner that computes Recall@10 for those 5 → confirm it produces sane numbers on Phase 0 → _then_ expand the dataset and add metrics. You'll find a dozen small issues (path handling, source ID normalization, what counts as a "hit") that are much cheaper to fix at 5 queries than at 50.
 
-
-#### How will you understand improvements/worsenings?
+## How will you understand improvements/worsenings?
 
 The honest answer is: you don't get **statistical certainty** at this sample size — you get **informed engineering judgment**, supported by data. Here's the workflow:
 
@@ -144,7 +143,7 @@ After each phase, compute Recall@5/10/20 and MRR@10 across the whole eval set ag
 
 The aggregate tells you _whether_ things moved. The per-query diff tells you _whether you like how they moved_. A made-up example for a Phase 2 reranker comparison:
 
-```
+```text
 Improved (rank went up or newly hit):  21 queries
 Regressed (rank went down or lost):     3 queries
 Unchanged:                              6 queries

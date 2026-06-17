@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create RateLimiter | ✅ Complete |
 | **2** | Create OpenAICompatibleEmbeddingProvider | ✅ Complete |
 | **3** | Create OpenAICompatibleLlmProvider | ✅ Complete |
@@ -138,7 +138,7 @@ public class ProviderFactory
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Providers/RateLimiter.cs` | Sliding-window token bucket with concurrency control |
 | `src/Minerva/Providers/OpenAICompatibleEmbeddingProvider.cs` | IEmbeddingGenerator with L2 norm + Polly retry |
 | `src/Minerva/Providers/OpenAICompatibleLlmProvider.cs` | IChatClient with rate limit + Polly retry |

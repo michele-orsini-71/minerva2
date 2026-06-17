@@ -15,14 +15,19 @@ and `<collection>` must be replaced before running.
 
 Connect as a PostgreSQL superuser (e.g. `postgres`) and run:
 
-1. [create-minerva-role.sql](create-minerva-role.sql) — create the `minerva` login role. Replace `<password>`.
-2. [create-database-minerva.sql](create-database-minerva.sql) — create the `minerva` database owned by that role.
+1. [create-minerva-role.sql](create-minerva-role.sql) — create the `minerva`
+   login role. Replace `<password>`.
+2. [create-database-minerva.sql](create-database-minerva.sql) — create the
+   `minerva` database owned by that role.
 3. Reconnect to the `minerva` database, then:
-4. [create-vector-extension.sql](create-vector-extension.sql) — install the `pgvector` extension.
-5. [verify-vector-extension.sql](verify-vector-extension.sql) — confirm `vector` is installed.
+4. [create-vector-extension.sql](create-vector-extension.sql) — install the
+   `pgvector` extension.
+5. [verify-vector-extension.sql](verify-vector-extension.sql) — confirm `vector`
+   is installed.
 
-If step 4 fails, run [find-available-extensions.sql](find-available-extensions.sql)
-to check whether `pgvector` is available on the server at all.
+If step 4 fails, run
+[find-available-extensions.sql](find-available-extensions.sql) to check whether
+`pgvector` is available on the server at all.
 
 ## Diagnostics
 
@@ -32,12 +37,14 @@ to check whether `pgvector` is available on the server at all.
 
 ## Analytics on the `chunks` table
 
-- [Per-collection size and column breakdown.sql](Per-collection%20size%20and%20column%20breakdown.sql)
-  — total bytes per column (content, contextual prefix, embedding, FTS vector)
-  grouped by collection.
-- [Average prefix overhead per chunk.sql](Average%20prefix%20overhead%20per%20chunk.sql)
-  — average size of `contextual_prefix` vs. `content`, as an absolute value and
-  as a percentage. Helpful when tuning contextual chunking.
+- [Per-collection size and column
+  breakdown.sql](Per-collection%20size%20and%20column%20breakdown.sql) — total
+  bytes per column (content, contextual prefix, embedding, FTS vector) grouped
+  by collection.
+- [Average prefix overhead per
+  chunk.sql](Average%20prefix%20overhead%20per%20chunk.sql) — average size of
+  `contextual_prefix` vs. `content`, as an absolute value and as a percentage.
+  Helpful when tuning contextual chunking.
 
 ## Maintenance
 

@@ -31,9 +31,9 @@ problem.
 
 **Done when:** a hand-written JSONL with ~3 queries, validated against
 an existing local collection passed via `--collection`, passes; a
-deliberately broken entry produces a clear error. 
+deliberately broken entry produces a clear error.
 
-### Resolved decisions
+### Resolved decisions 2
 
 - **CLI signature:** `minerva-bench validate-dataset <jsonl-path> --collection <name>`. Both required.
 - **Composition root:** reuse `MinervaSearchBuilder.CreateAsync` exactly as Cli does. No leaner builder. The search-side preflight (DB + embedding) runs even on `validate-dataset` — acceptable cost.
@@ -63,7 +63,7 @@ at one cell than at nine.
 produces well-shaped output files, and a notebook can open `metrics.csv`
 with pandas without manual fixing.
 
-### Resolved decisions
+### Resolved decisions 1
 
 - **CLI signature:** `minerva-bench run --sweep <toml-path> --out <dir>`. Both required. `--out` is the parent directory; the bench mints a dated leaf inside it (e.g. `<out>/2026-05-25T14-30-22_<dataset-slug>/`).
 - **Sweep TOML shape:** every knob lives in `[matrix]` as a list, even singletons. snake_case names. 1B's degenerate case is single-element lists; 1C lengthens them with no parser change.

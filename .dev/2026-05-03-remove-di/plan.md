@@ -8,14 +8,13 @@ We have to keep in mind that most of the code is already written, but it must be
 
 **IMPORTANT** The AI Agent is mostly assisting and suggesting, writing code only if and when the user asks.
 
-
 - we'll start from Minerva Library and then we'll move to Minerva.MarkdownWatcher and finally we'll fix tests
 - previously, Minerva had a instance creation phase through extensions and then the code inside startAsync method was executed (which performs migrations and initializes db schema)
 - instead, we need to: instantiate the classes, verify options somehow and then start with the operations in startAsync
 
 ## Phase one: remove DI from MinervaEngine
 
-### Strategy that preserves CALA:
+### Strategy that preserves CALA
 
 - MinervaBuilder.CreateMinerva(options) async operation
 - creates every services Minerva needs and pass options - we should not forget to create the logging service first, with MS Hosting this is granted for free
@@ -64,7 +63,7 @@ catch (MinervaStartupException ex)
 
 #### Old code
 
-old code is in .dev/remove-di/old so we have a clean dashboard, we are moving the classes back to their place one by one 
+old code is in .dev/remove-di/old so we have a clean dashboard, we are moving the classes back to their place one by one
 
 #### MinervaOptions
 
@@ -81,10 +80,11 @@ logger is injected from the callee because every client will have their preferen
 #### Creation problems
 
 1. Options shape (e.g. malformed URL, bad connection string format)
-  - These are pure-data validation. Discoverable without I/O
-  - Make these checks before any contruction with non throwing checks
-2. Environmental (e.g. DB unreachable, /embeddings returns 401, pg_vector not installed)
-  - Belong in Phase 3 (preflight), on the constructed service
+- These are pure-data validation. Discoverable without I/O
+- Make these checks before any contruction with non throwing checks
+
+1. Environmental (e.g. DB unreachable, /embeddings returns 401, pg_vector not installed)
+- Belong in Phase 3 (preflight), on the constructed service
 
 (3. then there will be runtime exceptions, out of scope)
 
@@ -163,11 +163,11 @@ Task<PreflightFailure?> CheckCompatibilityAsync(string collectionName, Cancellat
 
 Compatibility rule (used both in client preflight and the runtime guardrail above):
 
-| stored                     | configured | result                     |
-|----------------------------|------------|----------------------------|
-| collection does not exist  |     —      | ok (will create on start)  |
-| model and dim both match   |     —      | ok (update path)           |
-| anything else              |     —      | mismatch                   |
+| stored | configured | result |
+| ---------------------------- | ------------ | ---------------------------- |
+| collection does not exist | — | ok (will create on start) |
+| model and dim both match | — | ok (update path) |
+| anything else | — | mismatch |
 
 Why both `model` and `dim`: model name is the primary identity, but Matryoshka-style truncation (OpenAI v3's `dimensions` parameter) lets the same model name produce different output sizes; self-hosted setups can also swap a file behind the same name. Cost is one integer comparison on a row already fetched.
 

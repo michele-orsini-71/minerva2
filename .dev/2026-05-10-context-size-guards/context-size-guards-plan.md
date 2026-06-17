@@ -11,7 +11,7 @@ The crash confirmed in the design notes (`it/2025-09 MacTree.md`, 176k chars, si
 Order of execution: **3 → 2 → 1 → 4** from the design notes, renamed below as **Phases A → B → C → D**.
 
 | Phase | Maps to design step | Fixes today's crash? | Adds resilience for… |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | A | Step 3 (unify segmenter+chunker) | **Yes** | Future headerless / single-heading docs |
 | B | Step 2 (token→char budget) | Tightens it | Operator-supplied ceiling honesty |
 | C | Step 1 (preflight context length) | Automates B | Stops guessing model context |
@@ -61,7 +61,7 @@ These are architectural choices (per global CLAUDE.md, "Do not introduce new cla
 
 ### The formula
 
-```
+```text
 MaxInputChars = (MaxContextTokens − ReservedTokens) × CharsPerToken × SafetyFactor
 ```
 
@@ -75,13 +75,13 @@ Reasonable defaults from the design notes:
 
 With `MaxContextTokens=4096, Reserved=512, CharsPerToken=3.0, Safety=0.9`:
 
-```
+```text
 MaxInputChars = (4096 − 512) × 3.0 × 0.9 = 9676.8 → 9676
 ```
 
 Plug those numbers into `appsettings.qwen2-5-test.json` and re-run `run-obsidian-indexing-test-3-qwen2-5-test.sh`. MacTree.md must succeed (it failed before with a 4k-loaded context).
 
-### Decisions (resolved 2026-05-09)
+### Decisions D-B (resolved 2026-05-09)
 
 - **D-B1 — settled:** new `ContextBudgetOptions` record as a `required` sub-option of `ChunkingOptions` (same nesting pattern as the existing `Llm` sub-option). `MaxSegmentChars` is removed entirely from `ChunkingOptions` and from every `appsettings*.json`; `ContextBudget` is the only way to express the LLM-bound budget.
 - **D-B2 — settled:** embedder-side automation skipped. `TargetChunkSize` stays as a fixed int. BGE-M3's 8192-token ceiling is an order of magnitude above today's 1200-char chunks; automating gains nothing now and adds config surface.
@@ -101,14 +101,14 @@ Plug those numbers into `appsettings.qwen2-5-test.json` and re-run `run-obsidian
 ### Server matrix
 
 | Server | Endpoint | Field read (loaded only) |
-|---|---|---|
+| --- | --- | --- |
 | LM Studio | `GET /api/v0/models` | `data[i].loaded_context_length` (matched by `id`) |
 | Ollama | `POST /api/show` | `num_ctx` line in the `parameters` string |
 | llama.cpp | `GET /props` | `default_generation_settings.n_ctx`, falls back to top-level `n_ctx` |
 
 Only "loaded" fields are read. `max_context_length` (capability) is deliberately ignored — a model that *can* hold 32k may be loaded at 2k, and validating against capability would silently pass configurations that crash at runtime. vLLM is deferred (its `max_model_len` is capability, not loaded).
 
-### Decisions (resolved 2026-05-09)
+### Decisions D-C (resolved 2026-05-09)
 
 - **D-C1 — settled:** LM Studio + Ollama + llama.cpp. No `IContextLengthProbe` interface introduced — engine selection is a `ContextLengthProbe` enum on `LlmProviderOptions`, dispatch is a `switch` inside the provider. vLLM and any other engine is reachable via `ContextLengthProbe.None` (no probe attempted).
 - **D-C2 — settled:** soft-fall-through. Probe HTTP failure or unrecognized response shape → `Warning` log + preflight passes. The probe is a safety check, not the source of truth; the operator's configured value remains the ceiling. Probe success but `loaded < configured` → `PreflightFailure` (hard fail).
@@ -140,7 +140,7 @@ New required field on `LlmProviderOptions`:
   6. `loaded >= configured` → `Information` log "OK" → return null.
 - `MinervaBuilder.RunPreflightAsync` reads `options.Chunking.ContextBudget.MaxContextTokens` and passes it in alongside an `ILogger<OpenAICompatibleLlmProvider>` from the configured factory.
 
-### Verification
+### Phase C Verification
 
 Unit-tested in [tests/Minerva.Tests/Providers/ContextLengthProbeTests.cs](../../tests/Minerva.Tests/Providers/ContextLengthProbeTests.cs):
 
@@ -152,7 +152,7 @@ Unit-tested in [tests/Minerva.Tests/Providers/ContextLengthProbeTests.cs](../../
 
 Live verification: run against LM Studio with qwen2.5 loaded at 4096 context, configured `MaxContextTokens: 4096`. Expect:
 
-```
+```text
 info: Minerva.Providers.OpenAICompatibleLlmProvider
       LLM context-length probe (LMStudio) reports loaded=4096 tokens; configured MaxContextTokens=4096. OK.
 ```
@@ -174,7 +174,7 @@ Reduce LM Studio's loaded context to 2048, restart Minerva. Expect `MinervaStart
 
 - **In-process tokenizers** (Microsoft.ML.Tokenizers, vocab files, etc.). That's the "real project, weeks" path. Not on this plan.
 
-### Verification
+### Phase D Verification
 
 Synthetic test: feed a 100k-char base64 blob (worst-case char↔token ratio) through ingestion against a 4k-context model. Expect a structured `IngestionException` with all four fields — not a stack trace.
 

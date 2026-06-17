@@ -67,11 +67,11 @@ exploratory chats. Low confidence by design — revisit before acting.
   rather than chunks is a useful variant.
 - **Feature parity with the original (Python) Minerva** — collect the v1
   commands (`index`, `serve`, `serve-http`, `peek`, `remove`, `validate`,
-  `query`, `keychain`; and `minerva-kb`: `add/list/status/sync/watch/remove/serve`)
-  and decide which still make sense for v2. Many (`peek`, `remove`) become thin
-  wrappers; `validate` is obsolete. Open question: unify into a
-  `MinervaServices` facade vs keep thin, unopinionated wrappers (it is open
-  source — a user can fork).
+  `query`, `keychain`; and `minerva-kb`:
+  `add/list/status/sync/watch/remove/serve`) and decide which still make sense
+  for v2. Many (`peek`, `remove`) become thin wrappers; `validate` is obsolete.
+  Open question: unify into a `MinervaServices` facade vs keep thin,
+  unopinionated wrappers (it is open source — a user can fork).
 - **Watcher orchestration GUI** — a tool to fire, configure, and monitor
   multiple watchers; deferred. Preflight is already a library capability any
   client can reuse.
@@ -95,58 +95,59 @@ exploratory chats. Low confidence by design — revisit before acting.
   anytime. Decide together with the review of previous (Python) Minerva
   behaviour, which is still pending.
 - **Client-provenance schema versioning — stamp now, handle later.** The client
-  bag (`kind` + opaque `data`) may change shape as new drivers and fields arrive.
-  Versioning splits into two parts with different deadlines. The *stamp* — a
-  monotonic `version` integer carried in the client envelope alongside `kind` —
-  is the only part that must be in place *before the first real ingest*, because
-  a discriminator cannot be added to already-written rows without a migration.
-  Without it, a later version cannot tell old data apart, and a rolled-back older
-  binary cannot detect that it is reading newer data. The *handler* — comparing
-  the version, branching, migrating, or throwing — is deferred: it needs a real
-  second shape to be written against, so building it now is migration code for a
-  migration that does not exist. Two qualifiers keep this from over-building: (1)
-  `ingestorVersion` (the git SHA in the last-run block) already records *which
-  code* wrote a bag, just not a comparable schema number, so a dedicated integer
-  is justified only if monotone comparison is actually wanted; (2) additive
-  changes (a new optional field) are better absorbed by a *tolerant reader*
-  (ignore unknown keys, tolerate missing ones) than by a version gate — reserve
-  the gate for breaking changes (renamed, removed, or re-meant fields). Scale
-  context: minerva2 is single-user, one ingestor binary at a time, one database,
-  so there is no concurrent-version fleet; the only real axes are a new binary
-  reading old data and a rollback reading newer data. Minimum decision to lock
-  before deploy: every client bag carries `version = 1`; no comparison, no
-  exception, no migration code yet. (Surfaced while building slice E; a version
-  *check* was prototyped in `MarkdownIndexer.RunAsync` and rolled back as
-  premature.)
+  bag (`kind` + opaque `data`) may change shape as new drivers and fields
+  arrive. Versioning splits into two parts with different deadlines. The *stamp*
+  — a monotonic `version` integer carried in the client envelope alongside
+  `kind` — is the only part that must be in place *before the first real
+  ingest*, because a discriminator cannot be added to already-written rows
+  without a migration. Without it, a later version cannot tell old data apart,
+  and a rolled-back older binary cannot detect that it is reading newer data.
+  The *handler* — comparing the version, branching, migrating, or throwing — is
+  deferred: it needs a real second shape to be written against, so building it
+  now is migration code for a migration that does not exist. Two qualifiers keep
+  this from over-building: (1) `ingestorVersion` (the git SHA in the last-run
+  block) already records *which code* wrote a bag, just not a comparable schema
+  number, so a dedicated integer is justified only if monotone comparison is
+  actually wanted; (2) additive changes (a new optional field) are better
+  absorbed by a *tolerant reader* (ignore unknown keys, tolerate missing ones)
+  than by a version gate — reserve the gate for breaking changes (renamed,
+  removed, or re-meant fields). Scale context: minerva2 is single-user, one
+  ingestor binary at a time, one database, so there is no concurrent-version
+  fleet; the only real axes are a new binary reading old data and a rollback
+  reading newer data. Minimum decision to lock before deploy: every client bag
+  carries `version = 1`; no comparison, no exception, no migration code yet.
+  (Surfaced while building slice E; a version *check* was prototyped in
+  `MarkdownIndexer.RunAsync` and rolled back as premature.)
 - **Domain-exception family consistency (core + indexers).** Failures that are
   expected and operator-actionable should wear a type in the `MinervaException`
   family so top-level handlers can catch them as a category, rather than a raw
   framework type (`InvalidOperationException`, …) that slips into the generic
   crash bucket. Two concrete gaps surfaced while building slice E. (1)
-  `PostgresCollectionRepository.ReadCollection` throws `InvalidOperationException`
-  on corrupt/unreadable stored metadata (two exit sites: the `??` throw and the
-  `catch … when` wrapper). No existing `MinervaException` subtype fits
-  "stored data is corrupt" — `ConfigurationException` means *user misconfig*, not
-  data integrity — so closing this implies a small new concrete type (e.g.
+  `PostgresCollectionRepository.ReadCollection` throws
+  `InvalidOperationException` on corrupt/unreadable stored metadata (two exit
+  sites: the `??` throw and the `catch … when` wrapper). No existing
+  `MinervaException` subtype fits "stored data is corrupt" —
+  `ConfigurationException` means *user misconfig*, not data integrity — so
+  closing this implies a small new concrete type (e.g.
   `CollectionMetadataException`), a new-class decision deferred deliberately.
   Both throw sites should then use it and keep passing the caught exception as
   `inner`. (2) The markdown indexer's own exceptions
   (`NotAnIndexerCollectionException`, `CollectionPathChangeNotAllowedException`,
   and any future ones) currently fall through `Program.cs`'s generic
-  `catch (Exception)` instead of a family branch; an `abstract
-  MarkdownIndexerException` base plus one `catch (MarkdownIndexerException)`
-  branch would report them as clean config errors with their own exit code.
-  Neither is on the slice-E critical path; both are pure hygiene and revisit
-  before deploy.
+  `catch (Exception)` instead of a family branch; an
+  `abstract MarkdownIndexerException` base plus one
+  `catch (MarkdownIndexerException)` branch would report them as clean config
+  errors with their own exit code. Neither is on the slice-E critical path; both
+  are pure hygiene and revisit before deploy.
 - **Indexer source-root guard is untested.** Slice E added a reingest guard in
   `MarkdownIndexer.RunAsync` (`kind` mismatch blocks, `sourceRoot` change is
   gated by `AllowSourceRootChange`, globs ignored). The literal-API-key check is
   covered by unit tests on `CollectionManager`, but the guard's own behaviour —
   "changed source root blocks; override proceeds; foreign/missing client
   provenance throws" — has no test. Two blockers, each a decision: (1) there is
-  no `Minerva.MarkdownIndexer.Tests` project — create one, or fold the tests into
-  `Minerva.Tests` with a project reference; (2) `RunAsync` is not testable as
-  written — it constructs a real `MarkdownScanner` (filesystem), so the guard
+  no `Minerva.MarkdownIndexer.Tests` project — create one, or fold the tests
+  into `Minerva.Tests` with a project reference; (2) `RunAsync` is not testable
+  as written — it constructs a real `MarkdownScanner` (filesystem), so the guard
   path cannot be exercised without either making the scanner injectable or
   extracting the guard into a unit that runs without disk access (it needs only
   `ISearchEngine`/`IIngestEngine` substitutes). Deferred pending those two

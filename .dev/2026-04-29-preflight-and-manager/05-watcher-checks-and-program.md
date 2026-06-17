@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Three watcher checks (`RootPathExists`, `CollectionNameValid`, `CollectionDimensionMatch`) | ⬜ Not Started |
 | **2** | Register from `AddMinervaWatcher()` | ⬜ Not Started |
 | **3** | Rewrite `Program.cs` as `async Task<int>` with pre-host preflight snippet | ⬜ Not Started |
@@ -59,7 +59,7 @@ All under `src/Minerva.MarkdownWatcher/Readiness/`. Each implements `IReadinessC
   2. **Collections table missing**: query `SELECT embedding_dimension FROM collections WHERE name = @name`. On `PostgresException` with SQLSTATE `42P01` → pass trivially (fresh DB, schema not yet initialised).
   3. **No row matching configured name**: query returns 0 rows → pass trivially (the collection will be created on first run).
   4. **Comparison**: stored dim != probed dim → fail with `Code = "MINERVA.CLIENT.DIMENSION_MISMATCH"`, remediation:
-     ```
+     ```text
      Configured embedder produces N dimensions; existing collection '<name>' uses M.
      Either revert the embedder change, or drop the collection and its data
      (DELETE FROM collections WHERE name='<name>') and let it rebuild on next run.
@@ -160,7 +160,7 @@ If the existing `Program.cs` does additional configuration (env files, custom lo
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva.MarkdownWatcher/Readiness/RootPathExistsCheck.cs` | Watcher check |
 | `src/Minerva.MarkdownWatcher/Readiness/CollectionNameValidCheck.cs` | Watcher check |
 | `src/Minerva.MarkdownWatcher/Readiness/CollectionDimensionMatchCheck.cs` | Watcher check (Decision-10 branches) |
@@ -172,7 +172,7 @@ If the existing `Program.cs` does additional configuration (env files, custom lo
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva.MarkdownWatcher/DI/ServiceCollectionExtensions.cs` | Register the three watcher checks |
 | `src/Minerva.MarkdownWatcher/Program.cs` | `async Task<int> Main`; explicit pre-host preflight snippet; exit 0/1/2 |
 

@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Relax `MinervaOptions` (drop `required`; nullable) | ✅ Done |
 | **2** | Conditional `AddMinerva()` registration; null-guard call sites | ✅ Done |
 | **3** | Tests for no-config / partial-config / full-config DI | ✅ Done |
@@ -99,13 +99,13 @@ Cases:
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `tests/Minerva.UnitTests/DI/AddMinervaConditionalRegistrationTests.cs` | Conditional registration tests |
 
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Configuration/MinervaOptions.cs` | Drop `required`; make `ConnectionString` and `Embedding` nullable |
 | `src/Minerva/DI/ServiceCollectionExtensions.cs` | Wrap storage block (`:28` and dependents) and embedding block (`:33-37`, `:62-64`) in conditionals on the corresponding options being non-null |
 | `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs:95` | Null-check on `_minervaOptions.Embedding`; throw `InvalidOperationException` with descriptive message if null |

@@ -49,7 +49,7 @@ opposed to a REPL) keeps the code surface tiny while still covering the
 **Rationale**: Both are session-wide and don't need to be switchable
 mid-session. Indicative shape:
 
-```
+```bash
 Minerva.Search.Bench author-dataset --file <path> --collection <name>
 ```
 

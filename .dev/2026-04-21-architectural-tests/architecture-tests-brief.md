@@ -40,7 +40,7 @@ That reframed the choice. The question stopped being "grep or Roslyn?" and becam
 
 A permanent test project, enforced at build time, plus two drift defences.
 
-```
+```text
 tests/Minerva.ArchitectureTests/
 ├── Minerva.ArchitectureTests.csproj    # xUnit + NetArchTest.Rules + project ref to Minerva
 ├── LayerDependencyTests.cs              # one test per rule, each with a `// why:` comment

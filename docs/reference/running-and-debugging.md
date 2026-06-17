@@ -10,7 +10,7 @@ mechanics behind migrations. Distilled from the 2024-04 full-run notes.
 on top of `appsettings.json` when `DOTNET_ENVIRONMENT` is set — no code
 change needed.
 
-```
+```text
 appsettings.json              # shared defaults
 appsettings.WorkVault.json     # { "Watcher": { "RootPath": "/work", "CollectionName": "work" } }
 appsettings.PersonalVault.json

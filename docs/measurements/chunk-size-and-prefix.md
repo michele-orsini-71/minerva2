@@ -14,7 +14,7 @@ alarming "prefix almost as long as the chunk" cases are all **tiny chunks**
 (a heading plus a line or two), where any one descriptive sentence dominates:
 
 | chunk | prefix chars | chunk chars | ratio |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | heading-only chunk | 227 | 77 | 2.95× |
 | short body | 121 | 163 | 0.74× |
 | full procedure | 270 | 1226 | 0.22× |
@@ -49,7 +49,7 @@ specific to our setup.
 ## What "good" means — failure modes
 
 | Symptom | Cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | Right document not in top-K though chunks contain the query terms | chunks too **small** — vector dominated by short surrounding text | raise size |
 | Top-K full of chunks that merely "mention" the query | chunks too **large** — topic dilution | lower size |
 | Right document found but a weaker chunk returned | boundary issue, not size | tweak the splitter |

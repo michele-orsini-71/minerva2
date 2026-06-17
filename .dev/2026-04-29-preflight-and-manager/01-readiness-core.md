@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Contracts and result types | ✅ Done |
 | **2** | `Redact` helper, `IReadinessProbeMarker`, `ReadinessChecker` impl | ✅ Done |
 | **3** | `ReadinessReportFormatter`, DI extension, safety-net warning | ✅ Done |
@@ -207,7 +207,7 @@ Unit-test coverage:
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Readiness/ReadinessCategory.cs` | Enum |
 | `src/Minerva/Readiness/ReadinessCheckResult.cs` | Result record |
 | `src/Minerva/Readiness/ReadinessReport.cs` | Report record |
@@ -227,7 +227,7 @@ Unit-test coverage:
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/DI/MinervaStartupService.cs` | Inject optional `IReadinessProbeMarker`; emit `LogWarning` in `StartAsync` if not probed |
 | `tests/Minerva.ArchitectureTests/LayerDependencyTests.cs` | Add `Minerva.Readiness` to the use-case-ring partition |
 

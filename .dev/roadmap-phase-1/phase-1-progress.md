@@ -18,7 +18,7 @@ observable.
 ## Status at a glance
 
 | Slice | What it delivers | Status |
-|---|---|---|
+| --- | --- | --- |
 | 1A | Skeleton + `validate-dataset` | ✅ done |
 | 1B | Single-cell `run` path, three output files | ✅ done |
 | 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
@@ -146,7 +146,7 @@ include:**
 - [ ] **Harder semantic queries** — concept-expressed-differently (paraphrase
   that does not mirror the document vocabulary) and multi-gold queries, so
   recall comes off the ceiling and collections can separate.
-- [ ] **Enough volume** — grow past the current ~30 toward the 20–30 _public_
+- [ ] **Enough volume** — grow past the current ~30 toward the 20–30 *public*
   hand-curated target; the set is currently too small to decide.
 - [ ] **Scoring depth** — bump so that Recall@20 carries real signal rather
   than saturating.
@@ -168,7 +168,7 @@ None gate the Phase 1 Done-definition.
   the sweep TOML; generates an answer from the top-K payload, scores it
   against `answer_text`, adds `answer_score` to `metrics.csv` and judge
   fields to `details.jsonl`; judge model id + prompt version captured in
-  `run.json`. This forces a Phase 4 decision: either 1E-β _is_ the
+  `run.json`. This forces a Phase 4 decision: either 1E-β *is* the
   expansion-eval metric (Phase 4 just adds ±W cells), or Phase 4 layers
   section-coverage on top. Decide before 1E-β starts.
 - **1E-γ baseline-vs-current notebook cell** — "diff against baseline":

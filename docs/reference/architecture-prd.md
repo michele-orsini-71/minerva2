@@ -57,7 +57,8 @@ var results = await minerva.SearchAsync(query, collections, options);
   preserved, enabling future re-processing with a better vision model.
 - **Hybrid search with rank fusion** — dense vector similarity + PostgreSQL
   full-text search combined via Reciprocal Rank Fusion. See
-  [rank-fusion.md](rank-fusion.md) and [full-text-search.md](full-text-search.md).
+  [rank-fusion.md](rank-fusion.md) and
+  [full-text-search.md](full-text-search.md).
 - **Contextual preprocessing, per the Anthropic article, optional per
   collection.** (1) summarize the document once; (2) per chunk, send
   summary + chunk to an LLM for a short contextual prefix; (3) prepend the
@@ -85,7 +86,7 @@ var results = await minerva.SearchAsync(query, collections, options);
 
 ## Ingestion pipeline
 
-```
+```text
 Document (any size) + optional attachment dictionary
   │
   ├─[1] Integrate attachment descriptions into text

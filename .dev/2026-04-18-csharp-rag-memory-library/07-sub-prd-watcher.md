@@ -9,13 +9,13 @@
 
 ## Implementation Progress
 
-| Step  | Description                     | Status      |
+| Step | Description | Status |
 | ----- | ------------------------------- | ----------- |
-| **1** | Create WatcherOptions           | ✅ Complete |
-| **2** | Create MarkdownScanner          | ✅ Complete |
-| **3** | Create MarkdownSyncService      | ✅ Complete |
+| **1** | Create WatcherOptions | ✅ Complete |
+| **2** | Create MarkdownScanner | ✅ Complete |
+| **3** | Create MarkdownSyncService | ✅ Complete |
 | **4** | Create Program.cs and DI wiring | ✅ Complete |
-| **5** | Write tests                     | ✅ Complete |
+| **5** | Write tests | ✅ Complete |
 
 ---
 
@@ -193,16 +193,16 @@ public static class ServiceCollectionExtensions
 
 ### New Files
 
-| File                                                            | Purpose                                               |
+| File | Purpose |
 | --------------------------------------------------------------- | ----------------------------------------------------- |
-| `src/Minerva.MarkdownWatcher/WatcherOptions.cs`                 | Watcher configuration                                 |
-| `src/Minerva.MarkdownWatcher/MarkdownScanner.cs`                | Markdown file enumeration + frontmatter parsing       |
-| `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs`            | BackgroundService with FileSystemWatcher + debouncing |
-| `src/Minerva.MarkdownWatcher/Program.cs`                        | Host builder entry point                              |
-| `src/Minerva.MarkdownWatcher/DI/ServiceCollectionExtensions.cs` | AddMinervaWatcher() extension                         |
-| `src/Minerva.MarkdownWatcher/appsettings.json`                  | Default configuration                                 |
-| `tests/Minerva.Tests/Watcher/MarkdownScannerTests.cs`           | Scanner unit tests                                    |
-| `tests/Minerva.Tests/Watcher/DebounceTests.cs`                  | Debounce logic unit tests                             |
+| `src/Minerva.MarkdownWatcher/WatcherOptions.cs` | Watcher configuration |
+| `src/Minerva.MarkdownWatcher/MarkdownScanner.cs` | Markdown file enumeration + frontmatter parsing |
+| `src/Minerva.MarkdownWatcher/MarkdownSyncService.cs` | BackgroundService with FileSystemWatcher + debouncing |
+| `src/Minerva.MarkdownWatcher/Program.cs` | Host builder entry point |
+| `src/Minerva.MarkdownWatcher/DI/ServiceCollectionExtensions.cs` | AddMinervaWatcher() extension |
+| `src/Minerva.MarkdownWatcher/appsettings.json` | Default configuration |
+| `tests/Minerva.Tests/Watcher/MarkdownScannerTests.cs` | Scanner unit tests |
+| `tests/Minerva.Tests/Watcher/DebounceTests.cs` | Debounce logic unit tests |
 
 ---
 

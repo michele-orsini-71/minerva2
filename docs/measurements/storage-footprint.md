@@ -13,7 +13,7 @@ Per collection (`test-1`, contextualized, 8886 chunks, ~7 MB of source
 markdown):
 
 | Layer | Size | Ratio vs. source |
-|---|---|---|
+| --- | --- | --- |
 | Original markdown | ~7 MB | 1× |
 | Stored `content` column | 6.4 MB | ~0.9× |
 | `contextual_prefix` column | 2.2 MB | ~0.3× |
@@ -72,8 +72,8 @@ ORDER BY pg_relation_size(indexrelid) DESC;
 ## Comparing against the original text
 
 `du -sk` reports allocated filesystem blocks, not content bytes — with thousands
-of small notes on a 4 KB-block filesystem it over-reports by several MB of slack,
-and it includes attachments. Sum actual markdown bytes instead:
+of small notes on a 4 KB-block filesystem it over-reports by several MB of
+slack, and it includes attachments. Sum actual markdown bytes instead:
 
 ```bash
 find /path/to/notes -name "*.md" -type f -exec wc -c {} + | tail -1

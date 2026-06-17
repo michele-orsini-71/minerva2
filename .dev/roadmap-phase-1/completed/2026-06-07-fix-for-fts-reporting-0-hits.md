@@ -23,7 +23,7 @@ Phase 2 tuning was attempted.
 
 Fusion is a weighted Reciprocal Rank Fusion ([`RankFusion.cs`](../../src/Minerva/Search/RankFusion.cs)):
 
-```
+```text
 score = alpha · 1/(k + vectorRank) + (1 - alpha) · 1/(k + ftsRank)
 ```
 

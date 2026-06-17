@@ -6,7 +6,7 @@ A summary of the retrieval pipeline decisions discussed, with notes on how param
 
 ## Pipeline overview
 
-```
+```text
 Query
   │
   ├──► Semantic search ──► top N₁ ─┐
@@ -29,7 +29,7 @@ Square brackets `[...]` mark stages that are **optional / added incrementally**.
 **N₁ depends on what comes after:**
 
 | Downstream config | Recommended N₁ |
-|---|---|
+| --- | --- |
 | No rerank, no expansion (early phase) | **30–50** |
 | No rerank, with expansion | **30–50** |
 | With rerank | **100–150** |
@@ -66,7 +66,7 @@ Used both for indexing and for splitting documents that don't fit a model's cont
 **Top N₂ kept after fusion depends on the next stage:**
 
 | Next stage | N₂ |
-|---|---|
+| --- | --- |
 | Direct to LLM (no rerank) | **8–12** (this is your final K) |
 | Rerank | **30–80** (gives reranker enough candidates without being wasteful) |
 
@@ -112,7 +112,7 @@ Originally added because a single test query (the Brexit case) returned many chu
 Final payload size, rough math:
 
 | Config | Final payload |
-|---|---|
+| --- | --- |
 | K=10, W=0 (no expansion) | ~2k tokens |
 | K=10, W=1 (±1 expansion) | ~5–6k tokens |
 | K=10, W=2 (±2 expansion) | ~9–10k tokens |
@@ -123,7 +123,7 @@ Comfortably under any "lost in the middle" danger zone for current frontier mode
 
 ## Phased rollout
 
-### Phase 0 — current state (before eval harness) *COMPLETED* 
+### Phase 0 — current state (before eval harness) *COMPLETED*
 
 - Hybrid search → top **30–50** per branch
 - RRF → top **8–12**
@@ -213,7 +213,7 @@ With reranking, chunk size, and expansion in place and the eval as ground truth:
 ## Parameter reference table
 
 | Stage | Phase 0 (no rerank) | Phase 2+ (with rerank) |
-|---|---|---|
+| --- | --- | --- |
 | Semantic top N₁ | 30–50 | 100–150 |
 | BM25 top N₁ | 30–50 | 100–150 |
 | RRF output N₂ | 8–12 (= final K) | 30–80 |

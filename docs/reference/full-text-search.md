@@ -73,9 +73,9 @@ terms and widely varying document lengths.
 ## The processing stack
 
 | Layer | What Minerva uses |
-|---|---|
+| --- | --- |
 | Tokenization | `to_tsvector('simple', …)` — split into lexemes, record positions; no stemming, no stopword removal |
-| Query parsing | `websearch_to_tsquery('simple', …)`, top-level `&` relaxed to `|` |
+| Query parsing | `websearch_to_tsquery('simple', …)`, top-level `&` relaxed to `\|` |
 | Index | GIN on `fts_vector` (an inverted index: lexeme → rows containing it) |
 | Match | the `@@` operator |
 | Score | `ts_rank` — frequency-based, length-normalized, no IDF |
@@ -106,12 +106,12 @@ Note that under `'simple'` nothing is stemmed or dropped — `foxes` stays
 
 ## History
 
-Minerva originally used `to_tsvector('english', …)` + `plainto_tsquery('english', …)`.
-On the mixed-language corpus this both stemmed Italian by English rules and
-ANDed every query term (`plainto_tsquery` joins tokens with AND), so a
-natural-language query against a 200-token chunk almost never matched — the
-lexical leg returned ~0 hits and, through fusion, made `hybrid_alpha`
-mathematically inert. The fix (`'simple'` config + OR-relaxed
+Minerva originally used `to_tsvector('english', …)` +
+`plainto_tsquery('english', …)`. On the mixed-language corpus this both stemmed
+Italian by English rules and ANDed every query term (`plainto_tsquery` joins
+tokens with AND), so a natural-language query against a 200-token chunk almost
+never matched — the lexical leg returned ~0 hits and, through fusion, made
+`hybrid_alpha` mathematically inert. The fix (`'simple'` config + OR-relaxed
 `websearch_to_tsquery`, plus a one-time `fts_vector` rebuild of existing
 collections) is recorded in
 `.dev/roadmap-phase-1/completed/2026-06-07-fix-for-fts-reporting-0-hits.md`.

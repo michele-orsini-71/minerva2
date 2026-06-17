@@ -33,7 +33,7 @@ The library is client-agnostic — it does not know about Obsidian, Claude, or a
 ### Dependencies
 
 | Dependency | Purpose |
-|------------|---------|
+| ------------ | --------- |
 | `Npgsql` (v8+) | PostgreSQL ADO.NET driver |
 | `Pgvector` | pgvector type support for Npgsql |
 | `OpenAI` SDK (v2.10+) | OpenAI-compatible embedding + chat completions |
@@ -48,7 +48,7 @@ The library is client-agnostic — it does not know about Obsidian, Claude, or a
 ### Technical Decisions
 
 | Decision | Rationale | Alternatives Considered |
-|----------|-----------|------------------------|
+| ---------- | ----------- | ------------------------ |
 | PostgreSQL + pgvector | Single DB for vectors, full-text, metadata. Native .NET support via Npgsql. Local-first. | Qdrant (rejected: Docker friction), ChromaDB (v1, limited) |
 | Raw Npgsql, no EF Core | Maximum control over pgvector queries, HNSW index DDL, hybrid search SQL | EF Core (rejected: too much abstraction over pgvector) |
 | `Microsoft.Extensions.AI` as provider contract | Standard interfaces, already implemented by OllamaSharp and OpenAI SDK | Custom interfaces (deferred: can refactor later if needed) |
@@ -73,7 +73,7 @@ The library is client-agnostic — it does not know about Obsidian, Claude, or a
 The core library (`Minerva`) exposes three public methods: `IngestAsync`, `RemoveAsync`, `SearchAsync`. Internally, ingestion and search are implemented as pipelines — ordered sequences of steps that can be individually tested and optionally skipped (e.g., contextual preprocessing).
 
 **Data Flow — Ingestion**:
-```
+```text
 Document (text + optional attachments + metadata)
     │
     ▼
@@ -96,7 +96,7 @@ Document (text + optional attachments + metadata)
 ```
 
 **Data Flow — Search**:
-```
+```text
 Query text + collection(s) + options
     │
     ▼
@@ -122,7 +122,7 @@ Query text + collection(s) + options
 ## Sub-PRD Overview
 
 | Sub-PRD | Title | Dependency | Status | Document |
-|---------|-------|------------|--------|----------|
+| --------- | ------- | ------------ | -------- | ---------- |
 | **1** | Solution Scaffold & Foundation | None | ✅ Complete | [01-sub-prd-scaffold.md](./01-sub-prd-scaffold.md) |
 | **2** | Storage Layer | 1 | ✅ Complete | [02-sub-prd-storage.md](./02-sub-prd-storage.md) |
 | **3** | Provider Layer | 1 | ✅ Complete | [03-sub-prd-providers.md](./03-sub-prd-providers.md) |
@@ -138,6 +138,7 @@ Query text + collection(s) + options
 ## Implementation Order
 
 ### Phase 1: Solution Scaffold & Foundation
+
 **Goal**: Compilable solution with all projects, NuGet refs, exceptions, models, and configuration.
 
 1. ✅ Create `Minerva.sln` and all projects with correct references
@@ -154,6 +155,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 2: Storage Layer
+
 **Goal**: PostgreSQL schema, migrations, and repository implementations.
 
 1. ✅ Create `SchemaInitializer` with embedded SQL migration runner
@@ -170,6 +172,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 3: Provider Layer
+
 **Goal**: Rate-limited, retry-backed embedding and LLM providers.
 
 1. ✅ Create `RateLimiter` (SemaphoreSlim + sliding-window token bucket)
@@ -184,6 +187,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 4: Ingestion Pipeline
+
 **Goal**: Full document ingestion path — chunking, optional contextualization, embedding, atomic storage.
 
 1. ✅ Create `DocumentChunker` (header-first markdown split + recursive char split)
@@ -200,6 +204,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 5: Search Pipeline
+
 **Goal**: Hybrid search with rank fusion and context expansion.
 
 1. ✅ Create `VectorSearch` (pgvector cosine distance query)
@@ -215,6 +220,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 6: Public API & DI
+
 **Goal**: `MinervaEngine` facade, collection management, DI wiring, end-to-end test.
 
 1. ✅ Create `CollectionManager` (collection CRUD facade)
@@ -231,6 +237,7 @@ Query text + collection(s) + options
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 7: Markdown Watcher Client
+
 **Goal**: Generic filesystem watcher that syncs markdown files (Obsidian vaults, repo docs, static-site sources) into a Minerva collection.
 
 1. ✅ Create `WatcherOptions` (root path, collection name, debounce interval, file glob, excluded directories)
@@ -253,7 +260,7 @@ Query text + collection(s) + options
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `Minerva.sln` | Solution file at repo root |
 | `Directory.Build.props` | Shared MSBuild properties |
 | `Directory.Packages.props` | Central NuGet package version management |

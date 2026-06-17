@@ -1,6 +1,8 @@
 # Minerva.MarkdownIndexer
 
-A filesystem watcher that keeps a Minerva collection in sync with a directory of markdown files. The first real client of the [Minerva](../Minerva/README.md) library.
+A filesystem watcher that keeps a Minerva collection in sync with a directory of
+markdown files. The first real client of the [Minerva](../Minerva/README.md)
+library.
 
 Works for:
 
@@ -9,19 +11,26 @@ Works for:
 - Static-site sources (Jekyll, Hugo, Astro, Quartz, …)
 - Any directory of `.md` files with optional YAML frontmatter
 
-Obsidian-specific features (wikilinks, embeds, tags, dataview) are **out of scope** — those would belong in a future `Minerva.Obsidian` extension layered on top.
+Obsidian-specific features (wikilinks, embeds, tags, dataview) are **out of
+scope** — those would belong in a future `Minerva.Obsidian` extension layered on
+top.
 
 ## What it does
 
 On startup:
 
-1. Ensures the target Minerva collection exists (auto-creates it, probing the embedder for its vector dimension).
+1. Ensures the target Minerva collection exists (auto-creates it, probing the
+   embedder for its vector dimension).
 2. Scans the root directory and ingests every matching file.
-3. Starts a `FileSystemWatcher` with debouncing; thereafter each create/change/delete/rename is reflected in the collection.
+3. Starts a `FileSystemWatcher` with debouncing; thereafter each
+   create/change/delete/rename is reflected in the collection.
 
-Re-ingestion is cheap because Minerva dedupes by chunk content hash — unchanged chunks are skipped.
+Re-ingestion is cheap because Minerva dedupes by chunk content hash — unchanged
+chunks are skipped.
 
-Frontmatter is parsed and passed through as document `Metadata`. Markdown images (`![alt](path)`) are extracted into `AttachmentDescription`s using the alt text as the description.
+Frontmatter is parsed and passed through as document `Metadata`. Markdown images
+(`![alt](path)`) are extracted into `AttachmentDescription`s using the alt text
+as the description.
 
 ## Usage
 
@@ -53,18 +62,27 @@ Runs as a long-lived host — it does not exit until cancelled.
 }
 ```
 
-The `Minerva` section is the full core-library config (see [`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
+The `Minerva` section is the full core-library config (see
+[`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section
+configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
-`ExcludeDirectories` defaults cover the common cases (Obsidian internals + git metadata). Override it for other workflows.
+`ExcludeDirectories` defaults cover the common cases (Obsidian internals + git
+metadata). Override it for other workflows.
 
-> **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at the same local runtime (Ollama, LM Studio, …), keep both models resident — otherwise the watcher will trigger model swaps in and out of VRAM whenever it alternates between embedding and summarization/contextualization.
+> **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at
+> the same local runtime (Ollama, LM Studio, …), keep both models resident —
+> otherwise the watcher will trigger model swaps in and out of VRAM whenever it
+> alternates between embedding and summarization/contextualization.
 >
-> - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
-> - **LM Studio**: load both models in the _Models_ panel before starting the watcher.
+> - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous
+>   `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
+> - **LM Studio**: load both models in the _Models_ panel before starting the
+>   watcher.
 
 ## Building a standalone binary
 
-`build-markdown-indexer-cli.sh` (at the repo root) publishes a self-contained binary to `bin-markdown-indexer/`:
+`build-markdown-indexer-cli.sh` (at the repo root) publishes a self-contained
+binary to `bin-markdown-indexer/`:
 
 ```bash
 ./build-markdown-indexer-cli.sh
@@ -73,7 +91,8 @@ The `Minerva` section is the full core-library config (see [`src/Minerva/README.
 Output:
 
 - `bin-markdown-indexer/markdown-indexer` — the executable
-- `bin-markdown-indexer/appsettings.json` — copied from the project (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
+- `bin-markdown-indexer/appsettings.json` — copied from the project
+  (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
 
 Run it with:
 
@@ -89,7 +108,8 @@ nohup ./bin-markdown-indexer/markdown-indexer > logs/run.log 2>&1 &
 
 ## Overriding configuration
 
-`Program.cs` builds configuration in this order (later sources override earlier):
+`Program.cs` builds configuration in this order (later sources override
+earlier):
 
 1. `appsettings.json` (required)
 2. `appsettings.{DOTNET_ENVIRONMENT}.json` (optional, defaults to `Production`)
@@ -114,9 +134,12 @@ Launch with the matching environment name:
 DOTNET_ENVIRONMENT=experiment-a ./bin-markdown-indexer/markdown-indexer
 ```
 
-The profile is merged on top of `appsettings.json`, so it only needs the keys that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the `appsettings*.json` glob in the csproj copies them on each build.
+The profile is merged on top of `appsettings.json`, so it only needs the keys
+that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the
+`appsettings*.json` glob in the csproj copies them on each build.
 
-The files have to sit next to `markdown-indexer` — they are loaded from `AppContext.BaseDirectory`.
+The files have to sit next to `markdown-indexer` — they are loaded from
+`AppContext.BaseDirectory`.
 
 ### Environment variables (one-off tweaks)
 
@@ -136,10 +159,10 @@ Indexer__CollectionName=experiment-a \
 
 ## Files
 
-| File                        | Role                                                                                 |
+| File | Role |
 | --------------------------- | ------------------------------------------------------------------------------------ |
-| `Program.cs`                | Entry point — builds config, constructs the engine + indexer, runs one ingest pass   |
-| `IndexerOptions.cs`         | Config record bound to the `Indexer` section                                         |
-| `MarkdownScanner.cs`        | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
-| `MarkdownIndexer.cs`        | Drives a single scan-and-ingest pass against `IMinervaEngine`                        |
-| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer`                           |
+| `Program.cs` | Entry point — builds config, constructs the engine + indexer, runs one ingest pass |
+| `IndexerOptions.cs` | Config record bound to the `Indexer` section |
+| `MarkdownScanner.cs` | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
+| `MarkdownIndexer.cs` | Drives a single scan-and-ingest pass against `IMinervaEngine` |
+| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer` |

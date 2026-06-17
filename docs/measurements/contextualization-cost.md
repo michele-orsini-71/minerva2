@@ -7,7 +7,7 @@ contextual preprocessing is enabled. Ingesting ~3k notes / ~9k chunks took
 ## The three operations, not to be confused
 
 | Step | Calls per doc | Engine | Cost |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1. Summarize | 1 (or 1 per segment) | LLM (e.g. Gemma) | one-off, cheap |
 | 2. **Contextualize** | **N — one per chunk** | LLM | **the bottleneck** |
 | 3. Embed | 1 batch | dedicated embedding model | fast |

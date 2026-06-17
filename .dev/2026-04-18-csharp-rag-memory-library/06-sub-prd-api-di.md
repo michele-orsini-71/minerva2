@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create CollectionManager | ✅ Complete |
 | **2** | Create MinervaEngine | ✅ Complete |
 | **3** | Create DI extensions | ✅ Complete |
@@ -234,7 +234,7 @@ Note: E2E tests should use a mock embedding provider (returns random vectors of 
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Collections/CollectionManager.cs` | Collection CRUD with validation |
 | `src/Minerva/MinervaEngine.cs` | Public facade: IngestAsync, RemoveAsync, SearchAsync |
 | `src/Minerva/DI/ServiceCollectionExtensions.cs` | AddMinerva() DI extension |

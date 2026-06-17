@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create repository interfaces | ✅ Complete |
 | **2** | Create SQL migrations | ✅ Complete |
 | **3** | Create SchemaInitializer | ✅ Complete |
@@ -235,7 +235,7 @@ Test fixture that:
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Storage/ICollectionRepository.cs` | Collection persistence interface |
 | `src/Minerva/Storage/IChunkRepository.cs` | Chunk persistence interface |
 | `src/Minerva/Storage/SchemaInitializer.cs` | Idempotent SQL migration runner |

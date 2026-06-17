@@ -11,7 +11,7 @@ to manifest. Without the fix, the H1 above would land as its own chunk
 current pack before handing the oversized section off to the recursive
 splitter.
 
-```
+```txt
 ZIRCON-SINGH-MURDUR                           -> from Rahim
 PRIORITY 4 // SIGMA BRIDGE                    -> high importance, not max // dismissed satellite channel
 SEVEN-PATHS CROSS IN SILENCE                  -> exit route — escape without official support

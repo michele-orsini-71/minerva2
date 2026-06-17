@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | `OpenAICompatibleLlmProvider.CheckAvailabilityAsync` | ✅ Done |
 | **2** | Five library checks with timeouts and short-circuit branches | ✅ Done |
 | **3** | Register from `AddMinerva()` | ✅ Done |
@@ -154,7 +154,7 @@ services.AddMinervaReadinessCheck<LlmCallCheck>();
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Readiness/Checks/ConnectionStringParseCheck.cs` | Pure config check |
 | `src/Minerva/Readiness/Checks/PostgresConnectivityCheck.cs` | Storage check |
 | `src/Minerva/Readiness/Checks/PgVectorExtensionCheck.cs` | Storage check |
@@ -171,7 +171,7 @@ services.AddMinervaReadinessCheck<LlmCallCheck>();
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Llm/OpenAICompatibleLlmProvider.cs` | Add `CheckAvailabilityAsync()` bypassing Polly + RateLimiter; HTTP 400 → returns successfully; introduce internal `IChatClientFacade` test seam |
 | `src/Minerva/DI/ServiceCollectionExtensions.cs` | Call `AddMinervaReadinessCore()`; register the five library checks unconditionally |
 | `tests/Minerva.ArchitectureTests/LayerDependencyTests.cs` | Place `Minerva.Readiness.Checks` in adapter ring (distinct from `Minerva.Readiness` use-case ring) |

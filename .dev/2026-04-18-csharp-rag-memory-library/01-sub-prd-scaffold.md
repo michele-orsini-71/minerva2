@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create solution and projects via `dotnet new` | ✅ Complete |
 | **2** | Add NuGet packages | ✅ Complete |
 | **3** | Create exception hierarchy | ✅ Complete |
@@ -75,7 +75,7 @@ Create `.gitignore` using `dotnet new gitignore`.
 - `Pgvector` (v0.3+)
 - `OpenAI` (v2.10+)
 - `Polly` (v8+)
-- `Microsoft.Extensions.AI` 
+- `Microsoft.Extensions.AI`
 - `Microsoft.SemanticKernel.Text`
 - `Markdig`
 - `Microsoft.Extensions.DependencyInjection.Abstractions`
@@ -256,7 +256,7 @@ A minimal test asserting the solution compiles and model records work:
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `Minerva.sln` | Solution file at repo root |
 | `Directory.Build.props` | Shared MSBuild properties |
 | `global.json` | Pin .NET SDK version |

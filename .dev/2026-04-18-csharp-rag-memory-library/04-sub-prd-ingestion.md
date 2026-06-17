@@ -10,7 +10,7 @@
 ## Implementation Progress
 
 | Step | Description | Status |
-|------|-------------|--------|
+| ------ | ------------- | -------- |
 | **1** | Create AttachmentIntegrator | ✅ Complete |
 | **2** | Create DocumentChunker | ✅ Complete |
 | **3** | Create EmbeddingService | ✅ Complete |
@@ -122,7 +122,7 @@ public class DocumentSummarizer
 ```
 
 System prompt for summarization:
-```
+```text
 Summarize the following document in one paragraph. Focus on the main topics,
 key concepts, and structure. This summary will be used to provide context
 when embedding individual chunks of this document.
@@ -149,7 +149,7 @@ public class ChunkContextualizer
 ```
 
 System prompt (per Anthropic article):
-```
+```text
 <document>
 {{WHOLE_DOCUMENT_SUMMARY}}
 </document>
@@ -239,7 +239,7 @@ public class IngestionPipeline
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Ingestion/AttachmentIntegrator.cs` | Integrates attachment descriptions into text |
 | `src/Minerva/Ingestion/DocumentChunker.cs` | Header-first markdown chunking |
 | `src/Minerva/Ingestion/EmbeddingService.cs` | Batch + individual fallback embedding |

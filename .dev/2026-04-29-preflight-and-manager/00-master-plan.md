@@ -34,7 +34,7 @@ Add a uniform `IReadinessCheck` pipeline to the `Minerva` core library so any cl
 ### Technical Decisions
 
 | Decision | Rationale | Alternatives Considered |
-|----------|-----------|------------------------|
+| ---------- | ----------- | ------------------------ |
 | Unified `IReadinessCheck` pipeline | One surface, uniform UX, uniform report — pays off the moment a second client appears | Parallel ad-hoc checks per client (rejected: boilerplate) |
 | Probe + build dual API | A probe that does not require building the engine enables a future `minerva doctor` CLI | Single `BuildAndCheck` (rejected: couples lifecycle) |
 | Preflight runs in `Program.cs` before `host.RunAsync()` | Explicit, library stays unopinionated about hosting | Move into `MinervaStartupService` (rejected: refactors hosting; hard to share with non-host clients) |
@@ -66,7 +66,7 @@ Embedding-dimension discovery is unified behind `IEmbeddingDimensionProvider` wi
 
 **Data flow**:
 
-```
+```text
 Program.cs:
   builder.Build()
        │
@@ -106,7 +106,7 @@ Program.cs:
 ## Sub-PRD Overview
 
 | Sub-PRD | Title | Dependency | Status | Document |
-|---------|-------|------------|--------|----------|
+| --------- | ------- | ------------ | -------- | ---------- |
 | **1** | Readiness Core | None | Done | [01-readiness-core.md](./01-readiness-core.md) |
 | **2** | Embedding Dimension Provider | 1 | Done | [02-embedding-dimension-provider.md](./02-embedding-dimension-provider.md) |
 | **3** | Options Relaxation | 1 | Done | [03-options-relaxation.md](./03-options-relaxation.md) |
@@ -120,6 +120,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ## Implementation Order
 
 ### Phase 1: Readiness Core (Sub-PRD 01)
+
 **Goal**: Establish contracts and machinery; no checks yet, no library auto-registration.
 
 1. ✅ Add contracts and result types
@@ -135,6 +136,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 2: Embedding Dimension Provider (Sub-PRD 02)
+
 **Goal**: Lift dimension into a memoized provider accessor; remove duplicate runtime probe.
 
 1. ✅ Add `IEmbeddingDimensionProvider`; implement on `OpenAICompatibleEmbeddingProvider` with `Lazy<Task<int>>` (factory uses `CT.None`); bypass Polly + RateLimiter
@@ -149,6 +151,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 3: Options Relaxation (Sub-PRD 03)
+
 **Goal**: Make `MinervaOptions.Embedding` and `ConnectionString` nullable; conditional DI registration.
 
 1. ✅ Drop `required`; mark `Embedding` and `ConnectionString` nullable
@@ -162,6 +165,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 4: Built-in Library Checks (Sub-PRD 04)
+
 **Goal**: Five library checks + LLM probe; auto-registered by `AddMinerva()`.
 
 1. ✅ Add `OpenAICompatibleLlmProvider.CheckAvailabilityAsync()` (one-shot, bypass Polly + RateLimiter, `MaxOutputTokenCount = 5`, HTTP 400 → passes)
@@ -177,6 +181,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ⏸️ **GATE**: Phase complete. Continue or `/dev-checkpoint`.
 
 ### Phase 5: Watcher Checks and Program.cs (Sub-PRD 05)
+
 **Goal**: Three watcher checks + explicit pre-host snippet; end-to-end exit-2 path works.
 
 1. ✅ Implement `RootPathExistsCheck`, `CollectionNameValidCheck`, `CollectionDimensionMatchCheck` (four Decision-10 branches)
@@ -198,7 +203,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### New Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Readiness/ReadinessCategory.cs` | Enum |
 | `src/Minerva/Readiness/ReadinessCheckResult.cs` | Result record |
 | `src/Minerva/Readiness/ReadinessReport.cs` | Report record |
@@ -231,7 +236,7 @@ Sub-PRDs 2 and 3 are independent of each other and may be implemented in paralle
 ### Modified Files
 
 | File | Changes |
-|------|---------|
+| ------ | --------- |
 | `src/Minerva/Configuration/MinervaOptions.cs` | Drop `required` from `Embedding` and `ConnectionString`; nullable |
 | `src/Minerva/DI/ServiceCollectionExtensions.cs` | Conditional registration; register the five library checks; register `IReadinessChecker` core |
 | `src/Minerva/DI/MinervaStartupService.cs` | Inject optional `IReadinessProbeMarker`; log warning if not probed |

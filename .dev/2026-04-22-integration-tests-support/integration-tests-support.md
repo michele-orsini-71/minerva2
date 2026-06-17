@@ -56,7 +56,7 @@ I'd pick option **2** — simpler, and the override path already exists.
 ## TL;DR — what to create
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `tests/Minerva.IntegrationTests/.runsettings` | Sets `MINERVA_TEST_CONNSTRING` env var for the test process |
 | `Directory.Build.props` (edit existing) | Adds `RunSettingsFilePath` so `dotnet test` auto-discovers the `.runsettings` |
 

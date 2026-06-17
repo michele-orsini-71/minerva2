@@ -4,6 +4,10 @@ last_commit: 45d411a updates dev-plan status
 uncommitted_changes: true
 checkpointed: '2026-04-27T07:30:48.953Z'
 ---
+
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD041 -->
+
 Read the following PRD files in order:
 
 1. 00-master-plan.md
@@ -25,6 +29,7 @@ Read the following PRD files in order:
 </context>
 
 <current_state>
+
 ## Current Progress
 
 - ✅ Phase 1: Readiness Core (4/4)
@@ -37,6 +42,7 @@ Read the following PRD files in order:
 </current_state>
 
 <next_action>
+
 ## Next Steps
 
 1. **Run the three manual end-to-end smokes** (Phase 5 / Step 4 — the only thing between code-complete and feature-complete):
@@ -48,6 +54,7 @@ Read the following PRD files in order:
 </next_action>
 
 <key_files>
+
 ## Key Files
 
 - Master PRD: `.dev/preflight-and-manager/00-master-plan.md`

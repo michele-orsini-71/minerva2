@@ -6,7 +6,7 @@ Working notes captured before pausing this thread to switch tasks. The goal is t
 
 While running `run-obsidian-indexing-test-3-qwen2-5-test.sh` against an Obsidian vault, ingestion crashed with:
 
-```
+```text
 Unhandled exception: Minerva.Exceptions.ProviderUnavailableException:
 LLM API request failed (HTTP 400): Service request failed.
 ```
@@ -101,7 +101,7 @@ This was the converging direction. Two observations led here:
 1. **Char↔token ratio is reliable as an upper bound** for sequences over a few hundred tokens (law of large numbers). Conservative ratios per content type:
 
    | Content | chars/token (rough) |
-   |---|---|
+   | --- | --- |
    | English prose | 3.8–4.2 |
    | Markdown with code | 3.0–3.5 |
    | Heavy code / JSON / URLs | 2.5–3.0 |
@@ -129,7 +129,7 @@ Four numbered steps. Each one stands alone; together they form a defense-in-dept
 **How**: extend the existing preflight ([OpenAICompatibleLlmProvider.cs:178-196](../../src/Minerva/Providers/OpenAICompatibleLlmProvider.cs#L178-L196)) to read context length from the server. Server-specific (the OpenAI contract doesn't expose it):
 
 | Server | Endpoint |
-|---|---|
+| --- | --- |
 | **LM Studio** | `GET /api/v0/models` → `loaded_context_length`, `max_context_length` |
 | **llama.cpp** | `GET /props` → `n_ctx` |
 | **Ollama** | `POST /api/show` → `parameters.num_ctx` |
@@ -143,7 +143,7 @@ Read **loaded** context (what's actually allocated), not max (model capability).
 
 **How**: derive a `MaxInputChars` budget from the preflight value:
 
-```
+```text
 MaxInputChars = (ContextTokens − ReservedForSystemAndOutput) × CharsPerToken × SafetyFactor
 ```
 

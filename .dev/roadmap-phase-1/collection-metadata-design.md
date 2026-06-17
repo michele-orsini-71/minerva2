@@ -92,7 +92,7 @@ and `embedding_dimension` columns are dropped and fold into `provenance`.
 ### `provenance.invariants` — guarded, drift is a hard error
 
 | Key | Type | Source | Notes |
-|-----|------|--------|-------|
+| ----- | ------ | -------- | ------- |
 | `embeddingModel` | string | `Embedding.Model` | Was the `embedding_model` column. |
 | `embeddingDimension` | int | probed via `IEmbeddingDimensionProvider` | Was the `embedding_dimension` column. Catches a model that silently changed dimension. |
 | `chunkerType` | enum (`Custom`/`SemanticKernel`) | `Chunking.ChunkerType` | |
@@ -111,7 +111,7 @@ prompt version, is drift.
 ### `provenance.lastRun` — recorded only, refreshed each ingest
 
 | Key | Type | Source | Notes |
-|-----|------|--------|-------|
+| ----- | ------ | -------- | ------- |
 | `ingestorVersion` | string | baked `InformationalVersion` (`semver+sha`) | Same reader the bench and `--version` already use. The pin for all un-versioned code determinants. |
 | `schemaVersion` | string | `MAX(name)` from `_migrations` | The migration shape the chunks were written under. |
 
@@ -121,7 +121,7 @@ field.
 ### `client` — opaque to core, owned by the front-end
 
 | Key | Type | Notes |
-|-----|------|-------|
+| ----- | ------ | ------- |
 | `kind` | string | Mandatory discriminator (`"markdown-indexer"`, later `"mcp"`, `"obsidian"`). |
 | `data` | map | Opaque to core. Front-end fields; for the markdown indexer see the indexer section. |
 
@@ -215,7 +215,7 @@ overridable, and which is free.** Proposed default classification for the
 markdown indexer (the indexer owns this table, not core):
 
 | Field | Class | Behaviour on change at reingest |
-|-------|-------|---------------------------------|
+| ------- | ------- | --------------------------------- |
 | `sourceRoot` | **Overridable** | Warn and block unless `AllowSourceRootChange`. A wrong root is destructive: the reconcile deletes every source from the old root. Sometimes legitimate (vault reorganised, deliberate second folder), so it is a guarded warning, not a hard lock. |
 | `includeGlobs` / `excludeGlobs` | **Free** | Record only. Changing which files match is the indexer's normal job; the reconcile handles additions and deletions as usual. |
 | `kind` | **Critical** | A different `kind` means a different front-end owns the collection; refuse. |

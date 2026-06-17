@@ -1,0 +1,22 @@
+{
+  // Repo markdownlint configuration. Applies to the CLI and the VS Code
+  // markdownlint extension.
+  "config": {
+    "default": true,
+
+    // Line length: keep the 80-char limit for prose, but do not flag long
+    // lines inside tables or fenced code blocks (they cannot be wrapped).
+    "MD013": { "code_blocks": false, "tables": false },
+
+    // Tables use the "compact" style (single space padding around pipes).
+    "MD060": { "style": "compact" },
+
+    // Do not treat a front-matter `title:` as the document H1, so a single
+    // `# Heading` after the front matter is not flagged as a duplicate title.
+    "MD025": { "front_matter_title": "" },
+
+    // Silenced by project choice.
+    "MD031": false, // blanks-around-fences
+    "MD032": false  // blanks-around-lists
+  }
+}

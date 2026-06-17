@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 -->
+<!-- markdownlint-disable MD041 -->
 
 ## Session 1 — 2026-04-25T15:27:45.178Z
 
