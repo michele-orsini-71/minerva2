@@ -5,6 +5,13 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"
       }
+    },
+    "qwen2-5": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "qwen2-5"
+      }
     }
   }
 }

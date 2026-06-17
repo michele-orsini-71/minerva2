@@ -15,6 +15,11 @@
     // `# Heading` after the front matter is not flagged as a duplicate title.
     "MD025": { "front_matter_title": "" },
 
+    // Allow repeated headings under different parents (e.g. the per-version
+    // `### Added` / `### Changed` sections in CHANGELOG.md), while still
+    // flagging genuine duplicates within the same section.
+    "MD024": { "siblings_only": true },
+
     // Silenced by project choice.
     "MD031": false, // blanks-around-fences
     "MD032": false  // blanks-around-lists

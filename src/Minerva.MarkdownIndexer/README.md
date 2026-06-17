@@ -56,8 +56,10 @@ Runs as a long-lived host — it does not exit until cancelled.
   "Indexer": {
     "RootPath": "/path/to/markdown/root",
     "CollectionName": "my-notes",
-    "FilePattern": "*.md",
-    "ExcludeDirectories": [".obsidian", ".trash", ".git"]
+    "FileExtensions": ["md"],
+    "ExcludeDirectories": [".obsidian", ".trash", ".git"],
+    "AllowRecreateOnConfigMismatch": false,
+    "AllowSourceScopeChange": false
   }
 }
 ```
@@ -66,8 +68,15 @@ The `Minerva` section is the full core-library config (see
 [`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section
 configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
-`ExcludeDirectories` defaults cover the common cases (Obsidian internals + git
-metadata). Override it for other workflows.
+Every `Indexer` key is required; the binder reports a clear error if any is
+missing. `FileExtensions` lists the file types to index as bare extensions such
+as `md` or `txt` (matching is case- and dot-insensitive, so `md`, `.md` and
+`.MD` are equivalent; a glob like `*.md` is rejected). `ExcludeDirectories`
+lists directory names skipped anywhere in the tree — `.obsidian`, `.trash`,
+`.git` are the common cases. `AllowRecreateOnConfigMismatch` permits dropping a
+collection whose build configuration changed; `AllowSourceScopeChange` permits
+reindexing when the source scope — root path, excluded directories or file
+extensions — changed, which otherwise blocks to avoid mass insert or deletion.
 
 > **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at
 > the same local runtime (Ollama, LM Studio, …), keep both models resident —
