@@ -54,4 +54,5 @@ The expensive part of contextualization is *time*, not *space*. End to end,
 making the corpus semantically searchable costs ~**20× the source-text size**,
 and **~95% of that is the dense vectors themselves**, unrelated to
 contextualization. The contextual prefix adds only ~1.5% on top (≈2 MB on a
-140 MB store).
+140 MB store). See [storage-footprint.md](storage-footprint.md) for the
+per-collection breakdown and the SQL to measure it.
