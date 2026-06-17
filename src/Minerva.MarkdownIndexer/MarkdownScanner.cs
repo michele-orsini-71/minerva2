@@ -5,8 +5,6 @@ namespace Minerva.MarkdownIndexer;
 
 public partial class MarkdownScanner
 {
-    private const string MarkdownFilePattern = "*.md";
-
     private static readonly Regex ImageRegex = MarkdownImageRegex();
 
     private readonly IndexerOptions _options;
@@ -22,15 +20,24 @@ public partial class MarkdownScanner
             yield break;
 
         var excludeSet = new HashSet<string>(_options.ExcludeDirectories, StringComparer.OrdinalIgnoreCase);
+        var extensionSet = new HashSet<string>(
+            _options.FileExtensions.Select(NormalizeExtension), StringComparer.Ordinal);
 
         foreach (var path in Directory.EnumerateFiles(
-            _options.RootPath, MarkdownFilePattern, SearchOption.AllDirectories))
+            _options.RootPath, "*", SearchOption.AllDirectories))
         {
+            if (!extensionSet.Contains(NormalizeExtension(Path.GetExtension(path))))
+                continue;
             if (IsExcluded(path, excludeSet))
                 continue;
             yield return path;
         }
     }
+
+    // Canonical extension form shared by file selection and provenance change detection:
+    // lower-cased, without a leading dot, so "md", ".md" and ".MD" all compare equal.
+    internal static string NormalizeExtension(string extension) =>
+        extension.TrimStart('.').ToLowerInvariant();
 
     public Document ReadFile(string filePath)
     {

@@ -14,8 +14,9 @@ public class IndexerOptionsBinderTests
               "RootPath": "/some/path",
               "CollectionName": "my-notes",
               "ExcludeDirectories": [".git", ".obsidian"],
+              "FileExtensions": ["md", "txt"],
               "AllowRecreateOnConfigMismatch": true,
-              "AllowSourceRootChange": false
+              "AllowSourceScopeChange": false
             }
             """;
 
@@ -26,6 +27,9 @@ public class IndexerOptionsBinderTests
         Assert.Equal(2, options.ExcludeDirectories.Count);
         Assert.Contains(".git", options.ExcludeDirectories);
         Assert.Contains(".obsidian", options.ExcludeDirectories);
+        Assert.Equal(2, options.FileExtensions.Count);
+        Assert.Contains("md", options.FileExtensions);
+        Assert.Contains("txt", options.FileExtensions);
         Assert.True(options.AllowRecreateOnConfigMismatch);
     }
 
@@ -41,8 +45,9 @@ public class IndexerOptionsBinderTests
         Assert.Contains("RootPath", paths);
         Assert.Contains("CollectionName", paths);
         Assert.Contains("ExcludeDirectories", paths);
+        Assert.Contains("FileExtensions", paths);
         Assert.Contains("AllowRecreateOnConfigMismatch", paths);
-        Assert.Contains("AllowSourceRootChange", paths);
+        Assert.Contains("AllowSourceScopeChange", paths);
     }
 
     [Fact]
@@ -53,8 +58,9 @@ public class IndexerOptionsBinderTests
               "RootPath": "/x",
               "CollectionName": "bad name!",
               "ExcludeDirectories": [],
+              "FileExtensions": ["md"],
               "AllowRecreateOnConfigMismatch": false,
-              "AllowSourceRootChange": false
+              "AllowSourceScopeChange": false
             }
             """;
 
@@ -73,13 +79,56 @@ public class IndexerOptionsBinderTests
               "RootPath": "/x",
               "CollectionName": "ok",
               "ExcludeDirectories": [],
+              "FileExtensions": ["md"],
               "AllowRecreateOnConfigMismatch": false,
-              "AllowSourceRootChange": false
+              "AllowSourceScopeChange": false
             }
             """;
 
         var options = IndexerOptionsBinder.Bind(ConfigFromJson.Build(json));
 
         Assert.Empty(options.ExcludeDirectories);
+    }
+
+    [Fact]
+    public void Bind_EmptyFileExtensions_IsRejected()
+    {
+        const string json = """
+            {
+              "RootPath": "/x",
+              "CollectionName": "ok",
+              "ExcludeDirectories": [],
+              "FileExtensions": [],
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceScopeChange": false
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => IndexerOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Single(ex.Failures);
+        Assert.Equal("FileExtensions", ex.Failures[0].Path);
+    }
+
+    [Fact]
+    public void Bind_GlobFileExtension_IsRejected()
+    {
+        const string json = """
+            {
+              "RootPath": "/x",
+              "CollectionName": "ok",
+              "ExcludeDirectories": [],
+              "FileExtensions": ["*.md"],
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceScopeChange": false
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => IndexerOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Single(ex.Failures);
+        Assert.Equal("FileExtensions[0]", ex.Failures[0].Path);
     }
 }

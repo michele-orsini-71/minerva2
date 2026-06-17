@@ -53,14 +53,16 @@ internal static class TestOptions
         string rootPath,
         string collectionName = "test",
         IReadOnlyList<string>? excludeDirectories = null,
+        IReadOnlyList<string>? fileExtensions = null,
         bool allowRecreateOnConfigMismatch = false,
-        bool allowSourceRootChange = false) => new()
+        bool allowSourceScopeChange = false) => new()
     {
         RootPath = rootPath,
         CollectionName = collectionName,
         ExcludeDirectories = excludeDirectories ?? [".obsidian", ".trash", ".git"],
+        FileExtensions = fileExtensions ?? ["md"],
         AllowRecreateOnConfigMismatch = allowRecreateOnConfigMismatch,
-        AllowSourceRootChange = allowSourceRootChange,
+        AllowSourceScopeChange = allowSourceScopeChange,
     };
 
     public static CollectionProvenance Provenance(

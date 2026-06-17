@@ -12,7 +12,7 @@ public class PostgresCollectionRepository : ICollectionRepository
     private static readonly JsonSerializerOptions MetadataJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter(), new ScalarObjectConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
@@ -146,4 +146,41 @@ public class PostgresCollectionRepository : ICollectionRepository
     private sealed record MetadataBag(
         CollectionProvenance Provenance,
         ClientProvenance Client);
+
+    // ClientProvenance.data is Dictionary<string, object>. System.Text.Json has no target
+    // type for object values, so it would deserialize them into JsonElement. This converter
+    // normalizes each value back to a plain CLR scalar (string, long, double, bool, null) or a
+    // List<object?> of such scalars, so the JsonElement never leaks out of this layer. Nesting
+    // is one level only: an object, or an array whose element is itself an array or object, is
+    // rejected.
+    private sealed class ScalarObjectConverter : JsonConverter<object>
+    {
+        public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var items = new List<object?>();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                {
+                    items.Add(ReadScalar(ref reader));
+                }
+                return items;
+            }
+            return ReadScalar(ref reader);
+        }
+
+        private static object? ReadScalar(ref Utf8JsonReader reader) =>
+            reader.TokenType switch
+            {
+                JsonTokenType.String => reader.GetString(),
+                JsonTokenType.Number => reader.TryGetInt64(out var l) ? l : reader.GetDouble(),
+                JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
+                JsonTokenType.Null => null,
+                _ => throw new JsonException(
+                    $"Provenance values must be scalars or arrays of scalars; found '{reader.TokenType}'."),
+            };
+
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options) =>
+            JsonSerializer.Serialize(writer, value, value.GetType(), options);
+    }
 }

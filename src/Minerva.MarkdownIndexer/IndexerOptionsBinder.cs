@@ -8,6 +8,7 @@ namespace Minerva.MarkdownIndexer;
 public static partial class IndexerOptionsBinder
 {
     private static readonly Regex CollectionNameRegex = CollectionNamePattern();
+    private static readonly Regex ExtensionRegex = ExtensionPattern();
 
     public static IndexerOptions Bind(IConfiguration section)
     {
@@ -39,15 +40,32 @@ public static partial class IndexerOptionsBinder
         if (raw.ExcludeDirectories is null)
             failures.Add(new OptionsFailure(stagePrefix + "ExcludeDirectories", "is required (use [] for none)."));
 
+        if (raw.FileExtensions is null)
+            failures.Add(new OptionsFailure(
+                stagePrefix + "FileExtensions", "is required (e.g. [\"md\", \"txt\"])."));
+        else if (raw.FileExtensions.Length == 0)
+            failures.Add(new OptionsFailure(
+                stagePrefix + "FileExtensions", "must list at least one extension; an empty list selects no files."));
+        else
+            for (int i = 0; i < raw.FileExtensions.Length; i++)
+            {
+                var ext = raw.FileExtensions[i];
+                if (string.IsNullOrWhiteSpace(ext) || !ExtensionRegex.IsMatch(ext))
+                    failures.Add(new OptionsFailure(
+                        stagePrefix + $"FileExtensions[{i}]",
+                        $"'{ext}' is invalid: use a bare extension like 'md' or '.md', not a glob or pattern."));
+            }
+
         if (raw.AllowRecreateOnConfigMismatch is null)
             failures.Add(new OptionsFailure(
                 stagePrefix + "AllowRecreateOnConfigMismatch",
                 "is required (true to permit dropping a collection whose build configuration no longer matches)."));
 
-        if (raw.AllowSourceRootChange is null)
+        if (raw.AllowSourceScopeChange is null)
             failures.Add(new OptionsFailure(
-                stagePrefix + "AllowSourceRootChange",
-                "is required (true to allow to reindex a collection even if its root path no longer matches)."));
+                stagePrefix + "AllowSourceScopeChange",
+                "is required (true to allow reindexing a collection even if its source scope — root path, "
+                + "excluded directories or file extensions — no longer matches)."));
 
         if (failures.Count > before) return null;
 
@@ -56,13 +74,17 @@ public static partial class IndexerOptionsBinder
             RootPath = raw.RootPath!,
             CollectionName = raw.CollectionName!,
             ExcludeDirectories = [.. raw.ExcludeDirectories!],
+            FileExtensions = [.. raw.FileExtensions!],
             AllowRecreateOnConfigMismatch = raw.AllowRecreateOnConfigMismatch!.Value,
-            AllowSourceRootChange = raw.AllowSourceRootChange!.Value
+            AllowSourceScopeChange = raw.AllowSourceScopeChange!.Value
         };
     }
 
     [GeneratedRegex(@"^[a-zA-Z0-9][a-zA-Z0-9-]*$", RegexOptions.Compiled)]
     private static partial Regex CollectionNamePattern();
+
+    [GeneratedRegex(@"^\.?[A-Za-z0-9]+$", RegexOptions.Compiled)]
+    private static partial Regex ExtensionPattern();
 }
 
 internal sealed class RawIndexerOptions
@@ -70,6 +92,7 @@ internal sealed class RawIndexerOptions
     public string? RootPath { get; set; }
     public string? CollectionName { get; set; }
     public string[]? ExcludeDirectories { get; set; }
+    public string[]? FileExtensions { get; set; }
     public bool? AllowRecreateOnConfigMismatch { get; set; }
-    public bool? AllowSourceRootChange { get; set; }
+    public bool? AllowSourceScopeChange { get; set; }
 }

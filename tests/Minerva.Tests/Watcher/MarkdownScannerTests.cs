@@ -19,10 +19,11 @@ public class MarkdownScannerTests : IDisposable
         try { Directory.Delete(_root, recursive: true); } catch { /* best effort */ }
     }
 
-    private MarkdownScanner MakeScanner(string[]? excludes = null) =>
+    private MarkdownScanner MakeScanner(string[]? excludes = null, string[]? extensions = null) =>
         new(TestOptions.Indexer(
             rootPath: _root,
-            excludeDirectories: excludes ?? [".obsidian", ".trash", ".git"]));
+            excludeDirectories: excludes ?? [".obsidian", ".trash", ".git"],
+            fileExtensions: extensions ?? ["md"]));
 
     private string WriteFile(string relativePath, string content)
     {
@@ -44,6 +45,32 @@ public class MarkdownScannerTests : IDisposable
 
         Assert.Equal(3, files.Count);
         Assert.All(files, f => Assert.EndsWith(".md", f));
+    }
+
+    [Fact]
+    public void ScanFiles_IncludesAllConfiguredExtensions()
+    {
+        WriteFile("note.md", "a");
+        WriteFile("plain.txt", "b");
+        WriteFile("data.json", "c");
+
+        var files = MakeScanner(extensions: ["md", "txt"]).ScanFiles().ToList();
+
+        Assert.Equal(2, files.Count);
+        Assert.Contains(files, f => f.EndsWith("note.md"));
+        Assert.Contains(files, f => f.EndsWith("plain.txt"));
+    }
+
+    [Fact]
+    public void ScanFiles_MatchesExtensionsCaseAndDotInsensitively()
+    {
+        WriteFile("upper.MD", "a");
+        WriteFile("dotted.txt", "b");
+
+        // Configured with a leading dot and mixed case; selection must still match.
+        var files = MakeScanner(extensions: [".Md", "TXT"]).ScanFiles().ToList();
+
+        Assert.Equal(2, files.Count);
     }
 
     [Fact]
