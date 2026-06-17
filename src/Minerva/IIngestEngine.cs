@@ -10,4 +10,6 @@ public interface IIngestEngine
         IAsyncEnumerable<Document> documents,
         bool allowRecreateOnConfigMismatch = false,
         CancellationToken ct = default);
+
+    Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
 }

@@ -77,6 +77,11 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
     }
 
+    public async Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default)
+    {
+        return await _collections.GetAsync(collectionName, ct);
+    }
+    
     private async Task PrepareCollectionAsync(string collectionName, ClientProvenance clientProvenance, bool allowRecreateOnConfigMismatch, CancellationToken ct)
     {
         var provenance = await BuildProvenanceAsync(ct);

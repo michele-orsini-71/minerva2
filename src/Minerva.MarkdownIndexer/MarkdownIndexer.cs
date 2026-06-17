@@ -12,27 +12,24 @@ public sealed class MarkdownIndexer
 
     private readonly MarkdownScanner _scanner;
     private readonly IIngestEngine _engine;
-    private readonly ISearchEngine _searchEngine;
     private readonly IndexerOptions _options;
     private readonly ILogger<MarkdownIndexer> _logger;
 
     public MarkdownIndexer(
         MarkdownScanner scanner,
         IIngestEngine engine,
-        ISearchEngine searchEngine,
         IndexerOptions options,
         ILogger<MarkdownIndexer> logger)
     {
         _scanner = scanner;
         _engine = engine;
-        _searchEngine = searchEngine;
         _options = options;
         _logger = logger;
     }
 
     public async Task RunAsync(CancellationToken ct = default)
     {
-        var collection = await _searchEngine.QueryCollectionInfoAsync(_options.CollectionName, ct);
+        var collection = await _engine.QueryCollectionInfoAsync(_options.CollectionName, ct);
         if (collection != null)
         {
             if (collection.ClientProvenance.kind != ClientProvenanceName)
