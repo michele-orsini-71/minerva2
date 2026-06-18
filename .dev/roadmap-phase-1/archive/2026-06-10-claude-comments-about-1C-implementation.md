@@ -1,3 +1,5 @@
+# Claude comments about 1C implementation
+
 1. "on-the-nose, which favours raw chunks.", i.e. "Harder queries — concept-expressed-differently and multi-gold, so recall comes off the ceiling and the collections can separate" - we need more difficult queries
 2. It shows the eval is still too easy and too small to decide - we need more queries
 3. Optionally bump scoring depth so R@20 means something.

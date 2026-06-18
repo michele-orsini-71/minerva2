@@ -157,7 +157,7 @@ With `CharsPerToken ≈ 3.0` and `SafetyFactor ≈ 0.9`, headroom is generous en
 
 - `SegmentDocument` should guarantee `len(segment) ≤ MaxSegmentChars`:
   - First try: split by highest-level heading (today's logic).
-  - If a section is still too big: reuse `RecursiveSplit` with separators `\n\n`, `\n`, `. `, etc.
+  - If a section is still too big: reuse `RecursiveSplit` with separators `\n\n`, `\n`, `.`, etc.
   - If still too big: brute-force char slice with overlap.
 - `SplitIntoChunks` (`RecursiveSplit`'s no-separator branch at [line 239-245](../../src/Minerva/Ingestion/DocumentChunker.cs#L239-L245)): change "warn and emit" to "warn and slice."
 - Both `MaxSegmentChars` (LLM-derived) and `TargetChunkSize` (embedder-derived) come from step 2.
