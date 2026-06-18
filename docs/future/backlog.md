@@ -34,6 +34,18 @@ exploratory chats. Low confidence by design — revisit before acting.
   date, tags); lets a client exclude an archive folder, or scope to a subtree.
   Noted as valuable in *AI Engineering* and the Anthropic article (entities and
   keywords as chunk metadata, e.g. exact error codes).
+- **Metadata-based ranking (recency / freshness)** — use note metadata to
+  influence the score, not only to filter; e.g. rank newer notes higher via a
+  recency boost or time decay. Distinct from the **Metadata-filter search** item
+  above (filtering includes/excludes; this changes the order). Open design
+  questions: which timestamp is the signal (note modification time from
+  frontmatter vs. chunk/collection ingest `last_updated_at`, which differ), and
+  whether recency is a multiplicative boost on the fused score or a separate
+  signal fused alongside dense/FTS. The infrastructure already exists (timestamp
+  columns), but no algorithm is designed. Surfaced as a one-line note —
+  "last updated time puo' essere rilevante per il ranking" — in
+  `../../.dev/roadmap-phase-1/archive/2026-06-10-more-considerations.md`, tied to
+  reranking (Phase 2).
 - **Document retriever mode** — given the index, return the note (or list of
   notes) that discuss a topic, as an alternative to a summarized answer. A
   "search that returns sources", useful for tools like Obsidian.
