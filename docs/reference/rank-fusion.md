@@ -28,14 +28,15 @@ al. 2009), with a few project-specific twists. Code lives in
    with `k = 60` (standard RRF constant) and `alpha = HybridAlpha`
    (default 0.5). The fused set is the union of both pools, scored, sorted
    descending.
-4. **Per-collection dedupe by source.** The fused list is walked top-down and
-   only the first chunk per `SourceId` is kept; since the list is already
-   sorted, this keeps the highest-scoring chunk per source and stops one
-   document from monopolizing the top. Then `Take(TopK)`.
-5. **Cross-collection merge.** Each collection's deduped top-K lists are
-   concatenated, re-sorted by the same fused score, and trimmed to the global
-   `TopK`. RRF is not re-applied across collections — the values are already
-   fused scores, so re-ranking would be meaningless.
+4. **Per-collection top-K trim.** The fused list is `Take(TopK)`. There is **no
+   dedupe by source**: multiple chunks from the same document may occupy the top
+   results. A per-`SourceId` dedupe step existed previously and was removed;
+   dedupe alternatives (cap-per-source, positional, MMR) are deferred to roadmap
+   Phase 5.
+5. **Cross-collection merge.** Each collection's top-K list is concatenated,
+   re-sorted by the same fused score, and trimmed to the global `TopK`. RRF is
+   not re-applied across collections — the values are already fused scores, so
+   re-ranking would be meaningless.
 6. **Optional context expansion.** If `ContextRadius > 0`, `ContextExpander`
    pulls neighboring chunks around each hit. This enriches the payload; it
    does not affect ranking.
@@ -56,10 +57,10 @@ al. 2009), with a few project-specific twists. Code lives in
   equal weight. A chunk ranked #1 in both lists wins decisively.
 
 `CandidatePoolMultiplier` (`SearchOptions.cs`) is the lever for step 2. Too
-low and RRF has no overlap to reward; too high and DB work is wasted. The
-warning in `SearchPipeline` fires when fewer than `TopK` results survive
-dedupe — usually a sign the multiplier is too low for the corpus's
-source-to-chunk ratio.
+low and RRF has no overlap to reward; too high and DB work is wasted.
+`SearchPipeline` warns in two cases: when `CandidatePoolSize` is below ~1.5×
+`TopK` (little fusion depth), and when fewer than `TopK` results come back from
+fusion (the corpus has too few chunks to satisfy the request).
 
 ## Worked example — the role of k
 
