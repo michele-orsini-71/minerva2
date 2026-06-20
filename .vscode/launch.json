@@ -8,7 +8,7 @@
             "name": "Python Debugger: kiwi2md",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tools/kiwix-extractor/kiwi2md.py",
+            "program": "${workspaceFolder}/tools/kiwix2md/kiwix2md.py",
             "console": "integratedTerminal",
             "args": ["${workspaceFolder}/wikipedia_en_100_nopic_2026-04.zim"]
         }

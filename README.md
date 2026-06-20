@@ -53,6 +53,21 @@ To bootstrap the test database (creates `minerva_test` with `pgvector`
 installed), run `./scripts/run-integration-tests.sh` once after starting
 Postgres.
 
+## Editor debug profiles
+
+Per-project launch profiles live in `Properties/launchSettings.json`. These are
+git-ignored, because they point at machine- and data-specific paths (local
+collections, private datasets). Each project ships a tracked
+`Properties/launchSettings.template.json` instead. After a fresh clone, copy the
+template next to it and replace the `<placeholder>` values:
+
+```bash
+cp src/Minerva.Search.Bench/Properties/launchSettings.template.json \
+   src/Minerva.Search.Bench/Properties/launchSettings.json
+```
+
+The copy is automatically ignored, so private values stay local.
+
 ## Roadmap
 
 The library is client-agnostic. The markdown watcher is the first client; future

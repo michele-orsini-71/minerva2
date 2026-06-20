@@ -5,7 +5,7 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"
       },
-      "commandLineArgs": "\"how do I configure logging\" --collection test-1 --top-k 5"
+      "commandLineArgs": "\"<your query>\" --collection <collection-name> --top-k 5"
     }
   }
 }

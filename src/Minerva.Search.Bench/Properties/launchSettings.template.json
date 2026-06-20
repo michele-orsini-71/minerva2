@@ -6,7 +6,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "run --sweep eval/sweeps/private/personal-notes-debug.toml --out eval/results"
+      "commandLineArgs": "run --sweep eval/sweeps/<your-sweep>.toml --out eval/results"
     },
     "Minerva.Search.Bench authoring": {
       "commandName": "Project",
@@ -14,7 +14,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "author-dataset test-1-dataset.jsonl --collection test-1"
+      "commandLineArgs": "author-dataset eval/datasets/<your-dataset>.jsonl --collection <collection-name>"
     },
     "Minerva.Search.Bench validating": {
       "commandName": "Project",
@@ -22,7 +22,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "validate-dataset test-1-dataset.jsonl --collection test-1"
+      "commandLineArgs": "validate-dataset eval/datasets/<your-dataset>.jsonl --collection <collection-name>"
     }
   }
 }

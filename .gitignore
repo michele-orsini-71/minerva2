@@ -15,6 +15,9 @@
 *.userosscache
 *.sln.docstates
 
+# Launch profiles are developer-local (point at machine/data-specific paths)
+**/Properties/launchSettings.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
