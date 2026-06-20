@@ -1,0 +1,3 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/tools/kiwix2md/.venv/bin/python"
+}

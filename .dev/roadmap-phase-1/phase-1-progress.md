@@ -23,8 +23,8 @@ observable.
 | 1B | Single-cell `run` path, three output files | ✅ done |
 | 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
 | — | FTS-returns-0-hits fix (gating, found by 1C) | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
-| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | 🔄 `collection_metadata` A–E done (253 tests green); reingest + tags (Gap B) pending |
-| 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook | ⏳ blocked on pre-1D |
+| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | ✅ done |
+| 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook | 🔄 current |
 | 1E-α | `gen-queries` authoring helper | ◻ optional |
 | 1E-β | End-to-end answer accuracy (LLM-as-judge) | ◻ optional |
 | 1E-γ | Baseline-vs-current notebook cell | ◻ optional |
