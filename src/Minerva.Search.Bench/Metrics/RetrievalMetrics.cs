@@ -4,7 +4,11 @@ public sealed record MetricScores(
     double RecallAt5,
     double RecallAt10,
     double RecallAt20,
-    double MrrAt10);
+    double SuccessAt5,
+    double SuccessAt10,
+    double SuccessAt20,
+    double MrrAt10
+);
 
 public static class RetrievalMetrics
 {
@@ -19,6 +23,9 @@ public static class RetrievalMetrics
             RecallAt(rankedSourceIds, goldSources, 5),
             RecallAt(rankedSourceIds, goldSources, 10),
             RecallAt(rankedSourceIds, goldSources, 20),
+            SuccessAt(rankedSourceIds, goldSources, 5),
+            SuccessAt(rankedSourceIds, goldSources, 10),
+            SuccessAt(rankedSourceIds, goldSources, 20),
             MrrAt(rankedSourceIds, goldSources, 10));
     }
 
@@ -29,6 +36,13 @@ public static class RetrievalMetrics
         var topK = ranked.Take(k).ToHashSet();
         var hits = gold.Count(topK.Contains);
         return (double)hits / gold.Count;
+    }
+
+    // Success@K = 1.0 if any gold source appears within the first K results, 0.0 otherwise
+    private static double SuccessAt(
+        IReadOnlyList<string> ranked, IReadOnlySet<string> gold, int k)
+    {
+        return ranked.Take(k).Any(gold.Contains) ? 1.0 : 0.0;
     }
 
     // MRR@K = reciprocal rank of the first gold hit within the first K results, else 0.

@@ -94,8 +94,11 @@ collections — external setup, not in-process iteration.
 ### Document-level ground truth
 
 Each query's gold target is one or more **source documents**
-(`gold_sources`). A retrieval is correct if any chunk from any gold source
-appears in the top-K result. Chunk-level ground truth becomes invalid the
+(`gold_sources`). A gold source counts as retrieved if any of its chunks
+appears in the top-K result. When a query lists multiple gold sources, all are
+treated as relevant (coverage): Recall@K is the fraction retrieved, so finding
+one of two scores 0.5; Success@K reports the complementary "any-suffices" view
+(1 if at least one gold source is retrieved). Chunk-level ground truth becomes invalid the
 moment the corpus is re-chunked, and Phase 3 explicitly re-chunks.
 Document-level survives re-chunking, re-contextualization, and re-embedding.
 The Anthropic article uses chunk-level for its eval; we deliberately diverge
@@ -150,12 +153,17 @@ ingestor commit SHA, DB schema version. Sourced from `collection_metadata` and
 stamped into `run.json` by Phase D of
 [`collection-metadata-design.md`](collection-metadata-design.md).
 
-### Metrics: Recall@5, Recall@10, Recall@20, MRR@10
+### Metrics: Recall@5/10/20, Success@5/10/20, MRR@10
 
-Per-query, stored in `metrics.csv`. Recall@K is document-level (1 if any
-chunk from any gold source is in top-K, else 0). MRR@10 is the reciprocal
-rank of the first gold-source chunk within top-10, else 0. Recall@5/10/20 is
-the headline metric Anthropic reports; MRR captures _how high_ the first hit
+Per-query, stored in `metrics.csv`. A gold source counts as retrieved when any
+of its chunks is in the top-K. **Recall@K** is the fraction of the query's gold
+sources retrieved — coverage with partial credit, so a single-gold query scores
+0 or 1 while a 2-gold query can score 0, 0.5, or 1; this matches the recall
+definition in Anthropic's contextual-retrieval eval. **Success@K** is the
+complementary "any-suffices" view: 1 if at least one gold source is in top-K,
+else 0 (identical to Recall@K for single-gold queries — they differ only when a
+query has multiple gold sources). **MRR@10** is the reciprocal rank of the first
+gold-source chunk within top-10, else 0 — it captures _how high_ the first hit
 ranks, which matters for distinguishing reranker variants in Phase 2.
 
 ### Phase 0 baseline configuration is pinned

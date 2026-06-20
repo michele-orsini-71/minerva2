@@ -29,17 +29,17 @@ public class MetricsCsvWriterTests
     {
         var results = new[]
         {
-            new CellQueryResult("q1", Cell(10), new MetricScores(1.0, 1.0, 1.0, 1.0), 5, null, null),
-            new CellQueryResult("q2", Cell(10), new MetricScores(0.0, 0.5, 0.5, 0.0), 7, null, null),
+            new CellQueryResult("q1", Cell(10), new MetricScores(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0), 5, null, null),
+            new CellQueryResult("q2", Cell(10), new MetricScores(0.0, 0.5, 0.5, 0.0, 1.0, 1.0, 0.0), 7, null, null),
         };
 
         var lines = WriteAndReadLines(results);
 
         Assert.Equal(
-            "query_id,top_k,recall_at_5,recall_at_10,recall_at_20,mrr_at_10,latency_ms,error",
+            "query_id,top_k,recall_at_5,recall_at_10,recall_at_20,success_at_5,success_at_10,success_at_20,mrr_at_10,latency_ms,error",
             lines[0]);
         Assert.Equal(3, lines.Length); // header + 2 rows
-        Assert.Equal("q1,10,1,1,1,1,5,", lines[1]);
+        Assert.Equal("q1,10,1,1,1,1,1,1,1,5,", lines[1]);
     }
 
     [Fact]
@@ -53,6 +53,6 @@ public class MetricsCsvWriterTests
         var lines = WriteAndReadLines(results);
 
         // empty recall/mrr cells, latency, then quoted error (contains a comma)
-        Assert.Equal("q1,10,,,,,0,\"boom, failed\"", lines[1]);
+        Assert.Equal("q1,10,,,,,,,,0,\"boom, failed\"", lines[1]);
     }
 }

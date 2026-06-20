@@ -98,7 +98,9 @@ public class RetrievalMetricsTests
         var m = RetrievalMetrics.Compute(ranked, Gold("A", "B"));
 
         Assert.Equal(0.5, m.RecallAt5, 5);  // only A within top 5
+        Assert.Equal(1.0, m.SuccessAt5, 5);  // A within top 5 means Success = 1.0
         Assert.Equal(1.0, m.RecallAt10, 5); // both within top 10
+        Assert.Equal(1.0, m.SuccessAt10, 5); // both within top 10 means Success = 1.0 again
         Assert.Equal(1.0, m.MrrAt10, 5);    // first gold hit is A at rank 1
     }
 

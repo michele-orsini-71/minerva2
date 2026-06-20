@@ -35,6 +35,9 @@ public static class DetailsJsonlWriter
                         recall_at_5 = s.RecallAt5,
                         recall_at_10 = s.RecallAt10,
                         recall_at_20 = s.RecallAt20,
+                        success_at_5 = s.SuccessAt5,
+                        success_at_10 = s.SuccessAt10,
+                        success_at_20 = s.SuccessAt20,
                         mrr_at_10 = s.MrrAt10,
                     }
                     : null,

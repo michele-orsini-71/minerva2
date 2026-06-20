@@ -34,7 +34,7 @@ public class DetailsJsonlWriterTests
         var results = new[]
         {
             new CellQueryResult(
-                "q1", Cell(10), new MetricScores(1.0, 1.0, 1.0, 1.0), 5, null,
+                "q1", Cell(10), new MetricScores(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0), 5, null,
                 [new RetrievedHit(1, "c1", "g", 0.8, true), new RetrievedHit(2, "c2", "x", 0.4, false)]),
         };
 
@@ -80,7 +80,7 @@ public class DetailsJsonlWriterTests
         var entries = new[] { new ParsedEntry(1, "q1", "vulnerabilità", ["g"]) };
         var results = new[]
         {
-            new CellQueryResult("q1", Cell(10), new MetricScores(1, 1, 1, 1), 1, null, []),
+            new CellQueryResult("q1", Cell(10), new MetricScores(1, 1, 1, 1, 1, 1, 1), 1, null, []),
         };
 
         var lines = WriteAndReadLines(entries, results);
@@ -99,10 +99,10 @@ public class DetailsJsonlWriterTests
         };
         var results = new[]
         {
-            new CellQueryResult("q1", Cell(10), new MetricScores(1, 1, 1, 1), 1, null, []),
-            new CellQueryResult("q2", Cell(10), new MetricScores(0, 0, 0, 0), 1, null, []),
-            new CellQueryResult("q1", Cell(20), new MetricScores(1, 1, 1, 1), 1, null, []),
-            new CellQueryResult("q2", Cell(20), new MetricScores(0, 0, 0, 0), 1, null, []),
+            new CellQueryResult("q1", Cell(10), new MetricScores(1, 1, 1, 1, 1, 1, 1), 1, null, []),
+            new CellQueryResult("q2", Cell(10), new MetricScores(0, 0, 0, 0, 0, 0, 0), 1, null, []),
+            new CellQueryResult("q1", Cell(20), new MetricScores(1, 1, 1, 1, 1, 1, 1 ), 1, null, []),
+            new CellQueryResult("q2", Cell(20), new MetricScores(0, 0, 0, 0, 0, 0, 0), 1, null, []),
         };
 
         var lines = WriteAndReadLines(entries, results);
