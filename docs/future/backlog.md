@@ -53,6 +53,19 @@ exploratory chats. Low confidence by design — revisit before acting.
   result to an LLM for summarization, optionally return the ranked hits for the
   client to render, with client-side filtering (exclude paths, include/exclude
   archive).
+- **Trigram matching (`pg_trgm`) as a fuzzy lexical signal** — PostgreSQL's
+  built-in `pg_trgm` (character trigrams, GIN/GiST indexes for `similarity`
+  and fast `ILIKE`) offers typo tolerance (`Mnerva` ≈ `Minerva`) and partial
+  matching on proper nouns and technical terms. Notably, trigram overlap is a
+  *language-independent approximation of stemming* (`russo`/`russi` share
+  trigrams), so it partially addresses the `'simple'`-config gap that
+  **per-document language detection** targets (see
+  `../reference/full-text-search.md`), without detecting the language. It is a
+  complement, not a replacement: it is not BM25 (no IDF/length normalization)
+  and is weak at ranking long chunks, being built for short strings. Open
+  design question: how it fuses — a separate signal in rank fusion, or only a
+  fuzzy fallback for entity/term matching. Sits beside the **Real BM25** and
+  language-detection cross-phase items.
 - **Summarizer / contextualizer quality** — the Anthropic recipe passes the
   whole document with each chunk; Minerva uses a document summary for time and
   cost. Could improve by constraining the summary to a size relative to the
@@ -71,6 +84,26 @@ exploratory chats. Low confidence by design — revisit before acting.
 - **Prompt caching for non-local models** — explore whether the Python / MS
   SDKs expose prompt caching for cloud providers, or whether a hand-rolled
   driver is needed, to cut contextualization cost.
+- **ZIM ingestion path — JSON notes / `MinervaV1Indexer` instead of the markdown
+  shortcut.** Current path is a deliberate shortcut: `zim → kiwix2md tool →
+  markdown files → MarkdownIndexer`. It works and produces the Wikipedia corpus
+  on demand. A `ZimIndexer` was not built directly because `libzim` is a Python
+  library. Three alternatives, kept as options, none planned: (1) have the Python
+  tool emit JSON notes like the ones used in `../minerva` instead of markdown;
+  (2) make the Python tool a proper `../minerva` extractor; (3) build a
+  `MinervaV1Indexer` in minerva2 that reuses the old (Python) extractors. Why
+  deferred: the Reranker is the target, and the path does not serve it — the same
+  corpus text reaches the index regardless of how documents entered, so retrieval
+  and ranking quality are unaffected. Metadata is not a reason to switch either:
+  frontmatter already flows through `MarkdownIndexer` into `Document.Metadata`,
+  so the metadata-ranking and metadata-filter ideas above can be fed from
+  frontmatter without JSON notes. The real cost of the JSON path is a second
+  ingestion architecture and early cross-lineage coupling between minerva2 (.NET)
+  and minerva (Python) extractor schemas, which are meant to version
+  independently. Cheap insurance to keep this option open at near-zero cost: in
+  the `kiwix2md` tool, keep content *extraction* separate from markdown
+  *emission*, so "emit JSON notes instead" later becomes swapping the emitter,
+  not a rewrite.
 
 ## Clients and feature parity
 
