@@ -97,7 +97,10 @@ Note that under `'simple'` nothing is stemmed or dropped — `foxes` stays
 
 - **No stemming.** `russo` ≠ `russi`; inflected Italian will miss. Acceptable
   for the exact-token job; per-document language detection is the correct
-  long-term fix (roadmap backlog).
+  long-term fix (roadmap backlog). A language-independent alternative —
+  character trigram matching (`pg_trgm`), where `russo`/`russi` share
+  trigrams — is noted as a fuzzy-lexical-signal option in
+  `../future/backlog.md`.
 - **Stopwords are indexed.** `the`, `il`, `la` become lexemes; index size
   grows slightly. A custom config (`simple` parser + a stopword dictionary,
   no stemmer) could drop them without stemming if it ever matters.
