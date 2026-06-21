@@ -24,7 +24,7 @@ observable.
 | 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
 | — | FTS-returns-0-hits fix (gating, found by 1C) | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
 | pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | ✅ done |
-| 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook | 🔄 current |
+| 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook |  |
 | 1E-α | `gen-queries` authoring helper | ◻ optional |
 | 1E-β | End-to-end answer accuracy (LLM-as-judge) | ◻ optional |
 | 1E-γ | Baseline-vs-current notebook cell | ◻ optional |
@@ -151,6 +151,44 @@ include:**
   hand-curated target; the set is currently too small to decide.
 - [ ] **Scoring depth** — bump so that Recall@20 carries real signal rather
   than saturating.
+
+**Corpus size and difficulty (decision).** The first Wikipedia ingest is the
+"top 100" articles — distinct, popular topics. With only ~100 very distinct
+documents, retrieval is too easy and the metrics saturate, the same ceiling the
+1C finding hit on personal notes. The discrimination we need comes from
+**distractor density and harder queries, not from changing the gold
+granularity**: we keep document-level `gold_sources` (durable across the
+Phase 3 re-chunk; chunk-level is not) and lean on MRR@10 for rank sensitivity
+once Success@K saturates. Average Precision was considered and deferred — for
+single-gold queries it equals MRR, and it assumes complete relevance judgments
+the hand-curated set does not have (recorded in `docs/future/backlog.md`).
+
+The decision is to **grow the corpus with distractor articles** drawn from the
+same public ZIM family (`en top` + `en history`), even though the ingestion
+speed-up was smaller than hoped. Ingestion was profiled this session
+(`docs/measurements/model-speedups.md`): the GGUF engine is ~1.65× faster than
+MLX for the small `qwen2.5` model, but parallelizing the contextualizer gained
+only ~12% because the M2 GPU is already saturated at concurrency 1. The engine
+win alone makes incremental nightly growth affordable (~100 articles per night),
+so we accept the limited parallelization payoff and proceed with a larger
+corpus rather than staying at 100.
+
+Reproducibility is preserved without hand-picking: the extractor records a
+**manifest of the selected article titles**, and that manifest — not the random
+procedure — is what a third party re-ingests. The manifest, the two ZIM URLs and
+hashes, and the `kiwix2md` command together form the corpus README (deliverable
+2). Distractors are never gold, so authoring queries against the existing top
+100 is not invalidated by later corpus growth.
+
+**How we proceed (order).**
+
+1. Build the random extractor (extend `kiwix2md.py`): random selection from the
+   two ZIMs, dedup against already-ingested titles, emit the title manifest.
+2. Start distractor ingestion in the background (the long unattended task).
+3. In parallel, author queries (`author-dataset`) aimed at the topic clusters in
+   the top 100, and build the analysis notebook.
+4. Run the committed baseline only **after** the distractors are in, so it
+   measures the harder corpus rather than the easy one.
 
 **Done when:** nuking local state, following the corpus README, and
 re-running the bench produces output the committed notebook analyzes without
