@@ -34,14 +34,13 @@ public class ChunkContextualizer : IChunkContextualizer
         IReadOnlyList<Chunk> chunks,
         CancellationToken ct = default)
     {
-        var prefixes = new string[chunks.Count];
-
+        var tasks = new Task<string>[chunks.Count];
         for (int i = 0; i < chunks.Count; i++)
         {
             var prompt = string.Format(PromptTemplate, documentSummary, chunks[i].Content);
-            prefixes[i] = await _llm.GenerateAsync(systemPrompt: null, prompt, ct);
+            tasks[i] = _llm.GenerateAsync(systemPrompt: null, prompt, ct);
         }
 
-        return prefixes;
+        return await Task.WhenAll(tasks);
     }
 }
