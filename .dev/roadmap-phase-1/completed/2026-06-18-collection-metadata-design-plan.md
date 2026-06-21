@@ -1,7 +1,7 @@
 # Collection Metadata & Provenance — Build Plan
 
 A high-level journal for the work designed in
-[.dev/roadmap-phase-1/collection-metadata-design.md](collection-metadata-design.md).
+[.dev/roadmap-phase-1/collection-metadata-design.md](2026-06-18-collection-metadata-design.md).
 Prose only — no types, signatures, or code shapes. The design doc is the
 specification; this file tracks progress.
 

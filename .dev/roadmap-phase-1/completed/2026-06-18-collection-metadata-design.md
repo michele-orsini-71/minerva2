@@ -22,7 +22,7 @@ slice that leaves the build and tests green.
 1. **Self-describing collections.** Today a collection records only its
    embedding model name. Nothing says how its chunks were built.
 2. **Drift-proofing.** Ingest is a full reconcile —
-   [MinervaIngestEngine.cs:62-67](../../src/Minerva/MinervaIngestEngine.cs#L62-L67)
+   [MinervaIngestEngine.cs:62-67](../../../src/Minerva/MinervaIngestEngine.cs#L62-L67)
    deletes every source the current run did not produce. Re-ingesting the same
    collection with a changed chunk size (or model, or prompt) silently produces
    an incoherent index. Only the embedder is guarded today; nothing else is.
@@ -144,7 +144,7 @@ provenance. The existing `ValidateNoLiteralApiKeys` check stays.
   `CollectionConfigMismatchException` listing every drifted field (name, stored
   value, configured value), unless the caller passes the override flag, in which
   case it drops and recreates. This generalizes today's embedder-only check at
-  [MinervaIngestEngine.cs:83-94](../../src/Minerva/MinervaIngestEngine.cs#L83-L94).
+  [MinervaIngestEngine.cs:83-94](../../../src/Minerva/MinervaIngestEngine.cs#L83-L94).
 - **Client metadata — not guarded by core.** Core cannot interpret it. Any
   guard over client fields lives in the front-end (see the indexer section).
 

@@ -151,7 +151,7 @@ stored — derivable from `metrics.csv`, single source of truth.
 dimension, chunker config, contextualization model + the two prompt versions,
 ingestor commit SHA, DB schema version. Sourced from `collection_metadata` and
 stamped into `run.json` by Phase D of
-[`collection-metadata-design.md`](collection-metadata-design.md).
+[`collection-metadata-design.md`](completed/2026-06-18-collection-metadata-design.md).
 
 ### Metrics: Recall@5/10/20, Success@5/10/20, MRR@10
 

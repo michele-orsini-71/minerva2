@@ -74,7 +74,7 @@ Phase 1D ingests the Wikipedia corpus. That ingest is the right — and cheapest
 throwaway test collections now, so we add the metadata, then re-ingest into
 fresh, fully documented collections, with no retrofit onto live data later.
 Because the provenance metadata carries version identifiers, versioning is
-closed first. **1D is blocked on these two.**
+closed first. **Both are now done — 1D is unblocked.**
 
 ### Versioning (low-hanging — close the noise)
 
@@ -85,7 +85,8 @@ closed first. **1D is blocked on these two.**
   `Minerva.MarkdownIndexer`. The flag short-circuits eagerly: it prints the
   version and exits 0 before any other argument is validated. Fixes minerva1's
   one weakness (its `--version` was hardcoded).
-- [ ] **Release convention (Gap B).** Adopt `vX.Y.Z` git tags and a
+- [x] **Release convention (Gap B).** ✅ done — `v0.1.0` git tag + `CHANGELOG.md`
+  (commit `e0bdfbd`). Adopt `vX.Y.Z` git tags and a
   `CHANGELOG.md`. Lockstep single version is already achieved by
   `Directory.Build.props` (`VersionPrefix = 0.1.0`) — no bump script or
   consistency-guard test needed (minerva1 needed both). minerva2 versions
@@ -96,7 +97,7 @@ closed first. **1D is blocked on these two.**
 Full design — the complete `collections.metadata` field catalogue, the
 invariant/last-run/excluded split, the two-owner (core vs client) model, the
 reingest guard, and the phase cut — is in
-[`collection-metadata-design.md`](collection-metadata-design.md). Summary of the
+[`collection-metadata-design.md`](completed/2026-06-18-collection-metadata-design.md). Summary of the
 phases:
 
 - [x] **A** — schema + typed `CollectionProvenance` round-trip (migration `003`
@@ -109,10 +110,10 @@ phases:
 - [x] **E** — indexer `client` metadata + soft source-root guard (separable;
   does not block 1D). Implementation complete; the source-root automated tests
   are deferred to `docs/future/backlog.md` (no indexer test project yet).
-- [ ] Re-ingest the test collections and the new Wikipedia collection with the
+- [x] Re-ingest the test collections and the new Wikipedia collection with the
   metadata populated, so every collection is self-describing from creation.
-  *In progress:* old collections (no client section) now fail the read-boundary
-  guard; `mynotes-nollm` still needs reingesting under the slice-E indexer.
+  ✅ done — all collections reingested under the slice-E indexer with full
+  provenance.
 
 ### Contextualizer setting for the 1D ingest
 

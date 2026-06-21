@@ -71,6 +71,26 @@ exploratory chats. Low confidence by design — revisit before acting.
   cost. Could improve by constraining the summary to a size relative to the
   source, or a fixed budget.
 
+## Eval harness — metrics
+
+- **Average Precision (AP) / Mean Average Precision (MAP)** — a rank-sensitive
+  information-retrieval metric that averages precision at each rank where a
+  relevant document is retrieved (MAP is the mean across queries). Considered
+  and deferred, not adopted. For single-gold queries AP reduces exactly to the
+  reciprocal rank, so it duplicates the existing MRR@10; it adds information
+  only for multi-gold queries, where it rewards ranking *all* gold sources high
+  rather than just the first. It also assumes reasonably *complete* relevance
+  judgments: every retrieved non-gold document counts as a miss, so with the
+  small hand-curated `gold_sources` set (likely incomplete — relevant but
+  unlabelled documents exist) MAP can be distorted. This is the same reason
+  Anthropic's contextual-retrieval eval reported Recall@20 rather than MAP. The
+  current metric set (Recall@K, Success@K, MRR@10 — see
+  `../../.dev/roadmap-phase-1/phase-1-spec.md`) already covers the single-gold
+  and coverage cases and is more robust to incomplete labels. Revisit only if a
+  large multi-gold query set with fairly complete judgments is built. nDCG is a
+  related graded-relevance option, but relevance here is binary, so it would
+  offer little over the above.
+
 ## Ingestion features
 
 - **Attachment / image extraction** — notes with images: extract a description
