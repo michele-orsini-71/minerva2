@@ -27,7 +27,7 @@ If a gold source_id doesn't resolve in the target collection, recall is
 silently zeroed for that query and the failure looks like a retrieval
 problem.
 
-**DONE  [2026-05-19-dataset-authoring-helper.md](2026-05-19-dataset-authoring-helper.md)**
+**DONE [2026-05-19-dataset-authoring-helper.md](2026-05-19-dataset-authoring-helper.md)**
 
 **Done when:** a hand-written JSONL with ~3 queries, validated against
 an existing local collection passed via `--collection`, passes; a
@@ -69,15 +69,15 @@ with pandas without manual fixing.
 - **Sweep TOML shape:** every knob lives in `[matrix]` as a list, even singletons. snake_case names. 1B's degenerate case is single-element lists; 1C lengthens them with no parser change.
 - **`run.json` Tier 1 fields (in scope for 1B):** `timestamp` (UTC ISO 8601), `bench_version`, `dataset_path`, `collection`, `resolved_sweep` (parsed TOML re-serialized), `cells` (enumerated Cartesian product).
 - **Bench versioning:** `AssemblyInformationalVersion` baked at build time as `<SemVer>+<short-git-sha>` (e.g. `0.1.0+abc1234`) via a hand-rolled MSBuild target reading `git rev-parse`. Same pattern applies to `Minerva.Search.Cli` (and to the ingestor when convenient). Decouples bench runtime from repo location, so the bench can be installed anywhere.
-- **Collection-metadata fields deferred:** embedding model id+version, ingestor commit SHA, DB schema version are *not* in 1B's `run.json`. They depend on a sibling task — a `collection_metadata` row/table in Postgres populated at ingest time. That task is scoped separately and should land before Phase 1D (between 1C and 1D if possible).
+- **Collection-metadata fields deferred:** embedding model id+version, ingestor commit SHA, DB schema version are _not_ in 1B's `run.json`. They depend on a sibling task — a `collection_metadata` row/table in Postgres populated at ingest time. That task is scoped separately and should land before Phase 1D (between 1C and 1D if possible).
 - **Ingestor versioning policy deferred:** the broader question of "what happens when ingestor code changes — reindex required? signature-enforced?" is a Minerva-product policy, not an eval-harness decision. To be added to the main roadmap immediately after Phase 1 ships.
 - **Still to pin before 1B implementation starts:** `details.jsonl` record shape, dated-leaf naming convention (date format, dataset-slug derivation), metric-function unit-test surface.
 
 **Worked 1B sweep example:**
 
 ```toml
-dataset = "eval/datasets/wikipedia-top100-v1.jsonl"
-collection = "wikipedia-top100-v1"
+dataset = "eval/datasets/wikipedia-v1.jsonl"
+collection = "wikipedia-v1"
 
 [matrix]
 top_k = [10]
@@ -86,7 +86,7 @@ hybrid_alpha = [0.5]
 
 ---
 
-## Phase 1C — Sweep matrix + per-query metrics across cells  - COMPLETED
+## Phase 1C — Sweep matrix + per-query metrics across cells - COMPLETED
 
 **Deliverable:** the bench runs the full Cartesian product of the TOML
 `[matrix]`, emits one row per (query × cell) in `metrics.csv` and one
@@ -107,9 +107,9 @@ summary shows three Recall@10 numbers that pass a smell test.
 **Deliverable:** the four artifacts the brief's Done-definition
 requires —
 
-- `eval/datasets/wikipedia-top100-v1.jsonl` (20–30 hand-curated queries
+- `eval/datasets/wikipedia-v1.jsonl` (20–30 hand-curated queries
   with `gold_sources`).
-- `eval/datasets/wikipedia-top100-v1.README.md` (corpus URL, content
+- `eval/datasets/wikipedia-v1.README.md` (corpus URL, content
   hash, license, ingestion command).
 - `eval/results/phase0-baseline/` containing the maintainer's run
   output, committed.
@@ -167,7 +167,7 @@ prompt version captured in `run.json` provenance.
 Phase 1 measures retrieval, not whether the answer is actually correct.
 LLM-as-judge is a well-established pattern in the RAG-eval literature
 and is known to be feasible at ~100-query scale. Pulling it in now also
-forces the design question for Phase 4: either 1E-β *is* the
+forces the design question for Phase 4: either 1E-β _is_ the
 expansion-eval metric (Phase 4 then just adds ±W cells to the sweep), or
 Phase 4 layers section-coverage on top. Decision to be made before 1E-β
 starts.

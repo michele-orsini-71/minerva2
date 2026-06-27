@@ -119,8 +119,8 @@ snake_case names. Top-level `dataset` and `collection` scalars. Worked
 example:
 
 ```toml
-dataset = "eval/datasets/wikipedia-top100-v1.jsonl"
-collection = "wikipedia-top100-v1"
+dataset = "eval/datasets/wikipedia-v1.jsonl"
+collection = "wikipedia-v1"
 
 [matrix]
 top_k = [10]
@@ -215,7 +215,7 @@ different LLMs); the collection is chosen by the operator at invocation time.
 ```text
 eval/
   datasets/
-    wikipedia-top100-v1.jsonl     # committed
+    wikipedia-v1.jsonl     # committed
     private/                       # gitignored
       personal-notes-v1.jsonl
   sweeps/
@@ -276,12 +276,14 @@ Lifted from the original considerations so the discipline survives.
 
 ## Open questions
 
-- [ ] **Seed corpus selection.** Preference: kiwix Wikipedia top-100,
-  contingent on a stable URL with content hash, license compatibility, and
-  acceptable ingestion time. Fallback: a curated public Markdown set.
-- [ ] **`details.jsonl` schema.** Which per-stage scores to record, chunk
-  identifier format, whether to store full chunk text or IDs only, size
-  limits. Trade-off: full text eases debugging but explodes file size.
+- [x] **Seed corpus selection.** ✅ Resolved — kiwix
+      `wikipedia_en_top_nopic_2026-06` ZIM, single-sourced and pinned by sha256;
+      reproduction (URL, hash, rebuild command) in
+      `eval/datasets/wikipedia-v1.README.md`. Corpus grown with distractors via
+      the manifest, not by switching ZIMs. (Wikipedia text is CC BY-SA 4.0.)
+- [x] **`details.jsonl` schema.** ✅ Resolved in 1B/1C — `hits[]` stores IDs
+      only (`rank`, `chunk_id`, `source_id`, `score`, `gold_hit`), no full chunk
+      text, so files stay small. Revisit only if debugging needs the text.
 - [ ] **Phase 4 expansion-eval choice.** LLM-as-judge over `answer_text`,
-  section-coverage via `gold_sections`, or both. Deferred until just before
-  Phase 4. Note: slice 1E-β may absorb the LLM-as-judge candidate.
+      section-coverage via `gold_sections`, or both. Deferred until just before
+      Phase 4. Note: slice 1E-β may absorb the LLM-as-judge candidate.

@@ -157,7 +157,7 @@ document-level (1 if any chunk from any gold source appears in top-K, else
 0). MRR@10 is the reciprocal rank of the first chunk from any gold source
 within the top-10, capped at 10.
 **Rationale**: Recall@5/@10/@20 is the headline retrieval metric and what
-Anthropic reports. MRR captures *how high* the first gold hit ranks, which
+Anthropic reports. MRR captures _how high_ the first gold hit ranks, which
 matters for distinguishing reranker variants in Phase 2. The 1-Recall@20
 metric from the Anthropic article is computable as `1 - mean(recall_at_20)`
 from the same data — no extra column needed.
@@ -189,7 +189,7 @@ what we know we'll need.
 ```text
 eval/
   datasets/
-    wikipedia-top100-v1.jsonl     # committed
+    wikipedia-v1.jsonl     # committed
     private/                       # gitignored
       personal-notes-v1.jsonl
   sweeps/
@@ -234,7 +234,7 @@ unusable later.
 source_id strings. The bench treats them as black-box strings and resolves
 them by equality against `chunks.source_id` in Postgres for the target
 collection — no path semantics, no case folding, no normalization. The
-load-bearing contract is therefore not a *format* but two properties of
+load-bearing contract is therefore not a _format_ but two properties of
 the indexer: (a) source_ids are stable across re-ingestion of the same
 logical document, (b) they are stored in Postgres alongside each chunk.
 Different indexers (personal notes, Wikipedia, future corpora) are free
@@ -243,7 +243,7 @@ implicitly bound to the collection it was authored against, since the
 same logical document gets different source_ids under different indexers.
 
 **Rationale**: Schema lifted from the prior considerations doc with two
-tweaks — the per-record `collection` field is dropped (a dataset is *not*
+tweaks — the per-record `collection` field is dropped (a dataset is _not_
 bound to one collection: the same hand-curated `gold_sources` are valid
 against any collection that indexed the same logical corpus, e.g. the
 same Wikipedia dump contextualized by different LLMs; the collection is
@@ -275,7 +275,7 @@ maintain.
 
 ## Approach Preferences
 
-- **Reproducibility means the *procedure* is reproducible**, not the
+- **Reproducibility means the _procedure_ is reproducible**, not the
   numbers. Any third party can clone the repo, ingest the documented
   public corpus into a Minerva collection, and run
   `bench run --sweep eval/sweeps/phase0-baseline.toml` to produce their
@@ -314,30 +314,30 @@ maintain.
 ## Open Questions
 
 - [ ] **Seed corpus selection.** Preference is kiwix Wikipedia top-100;
-  contingent on verifying a stable URL with a content hash, license
-  compatibility, and acceptable ingestion time on a developer machine. If
-  blocked, fall back to a curated public Markdown set (still medium-sized,
-  not tiny).
+      contingent on verifying a stable URL with a content hash, license
+      compatibility, and acceptable ingestion time on a developer machine. If
+      blocked, fall back to a curated public Markdown set (still medium-sized,
+      not tiny).
 - [x] **Provenance fields in `run.json`.** Resolved for Phase 1B:
-  tier-1 fields are `timestamp`, `bench_version` (SemVer + short git SHA,
-  baked at build time via `AssemblyInformationalVersion`), `dataset_path`,
-  `collection`, `resolved_sweep`, `cells`. Tier-2 fields (embedding model
-  id+version, ingestor commit SHA, DB schema version) deferred behind a
-  sibling task to add a `collection_metadata` row/table in Postgres
-  populated at ingest time; expected to land between Phase 1C and Phase 1D.
+      tier-1 fields are `timestamp`, `bench_version` (SemVer + short git SHA,
+      baked at build time via `AssemblyInformationalVersion`), `dataset_path`,
+      `collection`, `resolved_sweep`, `cells`. Tier-2 fields (embedding model
+      id+version, ingestor commit SHA, DB schema version) deferred behind a
+      sibling task to add a `collection_metadata` row/table in Postgres
+      populated at ingest time; expected to land between Phase 1C and Phase 1D.
 - [x] **Sweep config TOML schema.** Resolved: every knob lives in
-  `[matrix]` as a list, including singletons; snake_case names; top-level
-  `dataset` and `collection` scalars. 1B uses single-element lists; 1C
-  lengthens them with no parser change. Worked example in
-  `2026-05-18-eval-harness-implementation-phases.md` under Phase 1B
-  resolved decisions.
+      `[matrix]` as a list, including singletons; snake_case names; top-level
+      `dataset` and `collection` scalars. 1B uses single-element lists; 1C
+      lengthens them with no parser change. Worked example in
+      `2026-05-18-eval-harness-implementation-phases.md` under Phase 1B
+      resolved decisions.
 - [ ] **`details.jsonl` schema.** Which scores to record at each stage,
-  chunk identifier format (chunk_id? source_id+offset?), size limits if
-  any, whether to record full chunk text or just IDs. Trade-off: full text
-  makes debugging easy but explodes file size.
+      chunk identifier format (chunk_id? source_id+offset?), size limits if
+      any, whether to record full chunk text or just IDs. Trade-off: full text
+      makes debugging easy but explodes file size.
 - [ ] **Phase 4 expansion-eval choice.** Pick between LLM-as-judge over
-  `answer_text`, section-coverage via `gold_sections`, or both. Defer
-  until just before Phase 4 starts.
+      `answer_text`, section-coverage via `gold_sections`, or both. Defer
+      until just before Phase 4 starts.
 
 ## Research Findings
 

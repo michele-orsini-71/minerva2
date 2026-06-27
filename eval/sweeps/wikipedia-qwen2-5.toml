@@ -1,0 +1,6 @@
+dataset = "../datasets/wikipedia-v1.jsonl"
+collection = "wikipedia-qwen2-5"
+
+[matrix]
+top_k = [50]
+hybrid_alpha = [0.3, 0.5, 0.7]

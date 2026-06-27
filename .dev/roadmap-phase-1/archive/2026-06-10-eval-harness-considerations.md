@@ -1,6 +1,7 @@
 # Eval harness considerations
 
- > let's talk about the eval harness what is the general idea that arrives from this article? [contextual-retrieval article](https://www.anthropic.com/engineering/contextual-retrieval)
+> let's talk about the eval harness what is the general idea that arrives from this article? [contextual-retrieval article](https://www.anthropic.com/engineering/contextual-retrieval)
+>
 > - I have one or more collections (my notes and for example some wikipedia subsets, I have kiwix zim files, the 100 most popular articles, all wikipedia history ...)
 > - I set pairs of query and a list of hits (maybe I also need the the perfect hit). What are hits? the article or the chunks, I suspect the original anthropic article mentions the chunk, this is what is returned by the retriever (all that dedup reasoning made me think so, do they use document and chunk interchangeably?)
 > - run the queries and calculate context recall and context retrieval
@@ -34,8 +35,8 @@ json
   "query": "What did the 2024 ARERA decision change about Scambio sul Posto?",
   "collection": "personal-notes",
   "gold_sources": ["notes/energy/arera-2024-ssp.md"],
-  "gold_sections": ["notes/energy/arera-2024-ssp.md#decision-2024-456"],  // optional, finer
-  "answer_text": "...",  // optional, for answer-quality eval later
+  "gold_sections": ["notes/energy/arera-2024-ssp.md#decision-2024-456"], // optional, finer
+  "answer_text": "...", // optional, for answer-quality eval later
   "notes": "regression case from Brexit-style dedupe incident"
 }
 ```
@@ -69,7 +70,7 @@ You mentioned "context recall and context retrieval". Slight terminology cleanup
 eval/
   datasets/
     personal-notes-v1.jsonl       # one query per line
-    wikipedia-top100-v1.jsonl
+    wikipedia-v1.jsonl
   runners/
     run_eval.py                   # query → pipeline → top-K → compare to gold
     pipelines/

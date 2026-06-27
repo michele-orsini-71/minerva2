@@ -17,17 +17,17 @@ observable.
 
 ## Status at a glance
 
-| Slice | What it delivers | Status |
-| --- | --- | --- |
-| 1A | Skeleton + `validate-dataset` | ✅ done |
-| 1B | Single-cell `run` path, three output files | ✅ done |
-| 1C | Full sweep matrix, per-(query×cell) metrics, stdout summary | ✅ done |
-| — | FTS-returns-0-hits fix (gating, found by 1C) | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
-| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest | ✅ done |
-| 1D | Ship: public seed eval set, corpus README, committed baseline, starter notebook |  |
-| 1E-α | `gen-queries` authoring helper | ◻ optional |
-| 1E-β | End-to-end answer accuracy (LLM-as-judge) | ◻ optional |
-| 1E-γ | Baseline-vs-current notebook cell | ◻ optional |
+| Slice  | What it delivers                                                                | Status                                                    |
+| ------ | ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1A     | Skeleton + `validate-dataset`                                                   | ✅ done                                                   |
+| 1B     | Single-cell `run` path, three output files                                      | ✅ done                                                   |
+| 1C     | Full sweep matrix, per-(query×cell) metrics, stdout summary                     | ✅ done                                                   |
+| —      | FTS-returns-0-hits fix (gating, found by 1C)                                    | ✅ applied — see `completed/2026-06-07-fts-simple-fix.md` |
+| pre-1D | Versioning + `collection_metadata`, before the Wikipedia ingest                 | ✅ done                                                   |
+| 1D     | Ship: public seed eval set, corpus README, committed baseline, starter notebook |                                                           |
+| 1E-α   | `gen-queries` authoring helper                                                  | ◻ optional                                                |
+| 1E-β   | End-to-end answer accuracy (LLM-as-judge)                                       | ◻ optional                                                |
+| 1E-γ   | Baseline-vs-current notebook cell                                               | ◻ optional                                                |
 
 ## What is actually built
 
@@ -79,18 +79,18 @@ closed first. **Both are now done — 1D is unblocked.**
 ### Versioning (low-hanging — close the noise)
 
 - [x] **`--version` flag (Gap A).** ✅ done — commit `1f06210`. Exposes the
-  baked `InformationalVersion` (`<VersionPrefix>+<git-sha>`, produced by the
-  `StampGitSha` target in `Directory.Build.props`) as `--version` / `-v` on each
-  shippable CLI: `Minerva.Search.Cli`, `Minerva.Search.Bench`,
-  `Minerva.MarkdownIndexer`. The flag short-circuits eagerly: it prints the
-  version and exits 0 before any other argument is validated. Fixes minerva1's
-  one weakness (its `--version` was hardcoded).
+      baked `InformationalVersion` (`<VersionPrefix>+<git-sha>`, produced by the
+      `StampGitSha` target in `Directory.Build.props`) as `--version` / `-v` on each
+      shippable CLI: `Minerva.Search.Cli`, `Minerva.Search.Bench`,
+      `Minerva.MarkdownIndexer`. The flag short-circuits eagerly: it prints the
+      version and exits 0 before any other argument is validated. Fixes minerva1's
+      one weakness (its `--version` was hardcoded).
 - [x] **Release convention (Gap B).** ✅ done — `v0.1.0` git tag + `CHANGELOG.md`
-  (commit `e0bdfbd`). Adopt `vX.Y.Z` git tags and a
-  `CHANGELOG.md`. Lockstep single version is already achieved by
-  `Directory.Build.props` (`VersionPrefix = 0.1.0`) — no bump script or
-  consistency-guard test needed (minerva1 needed both). minerva2 versions
-  independently of the Python minerva1 (0.1.0 vs 3.0.0).
+      (commit `e0bdfbd`). Adopt `vX.Y.Z` git tags and a
+      `CHANGELOG.md`. Lockstep single version is already achieved by
+      `Directory.Build.props` (`VersionPrefix = 0.1.0`) — no bump script or
+      consistency-guard test needed (minerva1 needed both). minerva2 versions
+      independently of the Python minerva1 (0.1.0 vs 3.0.0).
 
 ### `collection_metadata` (bake before the ingest)
 
@@ -101,19 +101,19 @@ reingest guard, and the phase cut — is in
 phases:
 
 - [x] **A** — schema + typed `CollectionProvenance` round-trip (migration `003`
-  drops the `embedding_model` / `embedding_dimension` columns into the bag).
+      drops the `embedding_model` / `embedding_dimension` columns into the bag).
 - [x] **B** — prompt-version constants + populate provenance at ingest.
 - [x] **C** — enforcement: generalized reingest guard + rename
-  `AllowRecreateOnEmbedderMismatch` → `AllowRecreateOnConfigMismatch`.
+      `AllowRecreateOnEmbedderMismatch` → `AllowRecreateOnConfigMismatch`.
 - [x] **D** — bench stamps the collection's provenance into `run.json` (the
-  deferred tier-2 provenance).
+      deferred tier-2 provenance).
 - [x] **E** — indexer `client` metadata + soft source-root guard (separable;
-  does not block 1D). Implementation complete; the source-root automated tests
-  are deferred to `docs/future/backlog.md` (no indexer test project yet).
+      does not block 1D). Implementation complete; the source-root automated tests
+      are deferred to `docs/future/backlog.md` (no indexer test project yet).
 - [x] Re-ingest the test collections and the new Wikipedia collection with the
-  metadata populated, so every collection is self-describing from creation.
-  ✅ done — all collections reingested under the slice-E indexer with full
-  provenance.
+      metadata populated, so every collection is self-describing from creation.
+      ✅ done — all collections reingested under the slice-E indexer with full
+      provenance.
 
 ### Contextualizer setting for the 1D ingest
 
@@ -126,11 +126,15 @@ contextualizer held fixed. Full model reconsideration is deferred to
 
 ## Phase 1D — Ship (next slice)
 
+> First sweep run and analysis (2026-06-27):
+> [`2026-06-27-first-wikipedia-sweep-findings.md`](2026-06-27-first-wikipedia-sweep-findings.md)
+> — results, findings, the label-audit doubt, and the `phase0-analysis.ipynb` spec.
+
 **Deliverable:** the four artifacts the Done-definition requires —
 
-- `eval/datasets/wikipedia-top100-v1.jsonl` — 20–30 hand-curated queries
+- `eval/datasets/wikipedia-v1.jsonl` — 20–30 hand-curated queries
   with `gold_sources`.
-- `eval/datasets/wikipedia-top100-v1.README.md` — corpus URL, content hash,
+- `eval/datasets/wikipedia-v1.README.md` — corpus URL, content hash,
   license, ingestion command.
 - `eval/results/phase0-baseline/` — the maintainer's committed run output.
 - `eval/notebooks/phase0-analysis.ipynb` — loads the baseline CSV, produces
@@ -140,17 +144,17 @@ contextualizer held fixed. Full model reconsideration is deferred to
 include:**
 
 - [ ] **Keyword-only / lexical-favouring queries** — codes and acronyms
-  where dense retrieval likely misses and the FTS branch should win:
-  `LRGB`, `IRPEF`, `BARNARD 22`, `Hα`. **Most important omission:** without
-  these the eval is blind to the lexical branch the FTS fix just repaired,
-  so it cannot demonstrate that hybrid adds anything over pure vector.
+      where dense retrieval likely misses and the FTS branch should win:
+      `LRGB`, `IRPEF`, `BARNARD 22`, `Hα`. **Most important omission:** without
+      these the eval is blind to the lexical branch the FTS fix just repaired,
+      so it cannot demonstrate that hybrid adds anything over pure vector.
 - [ ] **Harder semantic queries** — concept-expressed-differently (paraphrase
-  that does not mirror the document vocabulary) and multi-gold queries, so
-  recall comes off the ceiling and collections can separate.
-- [ ] **Enough volume** — grow past the current ~30 toward the 20–30 *public*
-  hand-curated target; the set is currently too small to decide.
+      that does not mirror the document vocabulary) and multi-gold queries, so
+      recall comes off the ceiling and collections can separate.
+- [ ] **Enough volume** — grow past the current ~30 toward the 20–30 _public_
+      hand-curated target; the set is currently too small to decide.
 - [ ] **Scoring depth** — bump so that Recall@20 carries real signal rather
-  than saturating.
+      than saturating.
 
 **Corpus size and difficulty (decision).** The first Wikipedia ingest is the
 "top 100" articles — distinct, popular topics. With only ~100 very distinct
@@ -207,7 +211,7 @@ None gate the Phase 1 Done-definition.
   the sweep TOML; generates an answer from the top-K payload, scores it
   against `answer_text`, adds `answer_score` to `metrics.csv` and judge
   fields to `details.jsonl`; judge model id + prompt version captured in
-  `run.json`. This forces a Phase 4 decision: either 1E-β *is* the
+  `run.json`. This forces a Phase 4 decision: either 1E-β _is_ the
   expansion-eval metric (Phase 4 just adds ±W cells), or Phase 4 layers
   section-coverage on top. Decide before 1E-β starts.
 - **1E-γ baseline-vs-current notebook cell** — "diff against baseline":
