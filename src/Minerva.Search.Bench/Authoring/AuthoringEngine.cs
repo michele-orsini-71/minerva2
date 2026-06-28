@@ -24,12 +24,19 @@ public static class AuthoringEngine
             return 1;
         }
 
-        var search = await engine.SearchAsync(line, collection, null, ct);
+        SearchOverrides so = new SearchOverrides
+        {
+            TopK = 50
+        };
+
+        var search = await engine.SearchAsync(line, collection, so, ct);
 
         // dedupe results by source-id, keeping the one with the highest score, and sort by score desc
         IReadOnlyList<SearchResult> searchResults = search.GroupBy(r => r.SourceId)
-            .Select(g => g.MaxBy(r => r.Score)!)
-            .OrderByDescending(r => r.Score).ToList();
+            .Select(g => g.MaxBy(r => r.Score)!)            
+            .OrderByDescending(r => r.Score)
+            .Take(20)
+            .ToList();
 
         output.Write($"Found: {searchResults.Count} unique sources.\n");
         output.Flush();

@@ -1,13 +1,13 @@
 {"id":"Arthropod.md-1","query":"What is the largest animal phylum","gold_sources":["Arthropod.md"]}
 {"id":"Arthropod.md-2","query":"Find the bugs in the tree of life","gold_sources":["Arthropod.md"]}
-{"id":"Arthropod.md-3","query":"Animals with an exoskeleton","gold_sources":["Arthropod.md", "Insect.md"]}
+{"id":"Arthropod.md-3","query":"which pylum contains animals with exoskeleton?","gold_sources":["Arthropod.md"]}
 {"id":"London.md-1","query":"Find information about the capital of the United Kingdom","gold_sources":["London.md"]}
 {"id":"London.md-2","query":"Where is Buckingham Palace","gold_sources":["London.md"]}
 {"id":"London.md-3","query":"Find a city founded by Romans in England","gold_sources":["London.md"]}
 {"id":"London.md-4","query":"Tell me about Londinium","gold_sources":["London.md"]}
 {"id":"London.md-5","query":"Which city hosted modern Olympics games three times? ","gold_sources":["London.md"]}
 {"id":"The_Beatles.md-1","query":"Which band is famous as \u0027the fab four\u0027?","gold_sources":["The_Beatles.md"]}
-{"id":"The_Beatles.md-2","query":"Which band derives its name from the common denomination of arthropods?","gold_sources":["The_Beatles.md"]}
+{"id":"The_Beatles.md-2","query":"Which english music band derived its name from the common name for Coleoptera?","gold_sources":["The_Beatles.md"]}
 {"id":"The_Beatles.md-3","query":"Which band has one of its founders  killed in New York City in the 80s?","gold_sources":["The_Beatles.md"]}
 {"id":"HIV_AIDS.md-1","query":"Human immunodeficiency by sexual transmission","gold_sources":["HIV.md", "HIV_AIDS.md"]}
 {"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md", "Virus.md"]}
@@ -18,16 +18,15 @@
 {"id":"God_of_War_(franchise).md-1","query":"video game franchise where the protagonist is a Spartan warrior who fights Greek gods","gold_sources":["God_of_War_(franchise).md"]}
 {"id":"Gunpowder_Plot.md-1","query":"what are firework displays on 5 november about","gold_sources":["Gunpowder_Plot.md"]}
 {"id":"Hillbilly.md-1","query":"a term of scottish origin that refers to people in the rural areas in the United States","gold_sources":["Hillbilly.md"]}
-{"id":"List_of_Roman_emperors.md-1","query":"Which term do we use today to name the princep, the first citizen of the state in ancient Rome","gold_sources":["List_of_Roman_emperors.md", "Claudius.md" ]}
+{"id":"List_of_Roman_emperors.md-1","query":"Which term do we use today to name the princep, the first citizen of the state in ancient Rome","gold_sources":["List_of_Roman_emperors.md" ]}
 {"id":"A_Fistful_of_Dollars.md-1","query":"a film about a rivalry between two families in the old Wild West","gold_sources":["A_Fistful_of_Dollars.md"]}
 {"id":"Tabernacle.md-1","query":"a transportable sacred home for the deity during travels through the wilderness","gold_sources":["Tabernacle.md"]}
 {"id":"Saffron.md-1","query":"the spice for the famous rice recipe from Milan","gold_sources":["Saffron.md"]}
 {"id":"Shortness_of_breath.md-1","query":"The common term for Dyspnea","gold_sources":["Shortness_of_breath.md"]}
-{"id":"Shortness_of_breath.md-2","query":"a sensation of inadequate or strained respiration","gold_sources":["Shortness_of_breath.md", "Spirometry.md"]}
+{"id":"Shortness_of_breath.md-2","query":"a sensation of inadequate or strained respiration","gold_sources":["Shortness_of_breath.md"]}
 {"id":"Lancelot.md-1","query":"a mighty legendary knight that fell in love with his king's spouse","gold_sources":["Lancelot.md"]}
 {"id":"Uranium_City.md-1","query":"a city that was explicitly founded to extract material for nuclear based technologies","gold_sources":["Uranium_City.md"]}
 {"id":"Electron_configuration.md-1","query":"how are electrons arranged around an atomic nucleus?","gold_sources":["Electron_configuration.md"]}
 {"id":"Elvis_Presley.md-1","query":"the rock and roll singer famous for shaking his legs","gold_sources":["Elvis_Presley.md"]}
 {"id":"Virus.md-1","query":"eradicated or almost eradicated infectious disease of humans ","gold_sources":["Virus.md", "Dracunculus_medinensis.md"]}
 {"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md"]}
-
