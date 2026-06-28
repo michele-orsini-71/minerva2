@@ -502,8 +502,11 @@ bin-markdown-indexer/
 eval/datasets/private
 eval/sweeps/private
 eval/results/private
+eval/notebooks/config.local.json
 
 wikipedia_en_100_nopic_2026-04.zim
 uv.lock
 
 tools/kiwix2md/out
+
+eval/notebooks/.ipynb_checkpoints/
