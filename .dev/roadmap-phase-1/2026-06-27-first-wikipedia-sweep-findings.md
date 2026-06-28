@@ -140,7 +140,7 @@ spreadsheet.
    mean over queries → `R@5/10/20, MRR@10, n`, styled as a heatmap. Note in-cell:
    *1 query = 0.031*.
 4. **Failure picker** — params `collection`, `hybrid_alpha`, metric (e.g.
-   `recall_at_10`); filter `details.jsonl` rows where it `== 0`.
+   `recall_at_10`); filter `details.jsonl` rows where it `< 0`.
 5. **Audit view** — per failing query print: query · gold_sources · top-10
    retrieved (rank, score, gold_hit, title, snippet). The cell that replaces
    spreadsheet scrolling.
