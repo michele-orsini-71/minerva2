@@ -4,7 +4,7 @@ import json
 import hashlib
 from bs4 import BeautifulSoup
 from html_to_markdown import convert, ConversionOptions, PreprocessingOptions
-from libzim.reader import Archive #type: ignore
+from libzim.reader import Archive, Entry #type: ignore
 from pathlib import Path
 
 REMOVE_SELECTORS = ["table.infobox", ".navbox", ".sidebar", "sup.reference"]
@@ -23,17 +23,6 @@ def clean_html(raw):
     return str(soup)
 
 # The landing page and MediaWiki internal resources (the "_" namespace) are valid HTML but not articles; exclude them by identity, not by content.
-def is_article(entry, main_path) -> bool:
-    if entry.is_redirect:
-        return False
-    if entry.path == main_path or entry.path.startswith("_"):
-        return False
-
-    item = entry.get_item()
-    if not item.mimetype.startswith("text/html"):
-        return False
-
-    return True
 
 def md_filename(entry) -> str:
     return entry.path.replace("/", "_") + ".md"
@@ -105,3 +94,39 @@ def check_integrity(zim_file: str, zim_file_sha: str, manifest_file: str, output
 def load_config(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
+
+class ZimArchive:
+    def __init__(self, zim_file: str):
+        self.zim_file = zim_file
+        self.zim = Archive(Path(zim_file))
+        self.main = self.zim.main_entry
+        self.main_path = self.main.get_redirect_entry().path if self.main.is_redirect else self.main.path
+
+    def is_article(self, entry: Entry) -> bool:
+        if entry.is_redirect:
+            return False
+        if entry.path == self.main_path or entry.path.startswith("_"):
+            return False
+
+        item = entry.get_item()
+        if not item.mimetype.startswith("text/html"):
+            return False
+
+        return True
+    
+    def entry_count(self) -> int:
+        return self.zim.entry_count;
+
+    def get_entry_by_index(self, id: int):
+        return self.zim._get_entry_by_id(id)
+    
+    def get_markdown(self, entry: Entry) -> str|None:
+        if not self.is_article(entry):
+            return
+
+        text = bytes(entry.get_item().content).decode("UTF-8")
+        cleaned = clean_html(text)
+        if cleaned is None:
+            return
+
+        return to_markdown(cleaned)

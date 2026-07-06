@@ -7,4 +7,5 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "html-to-markdown>=3.6.15",
     "libzim",
+    "litellm>=1.91.0",
 ]

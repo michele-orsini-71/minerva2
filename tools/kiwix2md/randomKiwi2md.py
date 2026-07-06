@@ -4,7 +4,7 @@ import random
 from libzim.reader import Archive #type: ignore
 from pathlib import Path
 
-from extract_utils import clean_html, is_article, to_markdown, load_config, check_integrity
+from extract_utils import clean_html, ZimArchive, to_markdown, load_config, check_integrity
 
 
 # - input: the corpus produced by kiwix2md (the folder path could be enough)
@@ -31,15 +31,12 @@ manifest_file = cfg["manifest"]
 # start from a verified-consistent corpus (also covers zim/manifest/dir existence and sha)
 check_integrity(zim_file, cfg["zim_sha256"], manifest_file, str(output_dir))
 
-zim = Archive(Path(zim_file))
-
-main = zim.main_entry
-main_path = main.get_redirect_entry().path if main.is_redirect else main.path
+archive = ZimArchive(zim_file)
 
 valid_entries = []
-for i in range(zim.entry_count):
-    entry = zim._get_entry_by_id(i)
-    if not is_article(entry, main_path):
+for i in range(archive.entry_count()):
+    entry = archive.get_entry_by_index(i)
+    if not archive.is_article(entry):
         continue
 
     filename = entry.path.replace("/", "_") + ".md"
