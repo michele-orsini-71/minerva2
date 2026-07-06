@@ -1,24 +1,39 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [    
-        {
-            "name": "Python Debugger: kiwi2md",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/tools/kiwix2md/kiwix2md.py",
-            "console": "integratedTerminal",
-            "args": ["${workspaceFolder}/wikipedia_en_100_nopic_2026-04.zim"]
-        },
-        {
-            "name": "Python Debugger: randomKiwi2md",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/tools/kiwix2md/randomKiwi2md.py",
-            "console": "integratedTerminal",
-            "args": ["50", "/Users/michele/development/kiwix/wikipedia_en_top_nopic_2026-06.zim", "/Users/michele/my-code/minerva2-index/wikipedia_en_100_nopic_2026-04-corpus"]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: kiwi2md",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tools/kiwix2md/kiwix2md.py",
+      "console": "integratedTerminal",
+      "args": ["${workspaceFolder}/wikipedia_en_100_nopic_2026-04.zim"]
+    },
+    {
+      "name": "Python Debugger: randomKiwi2md",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tools/kiwix2md/randomKiwi2md.py",
+      "console": "integratedTerminal",
+      "args": [
+        "50",
+        "/Users/michele/development/kiwix/wikipedia_en_top_nopic_2026-06.zim",
+        "/Users/michele/my-code/minerva2-index/wikipedia-en-corpus"
+      ]
+    },
+    {
+      "name": "Python Debugger: find-zim-clusters",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tools/kiwix2md/find-zim-clusters.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--config",
+        "${workspaceFolder}/tools/kiwix2md/corpus.json"
+      ]
+    }
+  ]
 }

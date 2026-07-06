@@ -4,10 +4,10 @@ A reproducible corpus of English Wikipedia articles for the `wikipedia-v1`
 retrieval evaluation. The corpus is the searchable document set; the eval
 dataset defines the queries and their expected gold articles.
 
-- **`wikipedia-v1.jsonl`** — 32 queries, each with `gold_sources` (the articles
+- **`wikipedia-v1.jsonl`** — 55 queries, each with `gold_sources` (the articles
   that should be retrieved).
 - **`wikipedia-v1.corpus.txt`** — the corpus manifest: one ZIM entry path per
-  line (500 articles). **This is the authoritative list** of what the corpus
+  line (1100 articles). **This is the authoritative list** of what the corpus
   contains. Gold articles and distractors are not distinguished here — the gold
   set lives only in the `.jsonl`. Distractors create retrieval competition; the
   manifest lets any article become gold in a later eval.
