@@ -508,5 +508,7 @@ wikipedia_en_100_nopic_2026-04.zim
 uv.lock
 
 tools/kiwix2md/out
+tools/kiwix2md/zim-cluster-articles.jsonl
+tools/kiwix2md/zim-cluster-embeddings.jsonl
 
 eval/notebooks/.ipynb_checkpoints/

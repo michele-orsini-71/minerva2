@@ -14,7 +14,7 @@ from extract_utils import clean_html, ZimArchive, to_markdown, load_config, chec
 
 
 if len(sys.argv) != 4 or sys.argv[2] != "--config":
-    print("Usage: randomKiwi2md.py <number-of-docs> --config <corpus.json>")
+    print("Usage: random_zim_to_markdown.py <number-of-docs> --config <corpus.json>")
     sys.exit(1)
 
 num_samples_raw = sys.argv[1]

@@ -8,4 +8,5 @@ dependencies = [
     "html-to-markdown>=3.6.15",
     "libzim",
     "litellm>=1.91.0",
+    "numpy>=2.5.2",
 ]

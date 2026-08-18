@@ -13,10 +13,10 @@
       "args": ["${workspaceFolder}/wikipedia_en_100_nopic_2026-04.zim"]
     },
     {
-      "name": "Python Debugger: randomKiwi2md",
+      "name": "Python Debugger: random_zim_to_markdown",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/tools/kiwix2md/randomKiwi2md.py",
+      "program": "${workspaceFolder}/tools/kiwix2md/random_zim_to_markdown.py",
       "console": "integratedTerminal",
       "args": [
         "50",
@@ -30,10 +30,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/tools/kiwix2md/find-zim-clusters.py",
       "console": "integratedTerminal",
-      "args": [
-        "--config",
-        "${workspaceFolder}/tools/kiwix2md/corpus.json"
-      ]
+      "args": ["--config", "${workspaceFolder}/tools/kiwix2md/corpus.json"]
     }
   ]
 }

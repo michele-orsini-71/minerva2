@@ -16,12 +16,12 @@ dataset defines the queries and their expected gold articles.
 
 The whole corpus is extracted from a single Kiwix ZIM:
 
-| | |
-| --- | --- |
-| File | `wikipedia_en_top_nopic_2026-06.zim` |
-| sha256 | `b2806831e14690cbcafeb1b6e7bd4439fd59b3e5fbeaeb300a5792dece510ee0` |
+|          |                                                                                  |
+| -------- | -------------------------------------------------------------------------------- |
+| File     | `wikipedia_en_top_nopic_2026-06.zim`                                             |
+| sha256   | `b2806831e14690cbcafeb1b6e7bd4439fd59b3e5fbeaeb300a5792dece510ee0`               |
 | Download | <https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_top_nopic_2026-06.zim> |
-| License | Wikipedia text: CC BY-SA 4.0 |
+| License  | Wikipedia text: CC BY-SA 4.0                                                     |
 
 The **sha256 is the identity anchor**, not the filename. Kiwix rotates monthly
 builds out of the main directory into its archive, so if the URL 404s, find the
@@ -33,10 +33,10 @@ Tools are in `tools/kiwix2md/`. They all read one config, `corpus.json`:
 
 ```json
 {
-  "zim":        "<path to the ZIM above>",
+  "zim": "<path to the ZIM above>",
   "zim_sha256": "b2806831e14690cbcafeb1b6e7bd4439fd59b3e5fbeaeb300a5792dece510ee0",
-  "manifest":   "<path to wikipedia-v1.corpus.txt>",
-  "output":     "<path to the corpus output folder>"
+  "manifest": "<path to wikipedia-v1.corpus.txt>",
+  "output": "<path to the corpus output folder>"
 }
 ```
 
@@ -56,7 +56,7 @@ Tools are in `tools/kiwix2md/`. They all read one config, `corpus.json`:
 
 ## Growing the corpus
 
-`randomKiwi2md.py <N> --config corpus.json` adds `N` new random articles (not
+`random_zim_to_markdown.py <N> --config corpus.json` adds `N` new random articles (not
 already present), extracts them, and appends their entry paths to the manifest.
 It verifies integrity before and after, so the manifest and the folder stay in
 lockstep. Reproducibility is unaffected: re-running `buildCorpus.py` against the
