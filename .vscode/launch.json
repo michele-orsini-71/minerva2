@@ -23,7 +23,7 @@
       "cwd": "${workspaceFolder}/tools/kiwix2md/",
       "program": "${workspaceFolder}/tools/kiwix2md/densify_corpus.py",
       "console": "integratedTerminal",
-      "args": ["--config", "${workspaceFolder}/tools/kiwix2md/corpus.json"]
+      "args": ["--config", "${workspaceFolder}/tools/kiwix2md/corpus.json", "Blaise_Pascal.md", "Amanita_muscaria.md", "Dracula.md"]
     }
   ]
 }

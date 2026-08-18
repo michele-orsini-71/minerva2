@@ -16,11 +16,13 @@ class ZimArticle:
 
 @dataclass(frozen=True)
 class Neighbor:
-    path: str
+    source_id: str
     score: float
 
 MAX_ARTICLES = 0  # 0 = no limit, process the whole ZIM
 ARTICLES_FILE = "zim-cluster-articles.jsonl"
+TOP_K = 5
+FILTER_SCORE = 0.72
 
 def load_existing_articles(file_path: str) -> dict[str, ZimArticle]:
     articles: dict[str, ZimArticle] = {}
@@ -111,21 +113,26 @@ def embed_articles(articles: list[ZimArticle]) -> None:
             out.flush()
             print(f"embedded {start + len(batch)}/{len(pending)}")
 
-def load_embeddings(file_path: str) -> tuple[list[str], list[list[float]]]:
-    paths: list[str] = []
+def load_embeddings(file_path: str) -> tuple[list[str], dict[str, str], list[list[float]]]:
+    ids: list[str] = []
     vectors: list[list[float]] = []
+    id_to_path:dict[str, str] = {}
     with open(file_path, "r") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
             record = json.loads(line)
-            paths.append(record["path"])
+            path = record["path"]
+            source_id = path.replace("/", "_") + ".md"      
+            assert source_id not in id_to_path, f"source_id collision: {source_id}"
+            id_to_path[source_id] = path
+            ids.append(source_id)
             vectors.append(record["embedding"])
-    return paths, vectors
+    return ids, id_to_path, vectors
 
-def neighbors(embedding_matrix:np.typing.NDArray[Any], paths: list[str], seed_path:str, k:int) -> list[Neighbor]:
-    index = paths.index(seed_path)
+def neighbors(embedding_matrix:np.typing.NDArray[Any], source_ids: list[str], seed_id:str, k:int) -> list[Neighbor]:
+    index = source_ids.index(seed_id)
     
     q = embedding_matrix[index]
     
@@ -133,18 +140,28 @@ def neighbors(embedding_matrix:np.typing.NDArray[Any], paths: list[str], seed_pa
     order = np.argsort(-similar)
     result:list[Neighbor] = []
     for i in order:
-        if i == index:                     # skip the seed by identity, not position
+        if i == index:
             continue
-        result.append(Neighbor(paths[i], float(similar[i])))
+        result.append(Neighbor(source_ids[i], float(similar[i])))
         if len(result) == k:
             break
 
     return result
 
+def load_manifest_entries(manifest_file:str) -> set[str]:
+    entries:set[str] = set()
+    with open(manifest_file, "r") as f:
+        for line in f:
+            entry = line.strip()
+            if not entry:
+                continue
+            entries.add(entry)
+
+    return entries
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] != "--config":
-        print("Usage: densify_corpus.py --config <corpus.json>")
+    if len(sys.argv) < 4 or sys.argv[1] != "--config":
+        print("Usage: densify_corpus.py --config <corpus.json> seed1 seed 2 ...")
         sys.exit(1)
     cfg = load_config(sys.argv[2])
     if os.path.isfile(DONE_MARKER):
@@ -161,15 +178,22 @@ if __name__ == "__main__":
             pass
         print(f"wrote {DONE_MARKER}")
 
-    paths, embeddings = load_embeddings(EMBEDDINGS_FILE)
+    seeds = sys.argv[3:]
+    paths, source_id_to_path, embeddings = load_embeddings(EMBEDDINGS_FILE)
     assert len(paths) > 0
     embedding_matrix = np.array(embeddings)
     embedding_matrix /= np.linalg.norm(embedding_matrix, axis=1, keepdims=True)
     
-    try:
-        neighbors_list = neighbors(embedding_matrix, paths, "James_Franco", 10)
-        for neighbor in neighbors_list:
-            print(f"{neighbor.score:.3f}  {neighbor.path}")
-    except ValueError as e:
-        print(f"Error: {e}")
+    manifest_entries = load_manifest_entries(cfg["manifest"])
+    
+    for seed in seeds:
+        try:
+            neighbors_list = neighbors(embedding_matrix, paths, seed, TOP_K)
+            neighbors_list = [ neighbor for neighbor in neighbors_list if neighbor.score > FILTER_SCORE ]
+            print(f'======== {seed} ========')
+            for neighbor in neighbors_list:
+                zim = source_id_to_path[neighbor.source_id]
+                print(f"{neighbor.score:.3f}  {neighbor.source_id} present? {zim in manifest_entries}")
+        except ValueError as e:
+            print(f"Error: {e}")
         
