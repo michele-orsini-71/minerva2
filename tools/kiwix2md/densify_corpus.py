@@ -7,11 +7,17 @@ from dataclasses import dataclass
 from litellm import embedding
 from timeit import default_timer as timer
 import numpy as np
+from typing import Any
 
 @dataclass(frozen=True)
 class ZimArticle:
     path: str
     incipit: str
+
+@dataclass(frozen=True)
+class Neighbor:
+    path: str
+    score: float
 
 MAX_ARTICLES = 0  # 0 = no limit, process the whole ZIM
 ARTICLES_FILE = "zim-cluster-articles.jsonl"
@@ -78,6 +84,7 @@ def embed_content(content:list[str]) -> list:
 
 EMBEDDINGS_FILE = "zim-cluster-embeddings.jsonl"
 EMBED_BATCH_SIZE = 64
+DONE_MARKER = "zim-cluster.done"  # written only after a full extract+embed pass
 
 def load_embedded_paths(file_path: str) -> set[str]:
     paths: set[str] = set()
@@ -117,33 +124,52 @@ def load_embeddings(file_path: str) -> tuple[list[str], list[list[float]]]:
             vectors.append(record["embedding"])
     return paths, vectors
 
-
-if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] != "--config":
-        print("Usage: find-zim-clusters.py --config <corpus.json>")
-        sys.exit(1)
-    cfg = load_config(sys.argv[2])
-    start = timer()
-    articles = extract_zim_articles(cfg["zim"])
-    end_extraction = timer()
-    print(f'Extraction time: {end_extraction - start}')
-    embed_articles(articles)
-    end_embedding = timer()
-    print(f'Embedding time: {end_embedding - end_extraction}')
-    paths, embeddings = load_embeddings(EMBEDDINGS_FILE)
-    seed = embed_content(["""
-# Jaguar
-
-For the car manufacturer, see [Jaguar Cars](Jaguar_Cars "Jaguar Cars"). For other uses, see Jaguar (disambiguation).
-
-The **jaguar** (***Panthera onca***) is a large [cat species](Felidae "Felidae") and the only [living](Extant_taxon "Extant taxon") member of the genus *Panthera* that is native to the [Americas](Americas "Americas"). Its distinctively marked coat features pale yellow to tan colored fur covered by spots that transition to rosettes on the sides, although a melanistic black coat appears in some individuals. With a body length of up to 1.85 m (6 ft 1 in) and a weight of up to 158 kg (348 lb), it is the biggest cat species in the Americas and the third largest in the world. The jaguar's powerful bite allows it to pierce the [carapaces](Turtle_shell#Carapace "Turtle shell") of [turtles](Turtle "Turtle") and [tortoises](Tortoise "Tortoise"), and to employ an unusual killing method: it bites directly through the skull of [mammalian](Mammal "Mammal") [prey](Prey "Prey") between the ears to deliver a fatal blow to the brain.
-"""])[0]
-    embedding_matrix = np.array(embeddings)
-    embedding_matrix /= np.linalg.norm(embedding_matrix, axis=1, keepdims=True)
+def neighbors(embedding_matrix:np.typing.NDArray[Any], paths: list[str], seed_path:str, k:int) -> list[Neighbor]:
+    index = paths.index(seed_path)
     
-    q = np.array(seed) / np.linalg.norm(seed)
+    q = embedding_matrix[index]
     
     similar = embedding_matrix @ q
     order = np.argsort(-similar)
-    for i in order[:10]:
-        print(f"{similar[i]:.3f}  {paths[i]}")
+    result:list[Neighbor] = []
+    for i in order:
+        if i == index:                     # skip the seed by identity, not position
+            continue
+        result.append(Neighbor(paths[i], float(similar[i])))
+        if len(result) == k:
+            break
+
+    return result
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3 or sys.argv[1] != "--config":
+        print("Usage: densify_corpus.py --config <corpus.json>")
+        sys.exit(1)
+    cfg = load_config(sys.argv[2])
+    if os.path.isfile(DONE_MARKER):
+        print(f"{DONE_MARKER} present, skipping extraction and embedding")
+    else:
+        start = timer()
+        articles = extract_zim_articles(cfg["zim"])
+        end_extraction = timer()
+        print(f'Extraction time: {end_extraction - start}')
+        embed_articles(articles)
+        end_embedding = timer()
+        print(f'Embedding time: {end_embedding - end_extraction}')
+        with open(DONE_MARKER, "w"):
+            pass
+        print(f"wrote {DONE_MARKER}")
+
+    paths, embeddings = load_embeddings(EMBEDDINGS_FILE)
+    assert len(paths) > 0
+    embedding_matrix = np.array(embeddings)
+    embedding_matrix /= np.linalg.norm(embedding_matrix, axis=1, keepdims=True)
+    
+    try:
+        neighbors_list = neighbors(embedding_matrix, paths, "James_Franco", 10)
+        for neighbor in neighbors_list:
+            print(f"{neighbor.score:.3f}  {neighbor.path}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        

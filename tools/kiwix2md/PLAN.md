@@ -45,7 +45,7 @@ them — no types or contracts defined up front.
 - [x] **2. Embed + one seed lookup** — embed all lead texts, save vectors, print k
       nearest neighbors of one hardcoded seed (e.g. Jaguar).
       verify: Jaguar → Leopard, Tiger, Lion. Premise validated.
-- [ ] **3. Seed → neighborhood** — a reusable `neighbors(seed_path, k)` function:
+- [x] **3. Seed → neighborhood** — a reusable `neighbors(seed_path, k)` function:
       look up the seed vector by path in the embeddings file, cosine-sim against
       all, return top-k `(path, score)` excluding the seed itself. CLI prints them.
       verify: interactive "look around" from any named article.

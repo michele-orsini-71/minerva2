@@ -5,14 +5,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python Debugger: kiwi2md",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/tools/kiwix2md/kiwix2md.py",
-      "console": "integratedTerminal",
-      "args": ["${workspaceFolder}/wikipedia_en_100_nopic_2026-04.zim"]
-    },
-    {
       "name": "Python Debugger: random_zim_to_markdown",
       "type": "debugpy",
       "request": "launch",
@@ -25,10 +17,11 @@
       ]
     },
     {
-      "name": "Python Debugger: find-zim-clusters",
+      "name": "Python Debugger: densify_corpus",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/tools/kiwix2md/find-zim-clusters.py",
+      "cwd": "${workspaceFolder}/tools/kiwix2md/",
+      "program": "${workspaceFolder}/tools/kiwix2md/densify_corpus.py",
       "console": "integratedTerminal",
       "args": ["--config", "${workspaceFolder}/tools/kiwix2md/corpus.json"]
     }
