@@ -125,7 +125,7 @@ public static class SweepDatasetRunner
                 $"R@5={scores.Average(s => s.RecallAt5):F3} " +
                 $"R@10={scores.Average(s => s.RecallAt10):F3} " +
                 $"R@20={scores.Average(s => s.RecallAt20):F3} " +
-                $"MRR@10={scores.Average(s => s.MrrAt10):F3} " +
+                $"MRR@10={scores.Average(s => s.RrAt10):F3} " +
                 $"(n={scores.Count})");
         }
     }

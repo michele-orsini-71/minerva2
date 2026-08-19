@@ -35,7 +35,7 @@ public class RetrievalMetricsTests
         Assert.Equal(0.0, m.RecallAt5);
         Assert.Equal(0.0, m.RecallAt10);
         Assert.Equal(0.0, m.RecallAt20);
-        Assert.Equal(0.0, m.MrrAt10);
+        Assert.Equal(0.0, m.RrAt10);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class RetrievalMetricsTests
         Assert.Equal(1.0, m.RecallAt5);
         Assert.Equal(1.0, m.RecallAt10);
         Assert.Equal(1.0, m.RecallAt20);
-        Assert.Equal(1.0, m.MrrAt10);
+        Assert.Equal(1.0, m.RrAt10);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class RetrievalMetricsTests
 
         Assert.Equal(1.0, m.RecallAt5);
         Assert.Equal(1.0, m.RecallAt10);
-        Assert.Equal(0.2, m.MrrAt10, 5);
+        Assert.Equal(0.2, m.RrAt10, 5);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class RetrievalMetricsTests
         Assert.Equal(0.0, m.RecallAt5);
         Assert.Equal(1.0, m.RecallAt10);
         Assert.Equal(1.0, m.RecallAt20);
-        Assert.Equal(0.1, m.MrrAt10, 5);
+        Assert.Equal(0.1, m.RrAt10, 5);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class RetrievalMetricsTests
         Assert.Equal(0.0, m.RecallAt5);
         Assert.Equal(0.0, m.RecallAt10);
         Assert.Equal(1.0, m.RecallAt20);
-        Assert.Equal(0.0, m.MrrAt10); // first hit at rank 11 is beyond MRR@10
+        Assert.Equal(0.0, m.RrAt10); // first hit at rank 11 is beyond RR@10
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class RetrievalMetricsTests
         Assert.Equal(1.0, m.SuccessAt5, 5);  // A within top 5 means Success = 1.0
         Assert.Equal(1.0, m.RecallAt10, 5); // both within top 10
         Assert.Equal(1.0, m.SuccessAt10, 5); // both within top 10 means Success = 1.0 again
-        Assert.Equal(1.0, m.MrrAt10, 5);    // first gold hit is A at rank 1
+        Assert.Equal(1.0, m.RrAt10, 5);    // first gold hit is A at rank 1
     }
 
     [Fact]
@@ -115,6 +115,6 @@ public class RetrievalMetricsTests
         Assert.Equal(1.0, m.RecallAt5);
         Assert.Equal(1.0, m.RecallAt10);
         Assert.Equal(1.0, m.RecallAt20);
-        Assert.Equal(1.0 / 3, m.MrrAt10, 5);
+        Assert.Equal(1.0 / 3, m.RrAt10, 5);
     }
 }

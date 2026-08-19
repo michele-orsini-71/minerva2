@@ -22,7 +22,7 @@ public static class MetricsCsvWriter
         csv.WriteField("success_at_5");
         csv.WriteField("success_at_10");
         csv.WriteField("success_at_20");
-        csv.WriteField("mrr_at_10");
+        csv.WriteField("rr_at_10");
         csv.WriteField("latency_ms");
         csv.WriteField("error");
         csv.NextRecord();
@@ -45,7 +45,7 @@ public static class MetricsCsvWriter
                 csv.WriteField(scores.SuccessAt5);
                 csv.WriteField(scores.SuccessAt10);
                 csv.WriteField(scores.SuccessAt20);
-                csv.WriteField(scores.MrrAt10);
+                csv.WriteField(scores.RrAt10);
             }
             else
             {

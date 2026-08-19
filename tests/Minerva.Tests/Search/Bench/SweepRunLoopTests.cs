@@ -81,7 +81,7 @@ public class SweepRunLoopTests
         var result = Assert.Single(results);
         Assert.NotNull(result.Scores);
         Assert.Equal(1.0, result.Scores!.RecallAt5);
-        Assert.Equal(1.0, result.Scores.MrrAt10);
+        Assert.Equal(1.0, result.Scores.RrAt10);
 
         Assert.NotNull(result.Hits);
         Assert.Equal(2, result.Hits!.Count);

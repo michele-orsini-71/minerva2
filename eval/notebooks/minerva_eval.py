@@ -18,7 +18,7 @@ class Metrics(BaseModel):
     success_at_5: int
     success_at_10: int
     success_at_20: int
-    mrr_at_10: float
+    rr_at_10: float
 
 class Hit(BaseModel):
     rank: int
@@ -79,7 +79,7 @@ def metrics_heatmap(results: list[EvalResult]):
             "R@5": r.metrics.recall_at_5,
             "R@10": r.metrics.recall_at_10,
             "R@20": r.metrics.recall_at_20,
-            "MRR@10": r.metrics.mrr_at_10,
+            "MRR@10": r.metrics.rr_at_10,  # per-query RR; becomes MRR@10 after the groupby mean below
         }
         for r in results
     ])

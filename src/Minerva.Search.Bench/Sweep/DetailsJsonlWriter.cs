@@ -38,7 +38,7 @@ public static class DetailsJsonlWriter
                         success_at_5 = s.SuccessAt5,
                         success_at_10 = s.SuccessAt10,
                         success_at_20 = s.SuccessAt20,
-                        mrr_at_10 = s.MrrAt10,
+                        rr_at_10 = s.RrAt10,
                     }
                     : null,
                 latency_ms = result.LatencyMs,
