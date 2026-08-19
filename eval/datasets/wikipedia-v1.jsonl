@@ -29,10 +29,10 @@
 {"id":"Electron_configuration.md-1","query":"how are electrons arranged around an atomic nucleus?","gold_sources":["Electron_configuration.md", "Atomic_orbital.md"]}
 {"id":"Elvis_Presley.md-1","query":"the rock and roll singer famous for shaking his legs","gold_sources":["Elvis_Presley.md"]}
 {"id":"Virus.md-1","query":"eradicated or almost eradicated infectious disease of humans ","gold_sources":["Virus.md", "Dracunculus_medinensis.md"]}
-{"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md", "Introduction_to_viruses.md"]}
-{"id":"Antarctica.md-1","query":"Where do live emperor penguins?","gold_sources":["Antarctica.md", "Antarctic.md"]}
+{"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md"]}
+{"id":"Antarctica.md-1","query":"Where do live emperor penguins?","gold_sources":["Antarctica.md"]}
 {"id":"Antarctica.md-2","query":"Which continent contains most of the world's frozen freshwater reserves?","gold_sources":["Antarctica.md"]}
-{"id":"Antarctica.md-3","query":"what place on earth do scientists use to study how life could survive on europa?","gold_sources":["Antarctica.md", "Antarctic.md"]}
+{"id":"Antarctica.md-3","query":"what place on earth do scientists use to study how life could survive on europa?","gold_sources":["Antarctica.md"]}
 {"id":"Antarctica.md-4","query":"which continent is set aside as a natural reserve for peace and science where mining is banned?","gold_sources":["Antarctica.md"]}
 {"id":"Fenrir.md-1","query":"mighty wolf of the north european mythology","gold_sources":["Fenrir.md"]}
 {"id":"Fenrir.md-2","query":"who will kill odin in the north mythology end of the world","gold_sources":["Fenrir.md", "Ragnarök.md"]}

@@ -137,7 +137,7 @@ contextualizer held fixed. Full model reconsideration is deferred to
 - `eval/datasets/wikipedia-v1.README.md` — corpus URL, content hash,
   license, ingestion command.
 - `eval/results/phase0-baseline/` — the maintainer's committed run output.
-- `eval/notebooks/phase0-analysis.ipynb` — loads the baseline CSV, produces
+- `eval/notebooks/dataset_analysis.ipynb` — loads the baseline CSV, produces
   the Recall@K table, a Recall-vs-HybridAlpha plot, and a per-query view.
 
 **Dataset quality requirements (from the 1C finding) — the seed set must
