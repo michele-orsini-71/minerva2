@@ -159,6 +159,10 @@ def load_manifest_entries(manifest_file:str) -> set[str]:
 
     return entries
 
+def append_manifest_entries(manifest_file:str, new_manifest_entries: list[str]):
+    with open(manifest_file, "a") as f:
+        f.writelines([ entry + '\n' for entry in new_manifest_entries])
+
 if __name__ == "__main__":
     if len(sys.argv) < 4 or sys.argv[1] != "--config":
         print("Usage: densify_corpus.py --config <corpus.json> seed1 seed 2 ...")
@@ -190,10 +194,11 @@ if __name__ == "__main__":
         try:
             neighbors_list = neighbors(embedding_matrix, paths, seed, TOP_K)
             neighbors_list = [ neighbor for neighbor in neighbors_list if neighbor.score > FILTER_SCORE ]
-            print(f'======== {seed} ========')
-            for neighbor in neighbors_list:
-                zim = source_id_to_path[neighbor.source_id]
-                print(f"{neighbor.score:.3f}  {neighbor.source_id} present? {zim in manifest_entries}")
+            new_manifest_entries = [ source_id_to_path[neighbor.source_id] for neighbor in neighbors_list if source_id_to_path[neighbor.source_id] not in manifest_entries ]
+            append_manifest_entries(cfg["manifest"], new_manifest_entries)
+            for path in new_manifest_entries:
+                manifest_entries.add(path)
+
         except ValueError as e:
             print(f"Error: {e}")
         

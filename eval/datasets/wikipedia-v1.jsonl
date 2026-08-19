@@ -12,13 +12,13 @@
 {"id":"HIV_AIDS.md-1","query":"Human immunodeficiency by sexual transmission","gold_sources":["HIV.md", "HIV_AIDS.md"]}
 {"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md", "Virus.md"]}
 {"id":"Yemeni_civil_war_(2014–present).md-1","query":"Shiite group backed by Iran in south arabia","gold_sources":["Yemeni_civil_war_(2014–present).md"]}
-{"id":"Wireless_network.md-1","query":"Data transmission without wires","gold_sources":["Wireless_network.md"]}
+{"id":"Wireless_network.md-1","query":"Data transmission without wires","gold_sources":["Wireless_network.md", "Wireless_LAN.md", "Wireless.md"]}
 {"id":"Tharman_Shanmugaratnam.md-1","query":"politician of south asian origin who became president of a Southeast Asian nation","gold_sources":["Tharman_Shanmugaratnam.md"]}
 {"id":"Szlachta.md-1","query":"The term that defines Poland aristocracy","gold_sources":["Szlachta.md"]}
 {"id":"God_of_War_(franchise).md-1","query":"video game franchise where the protagonist is a Spartan warrior who fights Greek gods","gold_sources":["God_of_War_(franchise).md"]}
 {"id":"Gunpowder_Plot.md-1","query":"what are firework displays on 5 november about","gold_sources":["Gunpowder_Plot.md"]}
 {"id":"Hillbilly.md-1","query":"a term of scottish origin that refers to people in the rural areas in the United States","gold_sources":["Hillbilly.md"]}
-{"id":"List_of_Roman_emperors.md-1","query":"Which term do we use today to name the princep, the first citizen of the state in ancient Rome","gold_sources":["List_of_Roman_emperors.md" ]}
+{"id":"List_of_Roman_emperors.md-1","query":"Which term do we use today to name the princep, the first citizen of the state in ancient Rome","gold_sources":["Roman_emperor.md", "List_of_Roman_emperors.md" ]}
 {"id":"A_Fistful_of_Dollars.md-1","query":"a film about a rivalry between two families in the old Wild West","gold_sources":["A_Fistful_of_Dollars.md"]}
 {"id":"Tabernacle.md-1","query":"a transportable sacred home for the deity during travels through the wilderness","gold_sources":["Tabernacle.md"]}
 {"id":"Saffron.md-1","query":"the spice for the famous rice recipe from Milan","gold_sources":["Saffron.md"]}
@@ -26,25 +26,25 @@
 {"id":"Shortness_of_breath.md-2","query":"a sensation of inadequate or strained respiration","gold_sources":["Shortness_of_breath.md"]}
 {"id":"Lancelot.md-1","query":"a mighty legendary knight that fell in love with his king's spouse","gold_sources":["Lancelot.md"]}
 {"id":"Uranium_City.md-1","query":"a city that was explicitly founded to extract material for nuclear based technologies","gold_sources":["Uranium_City.md"]}
-{"id":"Electron_configuration.md-1","query":"how are electrons arranged around an atomic nucleus?","gold_sources":["Electron_configuration.md"]}
+{"id":"Electron_configuration.md-1","query":"how are electrons arranged around an atomic nucleus?","gold_sources":["Electron_configuration.md", "Atomic_orbital.md"]}
 {"id":"Elvis_Presley.md-1","query":"the rock and roll singer famous for shaking his legs","gold_sources":["Elvis_Presley.md"]}
 {"id":"Virus.md-1","query":"eradicated or almost eradicated infectious disease of humans ","gold_sources":["Virus.md", "Dracunculus_medinensis.md"]}
-{"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md"]}
-{"id":"Antarctica.md-1","query":"Where do live emperor penguins?","gold_sources":["Antarctica.md"]}
+{"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md", "Introduction_to_viruses.md"]}
+{"id":"Antarctica.md-1","query":"Where do live emperor penguins?","gold_sources":["Antarctica.md", "Antarctic.md"]}
 {"id":"Antarctica.md-2","query":"Which continent contains most of the world's frozen freshwater reserves?","gold_sources":["Antarctica.md"]}
-{"id":"Antarctica.md-3","query":"what place on earth do scientists use to study how life could survive on europa?","gold_sources":["Antarctica.md"]}
+{"id":"Antarctica.md-3","query":"what place on earth do scientists use to study how life could survive on europa?","gold_sources":["Antarctica.md", "Antarctic.md"]}
 {"id":"Antarctica.md-4","query":"which continent is set aside as a natural reserve for peace and science where mining is banned?","gold_sources":["Antarctica.md"]}
 {"id":"Fenrir.md-1","query":"mighty wolf of the north european mythology","gold_sources":["Fenrir.md"]}
-{"id":"Fenrir.md-2","query":"who will kill odin in the north mythology end of the world","gold_sources":["Fenrir.md"]}
+{"id":"Fenrir.md-2","query":"who will kill odin in the north mythology end of the world","gold_sources":["Fenrir.md", "Ragnarök.md"]}
 {"id":"Heligoland.md-1","query":"an island named in Massive Attack music productions","gold_sources":["Heligoland.md"]}
-{"id":"Long_Depression.md-1","query":"Were there other periods of economic crisis in modern times before the crash of '29?","gold_sources":["Long_Depression.md"]}
+{"id":"Long_Depression.md-1","query":"Were there other periods of economic crisis in modern times before the crash of '29?","gold_sources":["Long_Depression.md", "Panic_of_1873.md", "Panic_of_1893.md", "Panic_of_1837.md"]}
 {"id":"Olga_of_Kiev.md-1","query":"the 10th-century ruler who massacred the tribe that killed her husband, then became the first of her people to adopt Christianity","gold_sources":["Olga_of_Kiev.md"]}
 {"id":"Roche_limit.md-1","query":"why is there a closest distance a moon can orbit before it breaks into a ring of debris?","gold_sources":["Roche_limit.md"]}
 {"id":"Voltmeter.md-1","query":"the meter you connect in parallel across a component, never in series","gold_sources":["Voltmeter.md"]}
 {"id":"World_Heritage_Site.md-1","query":"what designation do Machu Picchu, the Pyramids of Giza and the Great Barrier Reef all share?","gold_sources":["World_Heritage_Site.md"]}
 {"id":"Parallax_scrolling.md-1","query":"in side-scrolling games why does the distant background drift slower than the ground the character runs on","gold_sources":["Parallax_scrolling.md"]}
 {"id":"Jaguar.md-1","query":"the spotted big cat of the Americas often confused with the leopard","gold_sources":["Jaguar.md"]}
-{"id":"Bobcat.md-1","query":"a small wild feline of North America with a stubby tail","gold_sources":["Bobcat.md"]}
+{"id":"Bobcat.md-1","query":"a small wild feline of North America with a stubby tail","gold_sources":["Bobcat.md", "Lynx.md"]}
 {"id":"Influenza_A_virus_subtype_H5N1.md-1","query":"the bird flu strain behind mass poultry culls","gold_sources":["Influenza_A_virus_subtype_H5N1.md"]}
 {"id":"George_III.md-1","query":"the British king who lost the American colonies and suffered bouts of madness","gold_sources":["George_III.md"]}
 {"id":"Goalkeeper_(association_football).md-1","query":"the only player on a football pitch allowed to handle the ball","gold_sources":["Goalkeeper_(association_football).md"]}

@@ -4,10 +4,10 @@ A reproducible corpus of English Wikipedia articles for the `wikipedia-v1`
 retrieval evaluation. The corpus is the searchable document set; the eval
 dataset defines the queries and their expected gold articles.
 
-- **`wikipedia-v1.jsonl`** — 55 queries, each with `gold_sources` (the articles
+- **`wikipedia-v1.jsonl`** — 75 queries, each with `gold_sources` (the articles
   that should be retrieved).
 - **`wikipedia-v1.corpus.txt`** — the corpus manifest: one ZIM entry path per
-  line (1100 articles). **This is the authoritative list** of what the corpus
+  line (1256 articles). **This is the authoritative list** of what the corpus
   contains. Gold articles and distractors are not distinguished here — the gold
   set lives only in the `.jsonl`. Distractors create retrieval competition; the
   manifest lets any article become gold in a later eval.
@@ -44,7 +44,7 @@ Tools are in `tools/kiwix2md/`. They all read one config, `corpus.json`:
 2. Edit `corpus.json` to your local paths.
 3. Rebuild every article from the manifest:
    ```sh
-   python buildCorpus.py --config corpus.json
+   python build_corpus.py --config corpus.json
    ```
    Each entry is written as `<entry_path with "/" → "_">.md`.
 4. Verify the result matches the manifest exactly:
@@ -59,5 +59,41 @@ Tools are in `tools/kiwix2md/`. They all read one config, `corpus.json`:
 `random_zim_to_markdown.py <N> --config corpus.json` adds `N` new random articles (not
 already present), extracts them, and appends their entry paths to the manifest.
 It verifies integrity before and after, so the manifest and the folder stay in
-lockstep. Reproducibility is unaffected: re-running `buildCorpus.py` against the
+lockstep. Reproducibility is unaffected: re-running `build_corpus.py` against the
 grown manifest reproduces the larger corpus exactly.
+
+Random articles are unrelated to the queries, so every gold sits alone in its
+semantic neighborhood and the retriever returns it at rank 1 no matter how the
+query is phrased. The eval reaches its maximum and cannot show retrieval
+improvements. `densify_corpus.py` fixes this by adding **confusable competitors
+next to the existing golds**.
+
+### Densify around the golds
+
+1. Embed every article in the ZIM once (lead text of each article). The vectors
+   are cached on disk (`zim-cluster-embeddings.jsonl`) so this ~hours-long pass
+   runs only the first time; a `zim-cluster.done` marker skips it afterwards.
+2. Run the tool with the dataset golds as seeds:
+   ```sh
+   jq -r '.gold_sources[]' wikipedia-v1.jsonl | sort -u \
+     | xargs python densify_corpus.py --config corpus.json
+   ```
+   For each seed it finds the nearest neighbors in embedding space, keeps those
+   above a similarity threshold (0.72), dedups against the current manifest, and
+   appends the new ZIM paths. A gold in a sparse region gets few or no
+   neighbors; that is fine — it stays easy to find.
+3. Extract the new entries: `python build_corpus.py --config corpus.json`.
+4. Verify integrity: `python extract.py --config corpus.json`.
+
+### Check the gold labels (manual, required)
+
+A neighbor added next to a gold can be so close that it *also* answers the
+gold's query. Left unlabeled, it becomes an unlabeled-correct answer and
+depresses recall and MRR on exactly the queries you made hard. For each gold
+that received neighbors, read the query and each neighbor: if a neighbor
+genuinely answers the query, add it to that query's `gold_sources`. The
+decision is **per query**, not per article — an article with several queries
+of different specificity may accept a neighbor for one query and reject it for
+another. Prefer the precise document:
+add a co-gold only when it truly answers the question, not merely when it is on
+the same topic.
