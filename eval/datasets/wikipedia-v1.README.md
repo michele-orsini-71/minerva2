@@ -4,13 +4,39 @@ A reproducible corpus of English Wikipedia articles for the `wikipedia-v1`
 retrieval evaluation. The corpus is the searchable document set; the eval
 dataset defines the queries and their expected gold articles.
 
-- **`wikipedia-v1.jsonl`** — 75 queries, each with `gold_sources` (the articles
+- **`wikipedia-v1.jsonl`** — 78 queries, each with `gold_sources` (the articles
   that should be retrieved).
 - **`wikipedia-v1.corpus.txt`** — the corpus manifest: one ZIM entry path per
   line (1256 articles). **This is the authoritative list** of what the corpus
   contains. Gold articles and distractors are not distinguished here — the gold
   set lives only in the `.jsonl`. Distractors create retrieval competition; the
   manifest lets any article become gold in a later eval.
+
+## Query design — what belongs in this eval
+
+This eval measures the **retriever**, not an agent. Minerva is tool-shaped: it is
+an MCP surface a capable agent composes, and the agent owns the control flow —
+query rewriting, sub-question decomposition, multi-hop, retry. So the queries
+here must be **atomic and retrieval-answerable**: the focused sub-questions an
+agent decomposes *into*, each resolving to a small, precise `gold_sources` set.
+
+Difficulty must come from **confusable competitors** in the corpus (see
+densification below), not from requiring an inference the documents never state.
+A query whose relevance depends on world knowledge absent from the gold text
+(e.g. "X is an instance of the category the question asks about") tests the
+agent's reasoning, not the retriever, and will fail no matter how good the
+embeddings, chunking, or reranker are. Such a query is *mis-scoped* for this
+eval, not a retrieval defect.
+
+Worked example: the composite query *"were there other periods of economic
+crisis before the crash of '29?"* (four golds: `Long_Depression`,
+`Panic_of_1873`, `Panic_of_1893`, `Panic_of_1837`) was **split into four atomic,
+single-gold queries**. It anchored on the 1929 crash — an entity absent from all
+four gold articles — and required the reader's inference that each event is a
+pre-1929 crisis. It was really four sub-queries an agent would issue in
+parallel, so it is now stored as four. Composite / reasoning queries belong to a
+future agent-level (end-to-end) eval, kept separate from this retrieval set and
+excluded from retrieval tuning.
 
 ## Source
 

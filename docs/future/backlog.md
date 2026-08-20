@@ -24,6 +24,25 @@ exploratory chats. Low confidence by design — revisit before acting.
 
 ## Retrieval and answer quality
 
+- **MCP tool surface as affordances (design principle).** Minerva is
+  tool-shaped: a capable consuming agent owns the control flow — query
+  rewriting, sub-question decomposition, multi-hop, retry — so the product
+  ceiling is what the MCP *exposes*, not how many pipeline stages exist inside.
+  Prefer exposing retrieval capabilities as composable tools the agent picks
+  per question — `search(filters)`, `expand_chunk(±W)` as an *on-demand* call
+  (not only the fixed Phase-4 stage), `get_document_outline` (return a
+  document's heading structure so the agent can navigate before fetching),
+  `fetch_full_doc` — over hardcoding them as opaque internal stages the agent
+  cannot see or skip. A server that returns top-k opaque chunks caps a strong
+  agent no matter how good the ranking. This reframes several items below
+  (**Metadata-filter search**, **Document retriever mode**, **Return raw search
+  results to the client**) as facets of one surface-design concern, and it is
+  the reason **Query understanding / expansion** below is low priority: a strong
+  agent already does it. Caveat: the whole bet assumes a *strong* consuming
+  agent; point a weak agent at Minerva and the missing pipeline stages become
+  visible again. Of the tools named here, `get_document_outline` and on-demand
+  `expand_chunk` / `fetch_full_doc` are not yet designed anywhere; the filter
+  and raw-results facets are the items below.
 - **Query understanding / expansion** — rewrite or expand the query before
   retrieval (HyDE-style hypothetical answer, sub-question decomposition).
 - **Answer generation with citations** — close the loop from retrieval to a
