@@ -272,7 +272,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             CollectionName: reader.GetString(2),
             ChunkIndex: reader.GetInt32(3),
             Content: reader.GetString(4),
-            Score: reader.GetDouble(8),
+            Distance: reader.GetDouble(8),
             PrevChunkId: reader.IsDBNull(6) ? null : reader.GetString(6),
             NextChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
             Metadata: metadata);

@@ -13,7 +13,7 @@ public class RankFusionTests
             CollectionName: "c",
             ChunkIndex: 0,
             Content: id,
-            Score: 0.0), rank);
+            Distance: 0.0), rank);
 
     [Fact]
     public void Fuse_DisjointLists_MergesByRrfScore()

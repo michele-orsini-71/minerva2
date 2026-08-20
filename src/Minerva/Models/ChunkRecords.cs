@@ -31,7 +31,7 @@ public record ChunkSearchRecord(
     string CollectionName,
     int ChunkIndex,
     string Content,
-    double Score,
+    double Distance,
     string? PrevChunkId = null,
     string? NextChunkId = null,
     Dictionary<string, object>? Metadata = null);
