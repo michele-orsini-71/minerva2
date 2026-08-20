@@ -513,3 +513,4 @@ tools/kiwix2md/zim-cluster-embeddings.jsonl
 tools/kiwix2md/zim-cluster.done
 
 eval/notebooks/.ipynb_checkpoints/
+eval/results

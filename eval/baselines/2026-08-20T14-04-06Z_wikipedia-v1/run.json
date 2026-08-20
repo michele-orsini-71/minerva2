@@ -1,0 +1,75 @@
+{
+  "label": "baseline",
+  "timestamp": "2026-08-20T14:04:06Z",
+  "bench_version": "0.1.0+c3f7c9c",
+  "dataset_path": "../datasets/wikipedia-v1.jsonl",
+  "collection": "wikipedia-qwen2-5",
+  "collectionDetails": {
+    "Name": "wikipedia-qwen2-5",
+    "Description": null,
+    "Provenance": {
+      "Invariants": {
+        "EmbeddingModel": "text-embedding-bge-m3",
+        "EmbeddingDimension": 1024,
+        "ChunkerType": 0,
+        "TargetChunkSize": 1200,
+        "ChunkOverlap": 200,
+        "MaxSegmentChars": 8000,
+        "ContextualizationEnabled": true,
+        "ContextualizationModel": "qwen2.5-0.5b-instruct-mlx",
+        "SummarizerPromptVersion": "1",
+        "ContextualizerPromptVersion": "1"
+      },
+      "LastRun": {
+        "IngestorVersion": "0.1.0+c65bba1",
+        "SchemaVersion": "003_collection_provenance"
+      }
+    },
+    "ClientProvenance": {
+      "kind": "markdown-indexer",
+      "data": {
+        "root-path": "/Users/michele/my-code/minerva2-index/wikipedia-en-corpus",
+        "file-extensions": [
+          "md"
+        ],
+        "exclude-directories": [
+          ".obsidian",
+          ".trash",
+          ".git"
+        ]
+      }
+    },
+    "CreatedAt": "2026-06-20T06:07:48.464803+00:00",
+    "LastUpdatedAt": "2026-06-20T06:07:48.464803+00:00",
+    "EmbeddingModel": "text-embedding-bge-m3",
+    "EmbeddingDimension": 1024
+  },
+  "resolved_sweep": {
+    "dataset": "../datasets/wikipedia-v1.jsonl",
+    "collection": "wikipedia-qwen2-5",
+    "matrix": {
+      "top_k": [
+        50
+      ],
+      "hybrid_alpha": [
+        0.3,
+        0.5,
+        0.7
+      ]
+    }
+  },
+  "cells": [
+    {
+      "top_k": 50,
+      "hybrid_alpha": 0.3
+    },
+    {
+      "top_k": 50,
+      "hybrid_alpha": 0.5
+    },
+    {
+      "top_k": 50,
+      "hybrid_alpha": 0.7
+    }
+  ]
+}

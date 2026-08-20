@@ -39,11 +39,16 @@ class EvalResult(BaseModel):
     error: str | None = None
     hits: list[Hit] = Field(default_factory=list)
 
-results_path = Path("../results")
+results_roots = [Path("../baselines"), Path("../results")]   # committed refs + scratch
 
-def find_run_dirs(results_path: Path) -> list[Path]:
-    return sorted(p for p in results_path.iterdir()
+def find_run_dirs(root: Path) -> list[Path]:
+    if not root.exists():                                     # a root may be absent on a fresh checkout
+        return []
+    return sorted(p for p in root.iterdir()
                   if p.is_dir() and re.match(r"\d{4}-\d{2}-\d{2}", p.name))
+
+def all_run_dirs() -> list[Path]:
+    return [d for root in results_roots for d in find_run_dirs(root)]
 
 def load_run(run_dir: Path) -> list[EvalResult]:
     meta = json.loads((run_dir / "run.json").read_text())
@@ -54,7 +59,7 @@ def load_run(run_dir: Path) -> list[EvalResult]:
             for line in lines if line.strip()]
 
 def load_all_results():
-    return [r for d in find_run_dirs(results_path) for r in load_run(d)]
+    return [r for d in all_run_dirs() for r in load_run(d)]
 
 def summarize_run(run_dir: Path) -> dict:
     run = json.loads((run_dir / "run.json").read_text())
@@ -70,7 +75,7 @@ def summarize_run(run_dir: Path) -> dict:
     }
 
 def get_run_summary():
-    return pd.DataFrame(summarize_run(d) for d in find_run_dirs(results_path))
+    return pd.DataFrame(summarize_run(d) for d in all_run_dirs())
 
 metric_cols = ["R@5", "R@10", "R@20", "MRR@10"]
 
@@ -122,6 +127,7 @@ from dataclasses import dataclass
 class GoldRank:
     query_id: str
     collection: str
+    label: str
     alpha: float
     gold: str
     rank: int
@@ -131,7 +137,7 @@ def gold_ranks(results, top_k=50) -> list[GoldRank]:
     for r in results:
         ranks = best_rank_by_source(r)
         for g in r.gold_sources:
-            out.append(GoldRank(r.query_id, r.collection, r.cell.hybrid_alpha,
+            out.append(GoldRank(r.query_id, r.collection, r.label, r.cell.hybrid_alpha,
                                 g, ranks.get(g, top_k + 1)))
     return out
 
