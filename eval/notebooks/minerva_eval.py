@@ -29,6 +29,7 @@ class Hit(BaseModel):
 
 class EvalResult(BaseModel):
     collection: str          # injected from run.json; not present in the jsonl row
+    label: str               # run checkpoint name; injected from run.json (fallbacks to folder name)
     query_id: str
     query: str
     cell: CellResult
@@ -45,9 +46,11 @@ def find_run_dirs(results_path: Path) -> list[Path]:
                   if p.is_dir() and re.match(r"\d{4}-\d{2}-\d{2}", p.name))
 
 def load_run(run_dir: Path) -> list[EvalResult]:
-    collection = json.loads((run_dir / "run.json").read_text())["collection"]
+    meta = json.loads((run_dir / "run.json").read_text())
+    collection = meta["collection"]
+    label = meta.get("label", run_dir.name)     # harness written or timestamped folder
     lines = (run_dir / "details.jsonl").read_text().splitlines()
-    return [EvalResult.model_validate(json.loads(line) | {"collection": collection})
+    return [EvalResult.model_validate(json.loads(line) | {"collection": collection, "label": label})
             for line in lines if line.strip()]
 
 def load_all_results():
@@ -71,9 +74,10 @@ def get_run_summary():
 
 metric_cols = ["R@5", "R@10", "R@20", "MRR@10"]
 
-def metrics_heatmap(results: list[EvalResult]):
+def metrics_heatmap(results: list[EvalResult], group_cols=("collection", "alpha")):
     per_query = pd.DataFrame([
         {
+            "label": r.label,
             "collection": r.collection,
             "alpha": r.cell.hybrid_alpha,
             "R@5": r.metrics.recall_at_5,
@@ -84,7 +88,7 @@ def metrics_heatmap(results: list[EvalResult]):
         for r in results
     ])
 
-    groups = per_query.groupby(["collection", "alpha"])
+    groups = per_query.groupby(list(group_cols))
     metrics = groups[metric_cols].mean().round(3)
     metrics["n"] = groups.size()
     return metrics.style.background_gradient(cmap="RdYlGn", subset=metric_cols)
