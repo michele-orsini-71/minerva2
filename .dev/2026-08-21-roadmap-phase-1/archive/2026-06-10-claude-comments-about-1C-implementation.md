@@ -1,9 +1,0 @@
-# Claude comments about 1C implementation
-
-1. "on-the-nose, which favours raw chunks.", i.e. "Harder queries — concept-expressed-differently and multi-gold, so recall comes off the ceiling and the collections can separate" - we need more difficult queries
-2. It shows the eval is still too easy and too small to decide - we need more queries
-3. Optionally bump scoring depth so R@20 means something.
-4. Read the per-query diffs — find the 1-2 specific queries qwen/gemma miss but test-2 finds (and vice versa) in details.jsonl. With differences this small, the individual queries are the signal, not the averages.
-   1. Sharpen the per-query analysis (item 4) into a concrete deliverable.** "Read the diffs" is an action; the lasting future-work item is: _with n=30 near the ceiling, report which individual queries each collection misses_, not just averages. Same idea, but phrase it so it survives as a method, not a one-off.
-5. Keyword-only / lexical-favouring queries (`LRGB`, `IRPEF`, `BARNARD 22`, `Hα`). This is **not** the same as your item 1. Item 1 asks for concept-paraphrase queries that favour the _semantic_ branch. This asks for the opposite: codes and acronyms where dense retrieval likely misses and the **FTS branch you just fixed** should win. Without these, your eval can never demonstrate that the lexical branch — and therefore the hybrid — adds anything. Right now every query in your set is on-the-nose semantic, so the whole eval is blind to the thing you spent the day fixing. This is the most important omission.
-===

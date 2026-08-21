@@ -1,7 +1,0 @@
-{
-  // Historical planning docs under .dev/ are not reflowed; do not flag their
-  // line length. Inherits the repo-root config for all other rules.
-  "config": {
-    "MD013": false // line-length
-  }
-}
