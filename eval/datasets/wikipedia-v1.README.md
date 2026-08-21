@@ -38,6 +38,11 @@ parallel, so it is now stored as four. Composite / reasoning queries belong to a
 future agent-level (end-to-end) eval, kept separate from this retrieval set and
 excluded from retrieval tuning.
 
+The set also includes a few **lexical / FTS-specific queries** built on a rare
+exact token — a code, designation, or brand name (e.g. `IEC 60062`,
+`LNER Class A3 4472`) that appears verbatim in exactly one gold article. They
+exercise the full-text branch rather than dense retrieval.
+
 ## Source
 
 The whole corpus is extracted from a single Kiwix ZIM:

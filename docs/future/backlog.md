@@ -18,6 +18,19 @@ exploratory chats. Low confidence by design — revisit before acting.
 - **Chunk expansion ±W** → roadmap Phase 4.
 - **Real BM25** (Postgres extension) and **per-document language detection** →
   roadmap "Cross-phase backlog".
+  - *Finding (1D FTS-query eval).* The current FTS — `ts_rank` over
+    `to_tsvector('simple', …)` with OR-combined terms — is **not** a BM25
+    substitute. `ts_rank` weights by term *frequency*, not IDF, so a rare exact
+    token (code, designation, brand name) gets no rarity boost. A bare-acronym
+    query returns its unique gold at rank 1, but the same acronym inside a
+    natural-language sentence sinks to rank 9–35 at FTS-heavy `alpha=0.3`:
+    `'simple'` keeps stopwords, terms are OR'd, so common filler words match
+    competitor docs and out-`ts_rank` the single rare-token hit. The lexical
+    branch therefore cannot deliver "vector misses, FTS saves on a rare code"
+    unless the query is almost all discriminating tokens. Real BM25
+    (ParadeDB / `pg_search`, or explicit IDF weighting) is a **ship
+    requirement**, not optional. Evidence: the FTS-specific queries in
+    `eval/datasets/wikipedia-v1.jsonl`, reproduced by `fts_search.sh`.
 - **Ingestor versioning / reindex policy** → roadmap "Cross-phase backlog";
   **`collection_metadata`** → designed in
   `../../.dev/roadmap-phase-1/collection-metadata-design.md` (pre-1D).

@@ -1,7 +1,7 @@
 {
   "label": "baseline",
-  "timestamp": "2026-08-20T14:04:06Z",
-  "bench_version": "0.1.0+c3f7c9c",
+  "timestamp": "2026-08-21T07:05:38Z",
+  "bench_version": "0.1.0+eb688ed",
   "dataset_path": "../datasets/wikipedia-v1.jsonl",
   "collection": "wikipedia-qwen2-5",
   "collectionDetails": {
