@@ -143,17 +143,17 @@ contextualizer held fixed. Full model reconsideration is deferred to
 **Dataset quality requirements (from the 1C finding) — the seed set must
 include:**
 
-- [ ] **Keyword-only / lexical-favouring queries** — codes and acronyms
+- [x] **Keyword-only / lexical-favouring queries** — codes and acronyms
       where dense retrieval likely misses and the FTS branch should win:
       `LRGB`, `IRPEF`, `BARNARD 22`, `Hα`. **Most important omission:** without
       these the eval is blind to the lexical branch the FTS fix just repaired,
       so it cannot demonstrate that hybrid adds anything over pure vector.
-- [ ] **Harder semantic queries** — concept-expressed-differently (paraphrase
+- [x] **Harder semantic queries** — concept-expressed-differently (paraphrase
       that does not mirror the document vocabulary) and multi-gold queries, so
       recall comes off the ceiling and collections can separate.
-- [ ] **Enough volume** — grow past the current ~30 toward the 20–30 _public_
+- [x] **Enough volume** — grow past the current ~30 toward the 20–30 _public_
       hand-curated target; the set is currently too small to decide.
-- [ ] **Scoring depth** — bump so that Recall@20 carries real signal rather
+- [x] **Scoring depth** — bump so that Recall@20 carries real signal rather
       than saturating.
 
 **Corpus size and difficulty (decision).** The first Wikipedia ingest is the
