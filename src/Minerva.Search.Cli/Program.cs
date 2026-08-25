@@ -47,6 +47,7 @@ try
         HybridAlpha = parsed.Alpha,
         CandidatePoolSize = parsed.CandidatePoolSize,
         ExpandContext = parsed.ExpandContext,
+        EnableReranker = parsed.EnableReranker,
     };
 
     var results = await engine.SearchAsync(

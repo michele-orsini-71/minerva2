@@ -17,7 +17,25 @@ public class SearchPipelineTests
         HybridAlpha = 0.5,
         ExpandContext = false,
         CandidatePoolSize = 50,
+        EnableReranker = true,
     };
+
+    // The pipeline requires an IReranker; these tests don't exercise reranking,
+    // so this passes candidates through unchanged.
+    private sealed class NoopReranker : IReranker
+    {
+        public Task<IReadOnlyList<ScoredChunk>> Rank(
+            string query, IReadOnlyList<ScoredChunk> candidates, CancellationToken cancellationToken) =>
+            Task.FromResult(candidates);
+    }
+
+    // Reverses candidate order, so a test can observe whether reranking actually ran.
+    private sealed class ReversingReranker : IReranker
+    {
+        public Task<IReadOnlyList<ScoredChunk>> Rank(
+            string query, IReadOnlyList<ScoredChunk> candidates, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ScoredChunk>>(candidates.Reverse().ToList());
+    }
 
     private static IEmbeddingService MockEmbedder()
     {
@@ -50,6 +68,7 @@ public class SearchPipelineTests
             new VectorSearch(repo),
             new FullTextSearch(repo),
             new ContextExpander(repo),
+            new NoopReranker(),
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
@@ -81,6 +100,7 @@ public class SearchPipelineTests
             new VectorSearch(repo),
             new FullTextSearch(repo),
             new ContextExpander(repo),
+            new NoopReranker(),
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
@@ -114,6 +134,7 @@ public class SearchPipelineTests
             new VectorSearch(repo),
             new FullTextSearch(repo),
             new ContextExpander(repo),
+            new NoopReranker(),
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
@@ -138,11 +159,38 @@ public class SearchPipelineTests
             new VectorSearch(repo),
             new FullTextSearch(repo),
             new ContextExpander(repo),
+            new NoopReranker(),
             NullLogger<SearchPipeline>.Instance);
 
         var results = await pipeline.SearchAsync(
             "q", "c", DefaultOptions with { TopK = 5 });
 
         Assert.Equal(5, results.Count);
+    }
+
+    [Fact]
+    public async Task SearchAsync_TogglesReranker_ViaEnableRerankerOption()
+    {
+        var repo = Substitute.For<IChunkQuery>();
+        repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new[] { MakeRecord("x1"), MakeRecord("x2"), MakeRecord("x3") });
+        repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<ChunkSearchRecord>());
+
+        var pipeline = new SearchPipeline(
+            MockEmbedder(),
+            new VectorSearch(repo),
+            new FullTextSearch(repo),
+            new ContextExpander(repo),
+            new ReversingReranker(),
+            NullLogger<SearchPipeline>.Instance);
+
+        var disabled = await pipeline.SearchAsync("q", "c", DefaultOptions with { EnableReranker = false });
+        var enabled = await pipeline.SearchAsync("q", "c", DefaultOptions with { EnableReranker = true });
+
+        // Disabled: the reranker is skipped, fused (vector) order preserved.
+        Assert.Equal(["x1", "x2", "x3"], disabled.Select(r => r.ChunkId).ToArray());
+        // Enabled: the reranker runs and reverses the order.
+        Assert.Equal(["x3", "x2", "x1"], enabled.Select(r => r.ChunkId).ToArray());
     }
 }

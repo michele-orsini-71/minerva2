@@ -3,6 +3,7 @@
   <RunConfiguration>
     <EnvironmentVariables>
       <MINERVA_TEST_CONNSTRING>Host=localhost;Database=minerva_test;Username=michele;Password=</MINERVA_TEST_CONNSTRING>
+      <MINERVA_TEST_RERANKER_URL>http://127.0.0.1:9932</MINERVA_TEST_RERANKER_URL>
     </EnvironmentVariables>
   </RunConfiguration>
 </RunSettings>

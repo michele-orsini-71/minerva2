@@ -20,7 +20,8 @@ public class MinervaSearchOptionsBinderTests
             "TopK": 10,
             "HybridAlpha": 0.5,
             "CandidatePoolSize": 50,
-            "ExpandContext": false
+            "ExpandContext": false,
+            "EnableReranker": true
           }
         }
         """;
@@ -42,6 +43,7 @@ public class MinervaSearchOptionsBinderTests
         Assert.Equal(0.5, options.HybridAlpha);
         Assert.Equal(50, options.CandidatePoolSize);
         Assert.False(options.ExpandContext);
+        Assert.True(options.EnableReranker);
     }
 
     [Fact]
@@ -241,6 +243,35 @@ public class MinervaSearchOptionsBinderTests
     }
 
     [Fact]
+    public void Bind_MissingEnableReranker_ReportsRequired()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolSize": 50,
+                "ExpandContext": false
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.EnableReranker");
+    }
+
+    [Fact]
     public void Bind_ConfigWithChunkingExtra_IsIgnored()
     {
         // Search-only hosts should bind a search-shaped config; a Chunking section,
@@ -266,7 +297,8 @@ public class MinervaSearchOptionsBinderTests
                 "TopK": 10,
                 "HybridAlpha": 0.5,
                 "CandidatePoolSize": 50,
-                "ExpandContext": false
+                "ExpandContext": false,
+                "EnableReranker": true
               }
             }
             """;
@@ -300,7 +332,8 @@ public class MinervaSearchOptionsBinderTests
                 "TopK": {{topK}},
                 "HybridAlpha": {{alpha}},
                 "CandidatePoolSize": {{candidatePoolSize}},
-                "ExpandContext": {{ec}}
+                "ExpandContext": {{ec}},
+                "EnableReranker": true
               }
             }
             """;

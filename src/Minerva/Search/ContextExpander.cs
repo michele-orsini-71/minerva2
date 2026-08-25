@@ -12,7 +12,7 @@ public class ContextExpander
     }
 
     public async Task<IReadOnlyList<SearchResult>> ExpandAsync(
-        IReadOnlyList<FusedResult> results,
+        IReadOnlyList<ScoredChunk> results,
         CancellationToken ct = default)
     {
         if (results.Count == 0)

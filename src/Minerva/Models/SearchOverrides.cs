@@ -6,4 +6,5 @@ public sealed record SearchOverrides
     public double? HybridAlpha { get; init; }
     public int? CandidatePoolSize { get; init; }
     public bool? ExpandContext { get; init; }
+    public bool? EnableReranker { get; init; }
 }

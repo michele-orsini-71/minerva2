@@ -28,10 +28,16 @@ public static class MinervaSearchOptionsBinder
             embedding = EmbeddingProviderOptionsBinder.TryBuild(
                 rawMinerva.Embedding, "Minerva.Embedding.", failures);
 
+        RerankerProviderOptions? reranker = null;
+        if (rawMinerva.Reranker is not null)
+            reranker = RerankerProviderOptionsBinder.TryBuild(
+                rawMinerva.Reranker, "Minerva.Reranker.", failures);
+
         int? topK = null;
         double? hybridAlpha = null;
         int? candidatePoolSize = null;
         bool? expandContext = null;
+        bool? enableReranker = null;
 
         if (rawSearch is null)
         {
@@ -83,6 +89,11 @@ public static class MinervaSearchOptionsBinder
                 failures.Add(new OptionsFailure("Search.ExpandContext", "is required."));
             else
                 expandContext = rawSearch.ExpandContext;
+
+            if (rawSearch.EnableReranker is null)
+                failures.Add(new OptionsFailure("Search.EnableReranker", "is required."));
+            else
+                enableReranker = rawSearch.EnableReranker;
         }
 
         if (failures.Count > 0)
@@ -92,10 +103,12 @@ public static class MinervaSearchOptionsBinder
         {
             ConnectionString = rawMinerva.ConnectionString!,
             Embedding = embedding!,
+            Reranker = reranker,
             TopK = topK!.Value,
             HybridAlpha = hybridAlpha!.Value,
             CandidatePoolSize = candidatePoolSize!.Value,
             ExpandContext = expandContext!.Value,
+            EnableReranker = enableReranker!.Value,
         };
     }
 }
@@ -104,6 +117,7 @@ internal sealed class RawMinervaSearchOptions
 {
     public string? ConnectionString { get; set; }
     public RawEmbeddingProviderOptions? Embedding { get; set; }
+    public RawRerankerProviderOptions? Reranker { get; set; }
 }
 
 internal sealed class RawSearchSectionOptions
@@ -112,4 +126,5 @@ internal sealed class RawSearchSectionOptions
     public double? HybridAlpha { get; set; }
     public int? CandidatePoolSize { get; set; }
     public bool? ExpandContext { get; set; }
+    public bool? EnableReranker { get; set; }
 }

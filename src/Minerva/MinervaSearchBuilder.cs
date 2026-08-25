@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Models;
+using Minerva.Providers;
 using Minerva.Search;
 
 namespace Minerva;
@@ -23,11 +24,21 @@ public static class MinervaSearchBuilder
         var vectorSearch = new VectorSearch(core.ChunkQuery);
         var fullTextSearch = new FullTextSearch(core.ChunkQuery);
         var contextExpander = new ContextExpander(core.ChunkQuery);
+        HttpRerankerProvider? rerankerProvider = null;
+        Reranker? reranker = null;
+        if (options.Reranker is not null)
+        {
+            rerankerProvider = new HttpRerankerProvider(
+                options.Reranker.Model, new Uri(options.Reranker.BaseUrl));
+            reranker = new Reranker(rerankerProvider);
+        }
+
         var searchPipeline = new SearchPipeline(
             core.EmbeddingService,
             vectorSearch,
             fullTextSearch,
             contextExpander,
+            reranker,
             loggerFactory.CreateLogger<SearchPipeline>());
 
         var defaults = new SearchOptions
@@ -36,10 +47,15 @@ public static class MinervaSearchBuilder
             HybridAlpha = options.HybridAlpha,
             CandidatePoolSize = options.CandidatePoolSize,
             ExpandContext = options.ExpandContext,
+            EnableReranker = options.EnableReranker,
         };
 
-        // Phase 3: preflight — DB + embedding only. No LLM on the search path.
-        var failures = await core.PreflightAsync(ct);
+        // Phase 3: preflight — DB + embedding, plus reranker if configured.
+        var failures = new List<PreflightFailure>(await core.PreflightAsync(ct));
+
+        if (rerankerProvider is not null && await rerankerProvider.PreflightAsync(ct) is { } rerankFailure)
+            failures.Add(rerankFailure);
+
         if (failures.Count > 0)
             throw new MinervaStartupException(failures);
 

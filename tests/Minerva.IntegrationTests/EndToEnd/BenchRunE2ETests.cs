@@ -62,6 +62,7 @@ public class BenchRunE2ETests : IAsyncLifetime
             new VectorSearch(chunkRepository),
             new FullTextSearch(chunkRepository),
             new ContextExpander(chunkRepository),
+            new NoopReranker(),
             loggerFactory.CreateLogger<SearchPipeline>());
 
         var collections = new CollectionManager(
@@ -73,6 +74,7 @@ public class BenchRunE2ETests : IAsyncLifetime
             HybridAlpha = 0.5,
             CandidatePoolSize = 25,
             ExpandContext = false,
+            EnableReranker = true,
         };
 
         _search = new MinervaSearchEngine(searchPipeline, collections, chunkRepository, searchDefaults);

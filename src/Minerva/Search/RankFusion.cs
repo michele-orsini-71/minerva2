@@ -4,7 +4,7 @@ namespace Minerva.Search;
 
 public static class RankFusion
 {
-    public static IReadOnlyList<FusedResult> Fuse(
+    public static IReadOnlyList<ScoredChunk> Fuse(
         IReadOnlyList<RankedChunk> vectorResults,
         IReadOnlyList<RankedChunk> ftsResults,
         double alpha = 0.5,
@@ -20,7 +20,7 @@ public static class RankFusion
         var allIds = new HashSet<string>(vectorByChunkId.Keys);
         allIds.UnionWith(ftsByChunkId.Keys);
 
-        var fused = new List<FusedResult>(allIds.Count);
+        var fused = new List<ScoredChunk>(allIds.Count);
         foreach (var id in allIds)
         {
             int vectorRank = vectorByChunkId.TryGetValue(id, out var v) ? v.Rank : missingRank;
@@ -34,7 +34,7 @@ public static class RankFusion
                 ? vr.Chunk
                 : ftsByChunkId[id].Chunk;
 
-            fused.Add(new FusedResult(chunk, score));
+            fused.Add(new ScoredChunk(chunk, score));
         }
 
         fused.Sort((a, b) => b.Score.CompareTo(a.Score));

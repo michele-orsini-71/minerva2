@@ -7,7 +7,7 @@ namespace Minerva.Tests.Search;
 [Trait("Category", "Search")]
 public class ContextExpanderTests
 {
-    private static FusedResult MakeResult(
+    private static ScoredChunk MakeResult(
         string id, string? prev = null, string? next = null, double score = 0.5) =>
         new(new ChunkSearchRecord(
             Id: id,
@@ -122,7 +122,7 @@ public class ContextExpanderTests
             Id: "id1", SourceId: "src1", CollectionName: "coll-x",
             ChunkIndex: 3, Content: "c", Distance: 0.7, Metadata: metadata);
 
-        var expanded = await expander.ExpandAsync([new FusedResult(chunk, 0.9)]);
+        var expanded = await expander.ExpandAsync([new ScoredChunk(chunk, 0.9)]);
 
         Assert.Single(expanded);
         Assert.Equal("coll-x", expanded[0].CollectionName);

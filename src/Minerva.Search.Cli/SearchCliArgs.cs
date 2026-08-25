@@ -11,6 +11,7 @@ internal sealed record SearchCliArgs(
     int? TopK,
     double? Alpha,
     bool? ExpandContext,
+    bool? EnableReranker,
     int? CandidatePoolSize,
     OutputFormat Format,
     bool Full,
@@ -29,6 +30,7 @@ internal sealed record SearchCliArgs(
         int? topK = null;
         double? alpha = null;
         bool? expandContext = null;
+        bool? enableReranker = null;
         int? candidatePoolSize = null;
         var format = OutputFormat.Table;
         bool full = false;
@@ -38,7 +40,7 @@ internal sealed record SearchCliArgs(
         if (args.Contains("--version") || args.Contains("-v"))
         {
             versionAsked = true;
-            return new SearchCliArgs("", "", topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars, versionAsked);
+            return new SearchCliArgs("", "", topK, alpha, expandContext, enableReranker, candidatePoolSize, format, full, snippetChars, versionAsked);
         }
 
         for (int i = 0; i < args.Length; i++)
@@ -73,6 +75,13 @@ internal sealed record SearchCliArgs(
                     if (++i >= args.Length || !bool.TryParse(args[i], out var v))
                     { err.WriteLine($"Invalid value for {a} (expected true|false)"); return null; }
                     expandContext = v;
+                    break;
+                }
+                case "--rerank":
+                {
+                    if (++i >= args.Length || !bool.TryParse(args[i], out var v))
+                    { err.WriteLine($"Invalid value for {a} (expected true|false)"); return null; }
+                    enableReranker = v;
                     break;
                 }
                 case "--candidate-pool-size":
@@ -123,7 +132,7 @@ internal sealed record SearchCliArgs(
             return null;
         }
 
-        return new SearchCliArgs(query, collection, topK, alpha, expandContext, candidatePoolSize, format, full, snippetChars, versionAsked);
+        return new SearchCliArgs(query, collection, topK, alpha, expandContext, enableReranker, candidatePoolSize, format, full, snippetChars, versionAsked);
     }
     public static void PrintVersion(TextWriter w)
     {
@@ -136,7 +145,8 @@ internal sealed record SearchCliArgs(
             Usage:
               minerva-search <query> --collection <name>
                              [--top-k N] [--alpha A]
-                             [--expand-context true|false] [--candidate-pool-size N]
+                             [--expand-context true|false] [--rerank true|false]
+                             [--candidate-pool-size N]
                              [--format table|json] [--full] [--snippet-chars 200]
 
             Options:
@@ -144,6 +154,7 @@ internal sealed record SearchCliArgs(
               -k, --top-k N            Overrides Search:TopK from config.
               -a, --alpha A            Overrides Search:HybridAlpha from config (0..1).
                   --expand-context B   Overrides Search:ExpandContext from config (true|false).
+                  --rerank B           Overrides Search:EnableReranker from config (true|false).
                   --candidate-pool-size N
                                        Overrides Search:CandidatePoolSize from config.
                   --format FMT         table | json. Default: table.

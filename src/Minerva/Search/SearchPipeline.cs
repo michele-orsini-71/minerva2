@@ -4,25 +4,28 @@ using Minerva.Models;
 
 namespace Minerva.Search;
 
-public class SearchPipeline
+class SearchPipeline
 {
     private readonly IEmbeddingService _embeddingService;
     private readonly VectorSearch _vectorSearch;
     private readonly FullTextSearch _fullTextSearch;
     private readonly ContextExpander _contextExpander;
     private readonly ILogger<SearchPipeline> _logger;
+    private readonly IReranker? _reranker;
 
     public SearchPipeline(
         IEmbeddingService embeddingService,
         VectorSearch vectorSearch,
         FullTextSearch fullTextSearch,
         ContextExpander contextExpander,
+        IReranker? reranker,
         ILogger<SearchPipeline> logger)
     {
         _embeddingService = embeddingService;
         _vectorSearch = vectorSearch;
         _fullTextSearch = fullTextSearch;
         _contextExpander = contextExpander;
+        _reranker = reranker;
         _logger = logger;
     }
 
@@ -60,7 +63,26 @@ public class SearchPipeline
             "Search {Collection}: {Vector} vector + {Fts} fts → {Fused} fused",
             collectionName, vectorTask.Result.Count, ftsTask.Result.Count, fused.Count);
 
-        var topK = fused.Take(options.TopK).ToList();
+        IReadOnlyList<ScoredChunk> ranked;
+        if (_reranker is null || !options.EnableReranker)
+        {
+            ranked = fused;
+        }
+        else
+        {
+            try
+            {
+                ranked = await _reranker.Rank(query, fused, ct);
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex,
+                    "Reranker failed on collection '{Collection}'; falling back to fused ranking.",
+                    collectionName);
+                ranked = fused;
+            }
+        }
+        var topK = ranked.Take(options.TopK).ToList();
 
         if (topK.Count < options.TopK)
         {
@@ -77,7 +99,7 @@ public class SearchPipeline
         return topK.Select(ToSearchResult).ToList();
     }
 
-    private static SearchResult ToSearchResult(FusedResult r) =>
+    private static SearchResult ToSearchResult(ScoredChunk r) =>
         new(
             ChunkId: r.Chunk.Id,
             SourceId: r.Chunk.SourceId,
