@@ -21,7 +21,7 @@ public class MinervaSearchOptionsBinderTests
             "HybridAlpha": 0.5,
             "CandidatePoolSize": 50,
             "ExpandContext": false,
-            "EnableReranker": true
+            "EnableReranker": false
           }
         }
         """;
@@ -43,7 +43,8 @@ public class MinervaSearchOptionsBinderTests
         Assert.Equal(0.5, options.HybridAlpha);
         Assert.Equal(50, options.CandidatePoolSize);
         Assert.False(options.ExpandContext);
-        Assert.True(options.EnableReranker);
+        Assert.False(options.EnableReranker);
+        Assert.Null(options.Reranker);
     }
 
     [Fact]
@@ -272,6 +273,72 @@ public class MinervaSearchOptionsBinderTests
     }
 
     [Fact]
+    public void Bind_EnableRerankerTrueButNoRerankerSection_ReportsFailure()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolSize": 50,
+                "ExpandContext": false,
+                "EnableReranker": true
+              }
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.EnableReranker");
+    }
+
+    [Fact]
+    public void Bind_EnableRerankerTrueWithRerankerSection_BindsReranker()
+    {
+        const string json = """
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                },
+                "Reranker": {
+                  "BaseUrl": "http://localhost:9932",
+                  "Model": "bge-reranker"
+                }
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolSize": 50,
+                "ExpandContext": false,
+                "EnableReranker": true
+              }
+            }
+            """;
+
+        var options = MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(json));
+
+        Assert.True(options.EnableReranker);
+        Assert.NotNull(options.Reranker);
+        Assert.Equal("http://localhost:9932", options.Reranker!.BaseUrl);
+        Assert.Equal("bge-reranker", options.Reranker.Model);
+    }
+
+    [Fact]
     public void Bind_ConfigWithChunkingExtra_IsIgnored()
     {
         // Search-only hosts should bind a search-shaped config; a Chunking section,
@@ -298,7 +365,7 @@ public class MinervaSearchOptionsBinderTests
                 "HybridAlpha": 0.5,
                 "CandidatePoolSize": 50,
                 "ExpandContext": false,
-                "EnableReranker": true
+                "EnableReranker": false
               }
             }
             """;
@@ -333,7 +400,7 @@ public class MinervaSearchOptionsBinderTests
                 "HybridAlpha": {{alpha}},
                 "CandidatePoolSize": {{candidatePoolSize}},
                 "ExpandContext": {{ec}},
-                "EnableReranker": true
+                "EnableReranker": false
               }
             }
             """;

@@ -96,6 +96,12 @@ public static class MinervaSearchOptionsBinder
                 enableReranker = rawSearch.EnableReranker;
         }
 
+        if (enableReranker == true && rawMinerva.Reranker is null)
+            failures.Add(new OptionsFailure(
+                "Search.EnableReranker",
+                "is true but the Minerva.Reranker section is missing. "
+                + "Provide the reranker BaseUrl and Model, or set EnableReranker to false."));
+
         if (failures.Count > 0)
             throw new OptionsValidationException(failures);
 
