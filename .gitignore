@@ -502,14 +502,15 @@ bin-markdown-indexer/
 eval/datasets/private
 eval/sweeps/private
 eval/results/private
-eval/notebooks/config.local.json
+eval/experiments/*/config.local.json
 
 wikipedia_en_100_nopic_2026-04.zim
 uv.lock
 
 
-eval/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints/
 eval/results
+eval/experiments/scratch-*/
 eval/collections/wikipedia-en-corpus
 eval/corpus-builder/zim
 eval/corpus-builder/out

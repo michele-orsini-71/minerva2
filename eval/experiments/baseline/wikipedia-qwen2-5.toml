@@ -1,4 +1,4 @@
-dataset = "../datasets/wikipedia-v1.jsonl"
+dataset = "../../datasets/wikipedia-v1.jsonl"
 collection = "wikipedia-qwen2-5"
 top_k = 50
 candidate_pool_size = 100

@@ -39,7 +39,7 @@ class EvalResult(BaseModel):
     error: str | None = None
     hits: list[Hit] = Field(default_factory=list)
 
-results_roots = [Path("../baselines"), Path("../results")]   # committed refs + scratch
+results_roots = [Path("runs")]   # each experiment's own runs; pass roots=[...] to compare across experiments
 
 def find_run_dirs(root: Path) -> list[Path]:
     if not root.exists():                                     # a root may be absent on a fresh checkout
@@ -47,8 +47,8 @@ def find_run_dirs(root: Path) -> list[Path]:
     return sorted(p for p in root.iterdir()
                   if p.is_dir() and re.match(r"\d{4}-\d{2}-\d{2}", p.name))
 
-def all_run_dirs() -> list[Path]:
-    return [d for root in results_roots for d in find_run_dirs(root)]
+def all_run_dirs(roots: list[Path] | None = None) -> list[Path]:
+    return [d for root in (roots or results_roots) for d in find_run_dirs(root)]
 
 def load_run(run_dir: Path) -> list[EvalResult]:
     meta = json.loads((run_dir / "run.json").read_text())
@@ -58,8 +58,8 @@ def load_run(run_dir: Path) -> list[EvalResult]:
     return [EvalResult.model_validate(json.loads(line) | {"collection": collection, "label": label})
             for line in lines if line.strip()]
 
-def load_all_results():
-    return [r for d in all_run_dirs() for r in load_run(d)]
+def load_all_results(roots: list[Path] | None = None):
+    return [r for d in all_run_dirs(roots) for r in load_run(d)]
 
 def summarize_run(run_dir: Path) -> dict:
     run = json.loads((run_dir / "run.json").read_text())
@@ -76,8 +76,8 @@ def summarize_run(run_dir: Path) -> dict:
         "rows": len(rows),
     }
 
-def get_run_summary():
-    return pd.DataFrame(summarize_run(d) for d in all_run_dirs())
+def get_run_summary(roots: list[Path] | None = None):
+    return pd.DataFrame(summarize_run(d) for d in all_run_dirs(roots))
 
 metric_cols = ["R@5", "R@10", "R@20", "MRR@10"]
 
