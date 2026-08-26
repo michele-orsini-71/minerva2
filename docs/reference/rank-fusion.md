@@ -7,14 +7,11 @@ al. 2009), with a few project-specific twists. Code lives in
 
 ## Pipeline, end to end
 
-1. **Query setup** (`SearchPipeline.SearchAsync`). The query is embedded once
-   and reused across all collections. Per collection, vector and full-text
+1. **Query setup** (`SearchPipeline.SearchAsync`). The pipeline searches one
+   collection per call. The query is embedded once; vector and full-text
    search run **in parallel**, producing two ranked lists.
-2. **Per-collection candidate pool** (`SearchCollectionAsync`).
-  ```csharp
-   candidatePoolSize = TopK * CandidatePoolMultiplier   // default 10 * 5 = 50
-   ```
-   Both legs are asked for `candidatePoolSize` results. The pool is
+2. **Candidate pool.** Both legs are asked for `CandidatePoolSize` results
+   (a required option on `SearchOptions`; no derived formula). The pool is
    intentionally larger than `TopK` because RRF needs **overlap** between the
    two lists to do anything: fetch only 10 from each and the chance both legs
    return the same chunk is small, so fusion degenerates to
@@ -25,19 +22,19 @@ al. 2009), with a few project-specific twists. Code lives in
    score(chunk) = alpha       * 1 / (k + vectorRank)
                 + (1 - alpha) * 1 / (k + ftsRank)
    ```
-   with `k = 60` (standard RRF constant) and `alpha = HybridAlpha`
-   (default 0.5). The fused set is the union of both pools, scored, sorted
+   with `k = 60` (standard RRF constant) and `alpha = HybridAlpha` (a required
+   option). The fused set is the union of both pools, scored, sorted
    descending.
-4. **Per-collection top-K trim.** The fused list is `Take(TopK)`. There is **no
-   dedupe by source**: multiple chunks from the same document may occupy the top
-   results. A per-`SourceId` dedupe step existed previously and was removed;
-   dedupe alternatives (cap-per-source, positional, MMR) are deferred to roadmap
-   Phase 5.
-5. **Cross-collection merge.** Each collection's top-K list is concatenated,
-   re-sorted by the same fused score, and trimmed to the global `TopK`. RRF is
-   not re-applied across collections — the values are already fused scores, so
-   re-ranking would be meaningless.
-6. **Optional context expansion.** If `ContextRadius > 0`, `ContextExpander`
+4. **Optional reranker.** If an `IReranker` is registered and
+   `options.EnableReranker` is true, the fused pool is re-ordered by the
+   reranker. On reranker failure the pipeline logs a warning and falls back
+   to the fused order — search never fails because of the reranker.
+5. **Top-K trim.** The ranked list (reranked or fused) is `Take(TopK)`. There
+   is **no dedupe by source**: multiple chunks from the same document may occupy
+   the top results. A per-`SourceId` dedupe step existed previously and was
+   removed; dedupe alternatives (cap-per-source, positional, MMR) are deferred
+   to roadmap Phase 5.
+6. **Optional context expansion.** If `ExpandContext` is true, `ContextExpander`
    pulls neighboring chunks around each hit. This enriches the payload; it
    does not affect ranking.
 
@@ -56,11 +53,12 @@ al. 2009), with a few project-specific twists. Code lives in
 - **The `alpha` knob.** `1.0` → pure vector, `0.0` → pure full-text, `0.5` →
   equal weight. A chunk ranked #1 in both lists wins decisively.
 
-`CandidatePoolMultiplier` (`SearchOptions.cs`) is the lever for step 2. Too
-low and RRF has no overlap to reward; too high and DB work is wasted.
-`SearchPipeline` warns in two cases: when `CandidatePoolSize` is below ~1.5×
-`TopK` (little fusion depth), and when fewer than `TopK` results come back from
-fusion (the corpus has too few chunks to satisfy the request).
+`CandidatePoolSize` (`SearchOptions.cs`) is the tuning parameter for step 2. Too
+low and RRF has no overlap to reward; too high and DB work is wasted. A pool
+smaller than `TopK` is a hard error in `MinervaSearchEngine`. `SearchPipeline`
+warns in two cases: when `CandidatePoolSize` is below ~1.5× `TopK` (little
+fusion depth), and when fewer than `TopK` results come back (the corpus has too
+few chunks to satisfy the request).
 
 ## Worked example — the role of k
 
