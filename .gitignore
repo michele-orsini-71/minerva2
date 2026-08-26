@@ -507,10 +507,12 @@ eval/notebooks/config.local.json
 wikipedia_en_100_nopic_2026-04.zim
 uv.lock
 
-tools/kiwix2md/out
-tools/kiwix2md/zim-cluster-articles.jsonl
-tools/kiwix2md/zim-cluster-embeddings.jsonl
-tools/kiwix2md/zim-cluster.done
 
 eval/notebooks/.ipynb_checkpoints/
 eval/results
+eval/collections/wikipedia-en-corpus
+eval/corpus-builder/zim
+eval/corpus-builder/out
+eval/corpus-builder/zim-cluster-articles.jsonl
+eval/corpus-builder/zim-cluster-embeddings.jsonl
+eval/corpus-builder/zim-cluster.done

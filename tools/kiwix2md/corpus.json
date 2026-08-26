@@ -1,6 +1,0 @@
-{
-    "zim": "/Users/michele/development/kiwix/wikipedia_en_top_nopic_2026-06.zim",
-    "zim_sha256": "b2806831e14690cbcafeb1b6e7bd4439fd59b3e5fbeaeb300a5792dece510ee0",
-    "manifest": "/Users/michele/my-code/minerva2/eval/datasets/wikipedia-v1.corpus.txt",
-    "output": "/Users/michele/my-code/minerva2-index/wikipedia-en-corpus"
-}

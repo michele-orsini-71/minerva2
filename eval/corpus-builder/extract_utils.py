@@ -91,9 +91,18 @@ def check_integrity(zim_file: str, zim_file_sha: str, manifest_file: str, output
     return True
 
 
+PATH_KEYS = ("zim", "manifest", "output")
+
 def load_config(path: str) -> dict:
     with open(path, "r") as f:
-        return json.load(f)
+        cfg = json.load(f)
+
+    # relative paths in the config resolve against the config file's directory
+    base = Path(path).resolve().parent
+    for key in PATH_KEYS:
+        if key in cfg:
+            cfg[key] = str((base / cfg[key]).resolve())
+    return cfg
 
 class ZimArchive:
     def __init__(self, zim_file: str):

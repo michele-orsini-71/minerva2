@@ -17,7 +17,7 @@ try
 
     var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
     var config = new ConfigurationBuilder()
-        .SetBasePath(AppContext.BaseDirectory)
+        .SetBasePath(Directory.GetCurrentDirectory())
         .AddJsonFile("appsettings.json", optional: false)
         .AddJsonFile($"appsettings.{env}.json", optional: true)
         .AddEnvironmentVariables()

@@ -1,2 +1,0 @@
-#!/bin/sh
-jq -r '.gold_sources[]' ../../eval/datasets/wikipedia-v1.jsonl | sort -u | xargs python densify_corpus.py --config corpus.json

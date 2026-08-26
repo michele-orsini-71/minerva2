@@ -1,5 +1,5 @@
 [project]
-name = "kiwix2md"
+name = "corpus-buider"
 version = "0.1.0"
 description = "Export the contents of ZIM files to markdown"
 requires-python = ">=3.14"
