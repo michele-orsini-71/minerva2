@@ -61,7 +61,7 @@ public static class SweepDatasetRunner
         output.WriteLine(
             $"Running {entries.Count} queries x {cells.Count} cells against '{sweep.Collection}'...");
 
-        var results = await SweepRunLoop.RunAsync(engine, sweep.Collection, entries, cells, ct);
+        var results = await SweepRunLoop.RunAsync(engine, sweep, entries, cells, ct);
 
         string leaf;
         try

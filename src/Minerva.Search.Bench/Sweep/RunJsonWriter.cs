@@ -21,22 +21,31 @@ public static class RunJsonWriter
         IReadOnlyList<Cell> cells,
         Collection collection)
     {
-        var manifest = new
+        var manifest = new Dictionary<string, object?>()
         {
-            timestamp = timestamp.UtcDateTime.ToString(
-                "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
-            bench_version = benchVersion,
-            dataset_path = config.Dataset,
-            collection = config.Collection,
-            collectionDetails = collection,
-            resolved_sweep = new
+            { "timestamp", timestamp.UtcDateTime.ToString(
+                "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture) },
+            { "bench_version", benchVersion },
+            { "dataset_path", config.Dataset },
+            { "collection", config.Collection },
+            { "collectionDetails", collection },
+            { "top_k", config.TopK },
+            { "candidate_pool_size", config.CandidatePoolSize },
+            { "resolved_sweep", new
             {
+                top_k = config.TopK,
+                candidate_pool_size = config.CandidatePoolSize,
                 dataset = config.Dataset,
                 collection = config.Collection,
                 matrix = config.Matrix,
-            },
-            cells = cells.Select(ToObject).ToList(),
+            } },
+            { "cells", cells.Select(ToObject).ToList()},
         };
+
+        if (!String.IsNullOrWhiteSpace(config.Label))
+        {
+            manifest["label"] = config.Label;
+        }
 
         File.WriteAllText(path, JsonSerializer.Serialize(manifest, Options));
     }

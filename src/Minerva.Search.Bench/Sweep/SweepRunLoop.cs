@@ -8,7 +8,7 @@ public static class SweepRunLoop
 {
     public static async Task<IReadOnlyList<CellQueryResult>> RunAsync(
         ISearchEngine engine,
-        string collection,
+        SweepConfig configuration,
         IReadOnlyList<ParsedEntry> entries,
         IReadOnlyList<Cell> cells,
         CancellationToken ct = default)
@@ -17,14 +17,14 @@ public static class SweepRunLoop
 
         foreach (var cell in cells)
         {
-            var overrides = CellOverrides.Build(cell);
+            var overrides = CellOverrides.Build(cell, configuration);
 
             foreach (var entry in entries)
             {
                 var sw = Stopwatch.StartNew();
                 try
                 {
-                    var hits = await engine.SearchAsync(entry.Query, collection, overrides, ct);
+                    var hits = await engine.SearchAsync(entry.Query, configuration.Collection, overrides, ct);
                     sw.Stop();
 
                     var gold = entry.GoldSources.ToHashSet();

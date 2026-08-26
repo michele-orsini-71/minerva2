@@ -31,18 +31,21 @@ public class SweepRunLoopTests
     private static ParsedEntry Entry(string id, string query, string gold)
         => new(1, id, query, [gold]);
 
-    private static IReadOnlyList<Cell> Cells(params object[] topKValues)
+    private static SweepConfig Config() => new(
+        "d", "col", 10, 100, null, new Dictionary<string, List<object>>());
+
+    private static IReadOnlyList<Cell> Cells(params object[] hybridAlphaValues)
         => CellEnumerator.Enumerate(
-            new Dictionary<string, List<object>> { ["top_k"] = topKValues.ToList() });
+            new Dictionary<string, List<object>> { ["hybrid_alpha"] = hybridAlphaValues.ToList() });
 
     [Fact]
     public async Task ResultCount_IsEntriesTimesCells()
     {
         var engine = new FakeSearchEngine(_ => [Hit("a")]);
         var entries = new[] { Entry("q1", "x", "a"), Entry("q2", "y", "b") };
-        var cells = Cells(10L, 20L); // 2 cells
+        var cells = Cells(0.3, 0.7); // 2 cells
 
-        var results = await SweepRunLoop.RunAsync(engine, "col", entries, cells);
+        var results = await SweepRunLoop.RunAsync(engine, Config(), entries, cells);
 
         Assert.Equal(4, results.Count); // 2 entries x 2 cells
     }
@@ -56,7 +59,7 @@ public class SweepRunLoopTests
                 : [Hit("a")]);
         var entries = new[] { Entry("q1", "ok", "a"), Entry("q2", "boom", "b") };
 
-        var results = await SweepRunLoop.RunAsync(engine, "col", entries, Cells(10L));
+        var results = await SweepRunLoop.RunAsync(engine, Config(), entries, Cells(0.5));
 
         Assert.Equal(2, results.Count);
 
@@ -76,7 +79,7 @@ public class SweepRunLoopTests
         var engine = new FakeSearchEngine(_ => [Hit("gold"), Hit("other")]);
         var entries = new[] { Entry("q1", "x", "gold") };
 
-        var results = await SweepRunLoop.RunAsync(engine, "col", entries, Cells(10L));
+        var results = await SweepRunLoop.RunAsync(engine, Config(), entries, Cells(0.5));
 
         var result = Assert.Single(results);
         Assert.NotNull(result.Scores);

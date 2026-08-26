@@ -10,9 +10,11 @@ public class SweepConfigLoaderTests
         """
         dataset = "eval/datasets/private/personal-notes-v1.jsonl"
         collection = "personal-notes-v1"
+        top_k = 50
+        candidate_pool_size = 100
 
         [matrix]
-        top_k = [10]
+        enable_reranker = [true]
         hybrid_alpha = [0.5]
         """;
 
@@ -29,9 +31,23 @@ public class SweepConfigLoaderTests
         Assert.NotNull(result.Config);
         Assert.Equal("eval/datasets/private/personal-notes-v1.jsonl", result.Config!.Dataset);
         Assert.Equal("personal-notes-v1", result.Config.Collection);
-        Assert.Equal(["top_k", "hybrid_alpha"], result.Config.Matrix.Keys);
-        Assert.Single(result.Config.Matrix["top_k"]);
+        Assert.Equal(50, result.Config.TopK);
+        Assert.Equal(100, result.Config.CandidatePoolSize);
+        Assert.Null(result.Config.Label);
+        Assert.Equal(["enable_reranker", "hybrid_alpha"], result.Config.Matrix.Keys);
+        Assert.Single(result.Config.Matrix["enable_reranker"]);
         Assert.Single(result.Config.Matrix["hybrid_alpha"]);
+    }
+
+    [Fact]
+    public void Label_Present_IsPopulated()
+    {
+        var toml = "label = \"reranker\"\n" + GoodToml;
+
+        var result = Load(toml);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal("reranker", result.Config!.Label);
     }
 
     // ---------- parse failure ----------
@@ -54,9 +70,11 @@ public class SweepConfigLoaderTests
         var toml =
             """
             collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
 
             [matrix]
-            top_k = [10]
+            hybrid_alpha = [0.5]
             """;
 
         var result = Load(toml);
@@ -72,9 +90,11 @@ public class SweepConfigLoaderTests
             """
             dataset = "   "
             collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
 
             [matrix]
-            top_k = [10]
+            hybrid_alpha = [0.5]
             """;
 
         var result = Load(toml);
@@ -88,14 +108,56 @@ public class SweepConfigLoaderTests
         var toml =
             """
             dataset = "d"
+            top_k = 50
+            candidate_pool_size = 100
 
             [matrix]
-            top_k = [10]
+            hybrid_alpha = [0.5]
             """;
 
         var result = Load(toml);
 
         Assert.Contains(result.Errors, e => e.Contains("'collection'"));
+    }
+
+    // ---------- top_k / candidate_pool_size ----------
+
+    [Fact]
+    public void MissingTopK_ReportsError()
+    {
+        var toml =
+            """
+            dataset = "d"
+            collection = "c"
+            candidate_pool_size = 100
+
+            [matrix]
+            hybrid_alpha = [0.5]
+            """;
+
+        var result = Load(toml);
+
+        Assert.Null(result.Config);
+        Assert.Contains(result.Errors, e => e.Contains("'top_k'"));
+    }
+
+    [Fact]
+    public void MissingCandidatePoolSize_ReportsError()
+    {
+        var toml =
+            """
+            dataset = "d"
+            collection = "c"
+            top_k = 50
+
+            [matrix]
+            hybrid_alpha = [0.5]
+            """;
+
+        var result = Load(toml);
+
+        Assert.Null(result.Config);
+        Assert.Contains(result.Errors, e => e.Contains("'candidate_pool_size'"));
     }
 
     // ---------- matrix ----------
@@ -107,6 +169,8 @@ public class SweepConfigLoaderTests
             """
             dataset = "d"
             collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
             """;
 
         var result = Load(toml);
@@ -121,14 +185,16 @@ public class SweepConfigLoaderTests
             """
             dataset = "d"
             collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
 
             [matrix]
-            top_k = []
+            hybrid_alpha = []
             """;
 
         var result = Load(toml);
 
-        Assert.Contains(result.Errors, e => e.Contains("top_k") && e.Contains("non-empty"));
+        Assert.Contains(result.Errors, e => e.Contains("hybrid_alpha") && e.Contains("non-empty"));
     }
 
     [Fact]
@@ -138,6 +204,8 @@ public class SweepConfigLoaderTests
             """
             dataset = "d"
             collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
 
             [matrix]
             bogus = [1]
@@ -164,7 +232,9 @@ public class SweepConfigLoaderTests
         Assert.Null(result.Config);
         Assert.Contains(result.Errors, e => e.Contains("'dataset'"));
         Assert.Contains(result.Errors, e => e.Contains("'collection'"));
+        Assert.Contains(result.Errors, e => e.Contains("'top_k'"));
+        Assert.Contains(result.Errors, e => e.Contains("'candidate_pool_size'"));
         Assert.Contains(result.Errors, e => e.Contains("[matrix]"));
-        Assert.Equal(3, result.Errors.Count);
+        Assert.Equal(5, result.Errors.Count);
     }
 }

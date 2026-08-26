@@ -16,20 +16,21 @@ public class RunJsonWriterTests
         "personal-notes-v1", null, TestOptions.Provenance(),
         new ClientProvenance("test-client", new Dictionary<string, object>()));
 
-    private static SweepConfig Config() => new()
-    {
-        Dataset = "eval/datasets/private/personal-notes-v1.jsonl",
-        Collection = "personal-notes-v1",
-        Matrix = new Dictionary<string, List<object>>
+    private static SweepConfig Config(string? label = null) => new(
+        "eval/datasets/private/personal-notes-v1.jsonl",
+        "personal-notes-v1",
+        50,
+        100,
+        label,
+        new Dictionary<string, List<object>>
         {
-            ["top_k"] = [10L, 20L],
+            ["enable_reranker"] = [true, false],
             ["hybrid_alpha"] = [0.5],
-        },
-    };
+        });
 
-    private static JsonElement WriteAndParse()
+    private static JsonElement WriteAndParse(string? label = null)
     {
-        var config = Config();
+        var config = Config(label);
         var cells = CellEnumerator.Enumerate(config.Matrix);
         var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
         try
@@ -54,6 +55,24 @@ public class RunJsonWriterTests
             "eval/datasets/private/personal-notes-v1.jsonl",
             root.GetProperty("dataset_path").GetString());
         Assert.Equal("personal-notes-v1", root.GetProperty("collection").GetString());
+        Assert.Equal(50, root.GetProperty("top_k").GetInt32());
+        Assert.Equal(100, root.GetProperty("candidate_pool_size").GetInt32());
+    }
+
+    [Fact]
+    public void Label_Absent_WhenNull()
+    {
+        var root = WriteAndParse();
+
+        Assert.False(root.TryGetProperty("label", out _));
+    }
+
+    [Fact]
+    public void Label_Written_WhenSet()
+    {
+        var root = WriteAndParse("reranker");
+
+        Assert.Equal("reranker", root.GetProperty("label").GetString());
     }
 
     [Fact]
@@ -63,9 +82,11 @@ public class RunJsonWriterTests
         var resolved = root.GetProperty("resolved_sweep");
 
         Assert.Equal("personal-notes-v1", resolved.GetProperty("collection").GetString());
-        var topK = resolved.GetProperty("matrix").GetProperty("top_k");
-        Assert.Equal(2, topK.GetArrayLength());
-        Assert.Equal(10, topK[0].GetInt32());
+        Assert.Equal(50, resolved.GetProperty("top_k").GetInt32());
+        Assert.Equal(100, resolved.GetProperty("candidate_pool_size").GetInt32());
+        var enableReranker = resolved.GetProperty("matrix").GetProperty("enable_reranker");
+        Assert.Equal(2, enableReranker.GetArrayLength());
+        Assert.True(enableReranker[0].GetBoolean());
     }
 
     [Fact]
@@ -96,7 +117,7 @@ public class RunJsonWriterTests
 
         Assert.Equal(2, cells.GetArrayLength()); // 2 x 1
         var first = cells[0];
-        Assert.Equal(10, first.GetProperty("top_k").GetInt32());
+        Assert.True(first.GetProperty("enable_reranker").GetBoolean());
         Assert.Equal(0.5, first.GetProperty("hybrid_alpha").GetDouble());
     }
 }

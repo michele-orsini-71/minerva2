@@ -1,6 +1,9 @@
 dataset = "../datasets/wikipedia-v1.jsonl"
 collection = "wikipedia-nollm"
+top_k = 50
+candidate_pool_size = 100
+label = "baseline"
 
 [matrix]
-top_k = [50]
+enable_reranker = [false]
 hybrid_alpha = [0.3, 0.5, 0.7]

@@ -4,17 +4,20 @@ namespace Minerva.Search.Bench.Sweep;
 
 public static class CellOverrides
 {
-    public static SearchOverrides Build(Cell cell)
+    public static SearchOverrides Build(Cell cell, SweepConfig configuration)
     {
-        int? topK = null;
+        int topK = configuration.TopK;
+        int candidatePoolSize = configuration.CandidatePoolSize;
+        bool? enableReranker = null;
+
         double? hybridAlpha = null;
 
         foreach (var (knob, value) in cell.Values)
         {
             switch (knob)
             {
-                case "top_k":
-                    topK = Convert.ToInt32(value);
+                case "enable_reranker":
+                    enableReranker = Convert.ToBoolean(value);
                     break;
                 case "hybrid_alpha":
                     hybridAlpha = Convert.ToDouble(value);
@@ -24,6 +27,6 @@ public static class CellOverrides
             }
         }
 
-        return new SearchOverrides { TopK = topK, HybridAlpha = hybridAlpha };
+        return new SearchOverrides { TopK = topK, HybridAlpha = hybridAlpha, EnableReranker = enableReranker, CandidatePoolSize = candidatePoolSize };
     }
 }

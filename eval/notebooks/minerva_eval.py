@@ -8,7 +8,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 class CellResult(BaseModel):
-    top_k: int
+    # top_k: int
     hybrid_alpha: float
 
 class Metrics(BaseModel):
@@ -69,7 +69,9 @@ def summarize_run(run_dir: Path) -> dict:
         "folder": run_dir.name,
         "collection": run["collection"],
         "timestamp": run["timestamp"],
-        "sweep": f"top_k={matrix['top_k']} alpha={matrix['hybrid_alpha']}",
+        "top_k": run["resolved_sweep"]['top_k'],
+        "candidate_pool_size": run["resolved_sweep"]["candidate_pool_size"],
+        "sweep": f"alpha={matrix['hybrid_alpha']}, reranker={matrix['enable_reranker']}",
         "queries": len({r.query_id for r in rows}),
         "rows": len(rows),
     }
