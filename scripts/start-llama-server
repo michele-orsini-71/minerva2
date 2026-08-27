@@ -1,0 +1,2 @@
+#!/bin/sh
+llama-server -hf gpustack/bge-reranker-v2-m3-GGUF:Q8_0 --reranking --port 9932 -b 2048 -ub 2048
