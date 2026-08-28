@@ -12,8 +12,12 @@ class Reranker : IReranker
     public async Task<IReadOnlyList<ScoredChunk>> Rank(
         string query, IReadOnlyList<ScoredChunk> candidates, CancellationToken cancellationToken)
     {
+        var textsForRanking = candidates
+            .Select(c => ContextualText.buildContextualText(c.Chunk.Content, c.Chunk.ContextualPrefix))
+            .ToList();
+
         float[] scores = await _client.RankTexts(
-            query, [.. candidates.Select(c => c.Chunk.Content)], cancellationToken);
+            query, textsForRanking, cancellationToken);
 
         return [.. candidates
             .Select((c, i) => new ScoredChunk(c.Chunk, scores[i]))

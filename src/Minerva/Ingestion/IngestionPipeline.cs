@@ -103,9 +103,7 @@ public class IngestionPipeline
 
         // 5. Embed — text for embedding includes contextual prefix when present
         var textsForEmbedding = allChunks
-            .Select(c => c.ContextualPrefix is not null
-                ? c.ContextualPrefix + "\n" + c.Content
-                : c.Content)
+            .Select(c => ContextualText.buildContextualText(c.Content, c.ContextualPrefix))
             .ToList();
 
         var embeddings = await _embeddingService.EmbedAsync(textsForEmbedding, ct: ct);

@@ -517,3 +517,5 @@ eval/corpus-builder/out
 eval/corpus-builder/zim-cluster-articles.jsonl
 eval/corpus-builder/zim-cluster-embeddings.jsonl
 eval/corpus-builder/zim-cluster.done
+
+dev-docs

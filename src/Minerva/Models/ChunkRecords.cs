@@ -30,6 +30,7 @@ public record ChunkSearchRecord(
     string SourceId,
     string CollectionName,
     int ChunkIndex,
+    string? ContextualPrefix,
     string Content,
     double Distance,
     string? PrevChunkId = null,
