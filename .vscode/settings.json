@@ -1,3 +1,4 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/tools/kiwix2md/.venv/bin/python"
+  "python.defaultInterpreterPath": "${workspaceFolder}/eval/notebooks/.venv/bin/python",
+  "jupyter.notebookFileRoot": "${fileDirname}"
 }
