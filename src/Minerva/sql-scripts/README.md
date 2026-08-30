@@ -24,10 +24,14 @@ Connect as a PostgreSQL superuser (e.g. `postgres`) and run:
    `pgvector` extension.
 5. [verify-vector-extension.sql](verify-vector-extension.sql) — confirm `vector`
    is installed.
-6. [create-pgsearch-extension.sql](create-vector-extension.sql) — install the
-   `pgsearch` extension.
-7. [verify-pgsearch-extension.sql](create-vector-extension.sql) — confirm
-   `pgsearch` is installed.
+6. [create-pgsearch-extension.sql](create-pgsearch-extension.sql) — install the
+   `pg_search` extension. Unlike `pgvector`, `pg_search` is not a trusted
+   extension: this step must run as a superuser (the `minerva` role cannot),
+   and the extension binary must already be installed on the server with
+   `pg_search` listed in `shared_preload_libraries` — see
+   [installation.md](../../../docs/reference/installation.md).
+7. [verify-pgsearch-extension.sql](verify-pgsearch-extension.sql) — confirm
+   `pg_search` is installed.
 
 If step 4 or 5 fail, run
 [find-available-extensions.sql](find-available-extensions.sql) to check whether
@@ -38,13 +42,18 @@ If step 4 or 5 fail, run
 - [monitor-advisory-locks.sql](monitor-advisory-locks.sql) — inspect advisory
   locks held by the application. The second query joins `pg_stat_activity` to
   show which session/query holds each lock — useful when something looks stuck.
+- [bm25-smoke-test.sql](bm25-smoke-test.sql) — run a BM25 query directly
+  against the `chunks` table (`|||` operator + `pdb.score`). Confirms the
+  index answers queries after a migration or re-ingest.
 
 ## Analytics on the `chunks` table
 
 - [Per-collection size and column
   breakdown.sql](Per-collection%20size%20and%20column%20breakdown.sql) — total
-  bytes per column (content, contextual prefix, embedding, FTS vector) grouped
-  by collection.
+  bytes per column (content, contextual prefix, embedding) grouped by
+  collection. The BM25 index is table-wide, not a column; measure it via
+  `pg_stat_user_indexes` (see
+  [storage-footprint.md](../../../docs/measurements/storage-footprint.md)).
 - [Average prefix overhead per
   chunk.sql](Average%20prefix%20overhead%20per%20chunk.sql) — average size of
   `contextual_prefix` vs. `content`, as an absolute value and as a percentage.

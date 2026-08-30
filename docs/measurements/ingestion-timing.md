@@ -1,7 +1,10 @@
 # Ingestion timing — three modes compared
 
 Empirical measurement (2026-05-11) of ingestion wall-clock across three
-collections built from the same corpus. Establishes that LLM contextualization,
+collections built from the same corpus. Predates the BM25 migration
+(2026-08-30): the "FTS-only" mode is now BM25 via `pg_search`, but the
+conclusions are index-independent — lexical index maintenance sits in the
+fast-path floor either way. Establishes that LLM contextualization,
 not embedding or DB I/O, dominates ingestion cost — and that the cost is
 concentrated in the fattest documents.
 

@@ -32,7 +32,7 @@ public record ChunkSearchRecord(
     int ChunkIndex,
     string? ContextualPrefix,
     string Content,
-    double Distance,
+    double RawScore,
     string? PrevChunkId = null,
     string? NextChunkId = null,
     Dictionary<string, object>? Metadata = null);

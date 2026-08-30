@@ -1,6 +1,7 @@
 # Hybrid search and Reciprocal Rank Fusion
 
-How the two retrieval legs (dense vector + full-text) are combined into one
+How the two retrieval legs (dense vector + lexical BM25, see
+[full-text-search.md](full-text-search.md)) are combined into one
 ranked list. The fusion logic is **Reciprocal Rank Fusion** (RRF; Cormack et
 al. 2009), with a few project-specific twists. Code lives in
 `src/Minerva/Search/SearchPipeline.cs` and `RankFusion.cs`.
@@ -40,7 +41,7 @@ al. 2009), with a few project-specific twists. Code lives in
 
 ## Why the formula behaves as it does
 
-- **Ranks, not scores.** Cosine distances and `ts_rank` scores live on
+- **Ranks, not scores.** Cosine distances and BM25 scores live on
   different scales; comparing them numerically is meaningless. RRF discards
   raw scores and uses only the **position** (1, 2, 3, …), making it
   scale-invariant.

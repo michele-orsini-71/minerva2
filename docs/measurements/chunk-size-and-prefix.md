@@ -21,7 +21,7 @@ alarming "prefix almost as long as the chunk" cases are all **tiny chunks**
 | full body | 201 | 1190 | 0.17× |
 
 For real bodies of text (>800 chars) the prefix is 15–30% — exactly the
-intent. The prefix feeds **only the dense embedding**, not the tsvector, so
+intent. The prefix feeds **only the dense embedding**, not the BM25 index, so
 even when prefix > chunk it does not pollute the lexical leg; it just means a
 tiny chunk's embedding is dominated by its context sentence, which is the point
 of contextual retrieval for short fragments. The real lever for the visual

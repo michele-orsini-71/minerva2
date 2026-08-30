@@ -16,7 +16,7 @@ public class ContextExpanderTests
             ChunkIndex: 0,
             ContextualPrefix: null,
             Content: $"content-{id}",
-            Distance: score,
+            RawScore: score,
             PrevChunkId: prev,
             NextChunkId: next), score);
 
@@ -121,7 +121,7 @@ public class ContextExpanderTests
         var metadata = new Dictionary<string, object> { ["key"] = "value" };
         var chunk = new ChunkSearchRecord(
             Id: "id1", SourceId: "src1", CollectionName: "coll-x",
-            ChunkIndex: 3, ContextualPrefix: null, Content: "c", Distance: 0.7, Metadata: metadata);
+            ChunkIndex: 3, ContextualPrefix: null, Content: "c", RawScore: 0.7, Metadata: metadata);
 
         var expanded = await expander.ExpandAsync([new ScoredChunk(chunk, 0.9)]);
 

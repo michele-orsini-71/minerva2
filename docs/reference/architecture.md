@@ -1,9 +1,9 @@
-# Minerva — Architecture (core library PRD)
+# Minerva — Architecture
 
-The north-star design for Minerva: a C# / .NET core library providing a
+The architecture of Minerva: a C# / .NET core library providing a
 unified embedding, storage, and retrieval engine. The library is
 client-agnostic; the first client is a filesystem watcher for Obsidian-style
-vaults. Distilled from the 2026-04-04 PRD.
+vaults. Originally distilled from the 2026-04-04 PRD, kept current since.
 
 ## Goal and shape
 
@@ -39,10 +39,10 @@ var results = await minerva.SearchAsync(query, collections, options);
 ## Key decisions
 
 - **PostgreSQL + pgvector as the single store** for vectors (HNSW),
-  full-text search (tsvector/tsquery), metadata (JSONB + GIN), and reference
-  storage. One general-purpose, local-first database; backs up with
-  `pg_dump`. Chosen over Qdrant (which adds cloud/Docker friction for a
-  personal tool) and over a separate search engine.
+  lexical search (BM25 via the `pg_search` extension), metadata (JSONB +
+  GIN), and reference storage. One general-purpose, local-first database;
+  backs up with `pg_dump`. Chosen over Qdrant (which adds cloud/Docker
+  friction for a personal tool) and over a separate search engine.
 - **Metadata as JSONB**, GIN-indexed. Client-agnostic: each client stores
   arbitrary key-value metadata without schema changes.
 - **Any OpenAI-compatible model server** — `/v1/embeddings` and
@@ -67,10 +67,13 @@ var results = await minerva.SearchAsync(query, collections, options);
   **segments** at high-level headings (configurable token threshold), each
   segment summarized separately; segments (coarse, for summarization) are a
   different level than chunks (fine, for embedding).
-- **Full-text index excludes the contextual prefix** — the tsvector is built
-  from chunk text after attachment integration but without the prefix. The
+- **Lexical index excludes the contextual prefix** — the BM25 index covers
+  chunk text after attachment integration but without the prefix. The
   prefix improves semantic search, not keyword matching; excluding it keeps
   keyword behavior identical whether contextualization is on or off.
+  (Revisit at the contextualization re-ingest: indexing prefix+content
+  needs a combined-text column, since `pg_search` indexes columns, not
+  expressions.)
 - **Multiple collections, per-collection provider config** — embedding model,
   LLM config, and rate limiting per collection.
 - **Rate limiting and batching per provider** — requests-per-minute,
@@ -95,7 +98,7 @@ Document (any size) + optional attachment dictionary
   ├─[4] Contextualize each chunk (1 LLM call/chunk: summary + chunk → prefix) (optional, paired with [2])
   ├─[5] Embed each contextualized chunk (1 embedding call/chunk)
   └─[6] Atomic store: delete old chunks for sourceId, insert new
-        (dense vector + tsvector on post-attachment text + JSONB metadata), one transaction
+        (dense vector + BM25-indexed post-attachment text + JSONB metadata), one transaction
 ```
 
 ## Research findings behind the design
@@ -107,8 +110,8 @@ Document (any size) + optional attachment dictionary
   document tokens, but only on cloud providers, not local servers.
 - **BGE-M3 evaluated and rejected** — it gives dense + sparse + ColBERT
   vectors in one pass, but requires a specialized server (not OpenAI-compatible)
-  to expose sparse output and would lock the user into one model. PostgreSQL
-  full-text search provides the keyword leg without constraining model choice.
+  to expose sparse output and would lock the user into one model. BM25 in
+  PostgreSQL provides the keyword leg without constraining model choice.
   See [retrieval-two-pass-bge.md](retrieval-two-pass-bge.md).
 - **v1 rate limiting** — `threading.Semaphore` for concurrency + sliding-window
   token bucket for RPM; embedding batch sizes per provider (OpenAI 50,

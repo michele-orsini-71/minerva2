@@ -52,8 +52,8 @@ dense-only, smaller dimensions, 512-token context.
 hybrid retrieval, but exposing its sparse output requires a specialized model
 server (not the OpenAI-compatible `/v1/embeddings` API Minerva targets), and
 adopting it would lock the user into one embedding model. Minerva instead
-gets the keyword leg from PostgreSQL full-text search, keeping model choice
-free. See [architecture-prd.md](architecture-prd.md) and
+gets the keyword leg from BM25 in PostgreSQL (`pg_search`), keeping model
+choice free. See [architecture.md](architecture.md) and
 [full-text-search.md](full-text-search.md).
 
 ## How a fully open-source stack would look
@@ -70,5 +70,5 @@ embedding/retrieval engine. A minimal locally-runnable stack:
 5. **An MCP server** wrapping search
 
 Minerva realizes this pattern with different component choices: PostgreSQL
-instead of Milvus, full-text search instead of BGE sparse vectors, and any
+instead of Milvus, BM25 instead of BGE sparse vectors, and any
 OpenAI-compatible embedder instead of mandatory BGE-M3.

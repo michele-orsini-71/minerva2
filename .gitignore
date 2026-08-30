@@ -18,6 +18,10 @@
 # Launch profiles are developer-local (point at machine/data-specific paths)
 **/Properties/launchSettings.json
 
+# Debug-environment overrides are developer-local too (vault paths, collection
+# names); copy from the sibling appsettings.debug.template.json
+src/**/appsettings.debug.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

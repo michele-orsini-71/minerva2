@@ -112,9 +112,11 @@ public class BenchRunE2ETests : IAsyncLifetime
                 $"""
                 dataset = "dataset.jsonl"
                 collection = "{CollectionName}"
+                top_k = 5
+                candidate_pool_size = 25
 
                 [matrix]
-                top_k = [5]
+                enable_reranker = [false]
                 """);
 
             var outDir = Path.Combine(workDir, "out");
@@ -133,7 +135,7 @@ public class BenchRunE2ETests : IAsyncLifetime
             // metrics.csv: header + one row per (query x cell) = 3 rows
             var csvLines = File.ReadAllLines(Path.Combine(leaf, "metrics.csv"));
             Assert.Equal(4, csvLines.Length);
-            Assert.StartsWith("query_id,top_k,", csvLines[0]);
+            Assert.StartsWith("query_id,enable_reranker,", csvLines[0]);
 
             // details.jsonl: one line per (query x cell)
             Assert.Equal(3, File.ReadAllLines(Path.Combine(leaf, "details.jsonl")).Length);

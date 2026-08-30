@@ -30,7 +30,7 @@ public class RerankerTests
                 ChunkIndex: 0,
                 ContextualPrefix: null,
                 Content: content,
-                Distance: 0.0),
+                RawScore: 0.0),
             Score: 0.0);
 
     [Fact]

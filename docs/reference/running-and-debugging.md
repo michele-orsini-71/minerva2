@@ -25,7 +25,9 @@ dotnet run --project src/Minerva.MarkdownWatcher -- \
   --Minerva:Llm:Model=gemma-3-4b
 ```
 
-Log levels (`appsettings.debug.json`):
+Log levels (`appsettings.debug.json` — developer-local like
+`launchSettings.json`, not versioned: copy the sibling
+`appsettings.debug.template.json` and fill in your paths):
 
 ```json
 "Logging": { "LogLevel": {
@@ -122,8 +124,16 @@ CREATE ROLE minerva WITH LOGIN PASSWORD 'minerva';   -- run from the postgres DB
 CREATE DATABASE minerva OWNER minerva;
 -- then, connected to the minerva DB:
 CREATE EXTENSION IF NOT EXISTS vector;
-SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';
+CREATE EXTENSION IF NOT EXISTS pg_search;
+SELECT extname, extversion FROM pg_extension;
 ```
+
+`pg_search` (the BM25 leg) has prerequisites that `pgvector` does not: the
+extension binary must be installed on the server, `pg_search` must be listed
+in `shared_preload_libraries`, and — because it is not a trusted extension —
+`CREATE EXTENSION` must run as a superuser; migration 004 only no-ops past it
+via `IF NOT EXISTS`. Full sequence in
+[installation.md](installation.md).
 
 ### `pg_advisory_lock` — the migration mutex
 
@@ -168,5 +178,6 @@ Each migration runs in a transaction that both applies the DDL and records it
 in the migration table, so the two stay consistent. Most PostgreSQL DDL is
 transactional (unlike MySQL), which is what makes this pattern clean. Keep
 migrations cheap and schema-only — heavy data backfills do not belong in
-startup migrations (see the FTS-fix note for why a `to_tsvector` rebuild as a
-migration broke startup).
+startup migrations (in the FTS era, a `to_tsvector` full-table rebuild run as
+a migration broke startup; an index build like migration 004's BM25
+`CREATE INDEX` is the acceptable upper bound).

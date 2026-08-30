@@ -1,7 +1,11 @@
 # Full-text search in Minerva
 
-How the lexical (keyword) leg of hybrid search works. It uses PostgreSQL's
-built-in full-text search end to end — no Lucene, no external BM25 engine.
+How the lexical (keyword) leg of hybrid search works. Since 2026-08-30 it is
+real BM25 via the [ParadeDB `pg_search`](https://github.com/paradedb/paradedb)
+extension — no Lucene, no external search engine. The previous implementation
+(PostgreSQL built-in full-text search: `tsvector`, `ts_rank`, GIN) is retired;
+its last measured results are the `baseline-fts` runs in
+`eval/experiments/baseline`.
 
 ## What full-text search is for
 
@@ -19,102 +23,99 @@ much query traffic is exact-token recall versus conceptual recall.
 
 ## Current implementation
 
-Configuration: **`'simple'`** text-search config at both ingest and query
-time. The corpus is mixed Italian/English and the lexical leg must match
-codes and acronyms; `'simple'` is language-agnostic and does not stem or drop
-such tokens.
-
-Ingest builds the vector from chunk content (without the contextual prefix):
+The index is declared in migration `004_pg_search_extension.sql`:
 
 ```sql
-to_tsvector('simple', @fts_content)   -- PostgresChunkRepository, insert
+CREATE INDEX chunks_bm25_idx ON chunks
+USING bm25 (
+    id,
+    (content::pdb.simple('ascii_folding=true'))
+) WITH (key_field = 'id');
 ```
 
-Query relaxes a safely-parsed query to OR semantics:
+- **`pdb.simple`** tokenizer: split on whitespace/punctuation, lowercase. No
+  stemmer, no stop-word filter — the corpus is mixed Italian/English and the
+  leg must match codes and acronyms, so the config stays language-neutral
+  (the same reasoning that chose `'simple'` in the FTS era). Unlike Postgres
+  FTS language configs, pg_search unbundles tokenization from filters: the
+  one filter enabled is `ascii_folding`, so `perché` matches `perche`.
+- **Stop words need no filter under BM25**: a term present in most documents
+  gets a near-zero IDF weight automatically. (This was a real weakness of
+  `ts_rank`, which has no IDF.)
+- The index covers `content` only — the raw chunk text, without the
+  contextual prefix. Indexing the prefix is deferred to the
+  contextualization re-ingest, and will need a combined-text column
+  (pg_search indexes columns, not expressions).
+- Postgres maintains the index inside the same INSERT that writes the chunk;
+  ingestion has no lexical-indexing step of its own.
+
+Query (`PostgresChunkRepository.FullTextSearchAsync`):
 
 ```sql
-WITH q AS (
-    SELECT replace(websearch_to_tsquery('simple', @query)::text, ' & ', ' | ')::tsquery AS tsq
-)
-SELECT id, source_id, ..., ts_rank(fts_vector, q.tsq) AS rank
-FROM chunks, q
-WHERE collection_name = @coll AND fts_vector @@ q.tsq
+SELECT id, ..., pdb.score(id) AS rank
+FROM chunks
+WHERE collection_name = @coll AND content ||| @query
 ORDER BY rank DESC
 LIMIT @topk
 ```
 
-`websearch_to_tsquery` parses raw user input safely (punctuation, quoted
-phrases, `or`, `-not`). Relaxing the top-level `&` operators to `|` gives
-BM25-like **partial** matching: documents containing more of the query terms
-rank higher via `ts_rank`. Phrase (`<->`) and negation operators are left
-intact. A GIN index on `fts_vector` (migration `002_indexes.sql`) makes the
-`@@` match fast.
+`|||` tokenizes the query with the same config as the index and matches
+**any** term (ranked OR): documents containing more of the query's terms rank
+higher, weighted by IDF. This replaces the FTS-era trick of relaxing
+`websearch_to_tsquery`'s `&` operators to `|`. `pdb.score` is the BM25 score —
+an unbounded positive number (not 0–1 like `ts_rank`). Rank fusion is
+RRF and consumes list positions only, so the score scale is irrelevant
+downstream; the score rides along in `ChunkSearchRecord.Distance` for
+inspection.
 
-## Is it TF-IDF or BM25?
+## Decision record: fuzzy matching rejected as a default
 
-Neither, strictly. PostgreSQL full-text search predates both and uses its own
-scoring:
+pg_search supports typo-tolerant matching (`content ||| @query::pdb.fuzzy(1)`,
+max Levenshtein distance 2). Applying it to every query was tried on
+2026-08-30 and rejected:
 
-- **`ts_rank`** (what Minerva uses) is a frequency-based scorer, closer to
-  TF-IDF than BM25 but with **no IDF** computed against the corpus. It weights
-  by term frequency, optionally by document length, and by per-lexeme weights
-  (A/B/C/D — unused here, so every lexeme is equal).
-- **`ts_rank_cd`** is a cover-density variant that also rewards matches close
-  together. Still not BM25.
-- **Real BM25** is not in core PostgreSQL. It needs an extension (ParadeDB
-  `pg_search`, VectorChord-bm25) or an external engine. This is tracked as a
-  cross-phase backlog item on the roadmap.
+- **It is not BM25.** Fuzzy matches are scored by roughly counting matched
+  terms (scores come out quantized in 0.5 steps), not by TF/IDF. The best
+  "match the most one-edit neighborhoods" chunk is a long, vocabulary-rich
+  chunk, not a relevant one.
+- **Common words explode.** Every short query word matches a large one-edit
+  neighborhood, flooding the leg with noise.
+- Measured effect: R@5 at `hybrid_alpha = 0.3` collapsed from .87 to .13 on
+  the wikipedia dataset; gold chunks fell out of the candidate pool entirely.
 
-In practice this matters less than it sounds: the fusion step uses only the
-**ordinal rank** from the lexical leg, not `ts_rank`'s raw score, so fusion
-papers over `ts_rank`'s weaknesses. A true BM25 would differ mainly on rare
-terms and widely varying document lengths.
+If fuzzy comes back, it must be surgical — applied only to short,
+identifier-like queries where typo tolerance is worth the precision loss —
+never as a blanket cast on natural-language queries.
 
-## The processing stack
+## Measured behavior (baseline experiment, wikipedia-nollm)
 
-| Layer | What Minerva uses |
-| --- | --- |
-| Tokenization | `to_tsvector('simple', …)` — split into lexemes, record positions; no stemming, no stopword removal |
-| Query parsing | `websearch_to_tsquery('simple', …)`, top-level `&` relaxed to `\|` |
-| Index | GIN on `fts_vector` (an inverted index: lexeme → rows containing it) |
-| Match | the `@@` operator |
-| Score | `ts_rank` — frequency-based, length-normalized, no IDF |
+Versus the retired FTS leg, same collection and dataset (84 queries):
 
-What `to_tsvector` does, conceptually `text → tsvector`: tokenize, normalize
-(under `'simple'`: lowercase only — no stem, no stopword drop), and record
-each lexeme's positions (positions feed phrase and proximity queries).
+- `alpha 0.3`: R@5 .71 → .87, MRR@10 .60 → .75 — the lexical-heavy corner
+  stopped collapsing, flattening the alpha curve.
+- `alpha 0.5 / 0.7`: parity or slightly better.
 
-```sql
-SELECT to_tsvector('simple', 'The quick brown foxes were running quickly');
--- 'brown':3 'foxes':4 'quick':2 'quickly':7 'running':6 'the':1 'were':5
-```
+Two low-alpha failure modes remain on queries deliberately crafted to defeat
+lexical search; neither is a bug:
 
-Note that under `'simple'` nothing is stemmed or dropped — `foxes` stays
-`foxes`, `the`/`were` are kept. Under `'english'` they would collapse
-(`foxes → fox`, `running → run`) and stopwords would vanish.
+1. **Gold outside the lexical pool** — the query shares no informative token
+  with the gold chunk, so gold takes RRF's missing-rank penalty
+  (`The_Beatles.md-2`: "Coleoptera" retrieves Beetle.md, as designed).
+2. **Organized competition** — gold is in the pool, but topically adjacent
+  chunks match both lexically and semantically and RRF rewards the cross-leg
+  agreement (`A_Fistful_of_Dollars.md-1`: Spaghetti_Western.md and
+  Sam_Peckinpah.md outrank the gold film).
 
-## Trade-offs of `'simple'`
+A stronger lexical leg converts the old leg's harmless noise into coherent
+competitors on such queries; arbitrating them is the reranker's job — it
+reads the content.
 
-- **No stemming.** `russo` ≠ `russi`; inflected Italian will miss. Acceptable
-  for the exact-token job; per-document language detection is the correct
-  long-term fix (roadmap backlog). A language-independent alternative —
-  character trigram matching (`pg_trgm`), where `russo`/`russi` share
-  trigrams — is noted as a fuzzy-lexical-signal option in
-  `../future/backlog.md`.
-- **Stopwords are indexed.** `the`, `il`, `la` become lexemes; index size
-  grows slightly. A custom config (`simple` parser + a stopword dictionary,
-  no stemmer) could drop them without stemming if it ever matters.
-- **Ingest and query configs must match.** Mismatched configs are the classic
-  silent-failure bug.
+## Operational notes
 
-## History
-
-Minerva originally used `to_tsvector('english', …)` +
-`plainto_tsquery('english', …)`. On the mixed-language corpus this both stemmed
-Italian by English rules and ANDed every query term (`plainto_tsquery` joins
-tokens with AND), so a natural-language query against a 200-token chunk almost
-never matched — the lexical leg returned ~0 hits and, through fusion, made
-`hybrid_alpha` mathematically inert. The fix (`'simple'` config + OR-relaxed
-`websearch_to_tsquery`, plus a one-time `fts_vector` rebuild of existing
-collections) is recorded in
-`.dev/roadmap-phase-1/completed/2026-06-07-fix-for-fts-reporting-0-hits.md`.
+- `pg_search` must be preloaded (`shared_preload_libraries`) and created by a
+  superuser — see [installation.md](installation.md).
+- Since v0.25 the extension requires `pgvector` to be installed first (it
+  uses its vector type); Minerva satisfies this via migration order.
+- The BM25 index is table-wide: one index serves every collection, and
+  `CREATE INDEX` over existing rows is what "re-indexes" old collections —
+  no re-ingestion needed when only the lexical leg changes.
