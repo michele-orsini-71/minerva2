@@ -24,10 +24,14 @@ Connect as a PostgreSQL superuser (e.g. `postgres`) and run:
    `pgvector` extension.
 5. [verify-vector-extension.sql](verify-vector-extension.sql) — confirm `vector`
    is installed.
+6. [create-pgsearch-extension.sql](create-vector-extension.sql) — install the
+   `pgsearch` extension.
+7. [verify-pgsearch-extension.sql](create-vector-extension.sql) — confirm
+   `pgsearch` is installed.
 
-If step 4 fails, run
+If step 4 or 5 fail, run
 [find-available-extensions.sql](find-available-extensions.sql) to check whether
-`pgvector` is available on the server at all.
+`pgvector` or `pg_search` are available on the server at all.
 
 ## Diagnostics
 

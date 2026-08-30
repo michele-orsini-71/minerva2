@@ -35,9 +35,9 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         // 2. Insert new chunks (without adjacency pointers first, to avoid FK violations)
         const string insertSql = """
             INSERT INTO chunks (id, collection_name, source_id, chunk_index, content, content_hash,
-                               contextual_prefix, embedding, fts_vector, metadata)
+                               contextual_prefix, embedding, metadata)
             VALUES (@id, @coll, @src, @idx, @content, @hash, @prefix,
-                    @embedding, to_tsvector('simple', @fts_content), @metadata)
+                    @embedding, @metadata)
             """;
 
         foreach (var chunk in chunks)
@@ -52,9 +52,6 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             cmd.Parameters.AddWithValue("prefix", (object?)chunk.ContextualPrefix ?? DBNull.Value);
 
             cmd.Parameters.AddWithValue("embedding", new Vector(chunk.Embedding));
-
-            // FTS content: the raw content without contextual prefix
-            cmd.Parameters.AddWithValue("fts_content", chunk.Content);
 
             AddJsonbParameter(cmd, "metadata", chunk.Metadata);
             await cmd.ExecuteNonQueryAsync(ct);
@@ -206,23 +203,15 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         string collectionName, string query, int topK,
         CancellationToken ct = default)
     {
-        // websearch_to_tsquery parses raw user input safely but ANDs the terms,
-        // which yields ~0 matches for natural-language queries. Relaxing the
-        // top-level '&' operators to '|' gives BM25-like partial matching:
-        // documents that contain more of the terms rank higher via ts_rank.
-        // Phrase ('<->') and negation operators are left untouched.
         const string sql = """
-            WITH q AS (
-                SELECT replace(websearch_to_tsquery('simple', @query)::text, ' & ', ' | ')::tsquery AS tsq
-            )
-            SELECT id, source_id, collection_name, chunk_index, content, contextual_prefix, metadata,
+        SELECT id, source_id, collection_name, chunk_index, content, contextual_prefix, metadata,
                    prev_chunk_id, next_chunk_id,
-                   ts_rank(fts_vector, q.tsq) AS rank
-            FROM chunks, q
-            WHERE collection_name = @coll AND fts_vector @@ q.tsq
-            ORDER BY rank DESC
-            LIMIT @topk
-            """;
+                   pdb.score(id) AS rank
+        FROM chunks
+        WHERE collection_name = @coll AND content ||| @query
+        ORDER BY rank DESC
+        LIMIT @topk
+        """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);

@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS chunks (
     content_hash TEXT NOT NULL,
     contextual_prefix TEXT,
     embedding vector,
-    fts_vector TSVECTOR,
     metadata JSONB,
     prev_chunk_id TEXT REFERENCES chunks(id) ON DELETE SET NULL,
     next_chunk_id TEXT REFERENCES chunks(id) ON DELETE SET NULL,

@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-08-27T08:45:52Z",
-  "bench_version": "0.1.0+cf23b65",
+  "timestamp": "2026-08-30T08:59:15Z",
+  "bench_version": "0.1.0+e980fc4",
   "dataset_path": "../../datasets/wikipedia-v1.jsonl",
-  "collection": "wikipedia-qwen2-5",
+  "collection": "wikipedia-nollm",
   "collectionDetails": {
-    "Name": "wikipedia-qwen2-5",
+    "Name": "wikipedia-nollm",
     "Description": null,
     "Provenance": {
       "Invariants": {
@@ -14,10 +14,10 @@
         "TargetChunkSize": 1200,
         "ChunkOverlap": 200,
         "MaxSegmentChars": 8000,
-        "ContextualizationEnabled": true,
-        "ContextualizationModel": "qwen2.5-0.5b-instruct-mlx",
-        "SummarizerPromptVersion": "1",
-        "ContextualizerPromptVersion": "1"
+        "ContextualizationEnabled": false,
+        "ContextualizationModel": null,
+        "SummarizerPromptVersion": null,
+        "ContextualizerPromptVersion": null
       },
       "LastRun": {
         "IngestorVersion": "0.1.0+c65bba1",
@@ -38,8 +38,8 @@
         ]
       }
     },
-    "CreatedAt": "2026-06-20T06:07:48.464803+00:00",
-    "LastUpdatedAt": "2026-06-20T06:07:48.464803+00:00",
+    "CreatedAt": "2026-06-20T05:41:56.851328+00:00",
+    "LastUpdatedAt": "2026-06-20T05:41:56.851328+00:00",
     "EmbeddingModel": "text-embedding-bge-m3",
     "EmbeddingDimension": 1024
   },
@@ -49,7 +49,7 @@
     "top_k": 50,
     "candidate_pool_size": 100,
     "dataset": "../../datasets/wikipedia-v1.jsonl",
-    "collection": "wikipedia-qwen2-5",
+    "collection": "wikipedia-nollm",
     "matrix": {
       "enable_reranker": [
         false
@@ -75,5 +75,5 @@
       "hybrid_alpha": 0.7
     }
   ],
-  "label": "baseline-fts"
+  "label": "baseline"
 }

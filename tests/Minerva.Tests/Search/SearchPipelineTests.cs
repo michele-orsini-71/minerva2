@@ -51,7 +51,7 @@ public class SearchPipelineTests
     private static ChunkSearchRecord MakeRecord(
         string id, string collection = "c", string? prev = null, string? next = null) =>
         new(Id: id, SourceId: $"src-{id}", CollectionName: collection,
-            ChunkIndex: 0, Content: $"content-{id}", Distance: 1.0,
+            ChunkIndex: 0, ContextualPrefix: null, Content: $"content-{id}", Distance: 1.0,
             PrevChunkId: prev, NextChunkId: next);
 
     [Fact]

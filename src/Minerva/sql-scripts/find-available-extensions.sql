@@ -1,1 +1,1 @@
-SELECT name, default_version, installed_version FROM pg_available_extensions WHERE name = 'vector';
+SELECT name, default_version, installed_version FROM pg_available_extensions WHERE name = 'vector' or name = 'pg_search';
