@@ -9,4 +9,5 @@ public record Chunk(
     string ContentHash,
     string? ContextualPrefix = null,
     string? PrevChunkId = null,
-    string? NextChunkId = null);
+    string? NextChunkId = null,
+    IReadOnlyList<string>? HeadingTrail = null);

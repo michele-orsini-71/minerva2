@@ -34,6 +34,7 @@ public class BenchValidateDatasetE2ETests : IAsyncLifetime
             ChunkOverlap = 100,
             MaxSegmentChars = 8000,
             ChunkerType = ChunkerType.Custom,
+            Contextualization = new ContextualizationOptions { Level = ContextualizationLevel.None },
         };
 
         var mockEmbeddings = new MockEmbeddingGenerator(EmbeddingDimension);
@@ -52,6 +53,7 @@ public class BenchValidateDatasetE2ETests : IAsyncLifetime
             embeddingService,
             summarizer: null,
             contextualizer: null,
+            level: ContextualizationLevel.None,
             chunkRepository,
             loggerFactory.CreateLogger<IngestionPipeline>());
 

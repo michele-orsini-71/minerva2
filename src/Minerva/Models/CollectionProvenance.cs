@@ -12,6 +12,7 @@ public sealed record CollectionInvariants(
     int ChunkOverlap,
     int MaxSegmentChars,
     bool ContextualizationEnabled,
+    ContextualizationLevel Level,
     string? ContextualizationModel,
     string? SummarizerPromptVersion,
     string? ContextualizerPromptVersion);

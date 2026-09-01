@@ -1,6 +1,7 @@
 using Minerva.Models;
 using Minerva.Storage;
 using Minerva.IntegrationTests.TestSupport;
+using Npgsql;
 
 namespace Minerva.IntegrationTests.Storage;
 
@@ -31,6 +32,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
             chunkOverlap: 64,
             maxSegmentChars: 8000,
             contextualizationEnabled: true,
+            level: ContextualizationLevel.PerChunk,
             contextualizationModel: "qwen2.5",
             summarizerPromptVersion: "1",
             contextualizerPromptVersion: "1",
@@ -53,6 +55,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
         Assert.Equal(64, inv.ChunkOverlap);
         Assert.Equal(8000, inv.MaxSegmentChars);
         Assert.True(inv.ContextualizationEnabled);
+        Assert.Equal(ContextualizationLevel.PerChunk, inv.Level);
         Assert.Equal("qwen2.5", inv.ContextualizationModel);
         Assert.Equal("1", inv.SummarizerPromptVersion);
         Assert.Equal("1", inv.ContextualizerPromptVersion);
@@ -81,6 +84,29 @@ public class CollectionRepositoryTests : IAsyncLifetime
         Assert.Null(inv.ContextualizationModel);
         Assert.Null(inv.SummarizerPromptVersion);
         Assert.Null(inv.ContextualizerPromptVersion);
+    }
+
+    [Fact]
+    public async Task Get_LegacyMetadataWithoutLevel_NormalizesToPerChunk()
+    {
+        var provenance = TestProvenance.Create(
+            contextualizationEnabled: true,
+            level: ContextualizationLevel.PerChunk,
+            contextualizationModel: "qwen2.5");
+        await _repo.CreateAsync(new Collection("legacy-ctx", null, provenance, TestProvenance.Client()));
+
+        // Rows written before ContextualizationLevel existed have no "level" property.
+        await using (var conn = await _fixture.DataSource.OpenConnectionAsync())
+        await using (var cmd = new NpgsqlCommand(
+            "UPDATE collections SET metadata = metadata #- '{provenance,invariants,level}' WHERE name = 'legacy-ctx'", conn))
+        {
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        var retrieved = await _repo.GetAsync("legacy-ctx");
+
+        Assert.NotNull(retrieved);
+        Assert.Equal(ContextualizationLevel.PerChunk, retrieved.Provenance.Invariants.Level);
     }
 
     [Fact]

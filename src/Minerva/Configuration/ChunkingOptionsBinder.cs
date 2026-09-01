@@ -52,9 +52,11 @@ public static class ChunkingOptionsBinder
             chunkerValid = true;
         }
 
-        LlmProviderOptions? llm = null;
-        if (raw.Llm is not null)
-            llm = LlmProviderOptionsBinder.TryBuild(raw.Llm, stagePrefix + "Llm.", failures);
+        ContextualizationOptions? ctx = null;
+        if (raw.Contextualization is null)
+            failures.Add(new OptionsFailure(stagePrefix + "Contextualization", "is required."));
+        else
+            ctx = ContextualizationOptionsBinder.TryBuild(raw.Contextualization, stagePrefix + "Contextualization.", failures);
 
         if (failures.Count > before) return null;
 
@@ -64,7 +66,7 @@ public static class ChunkingOptionsBinder
             ChunkOverlap = raw.ChunkOverlap!.Value,
             MaxSegmentChars = raw.MaxSegmentChars!.Value,
             ChunkerType = chunkerValid ? chunkerType : default,
-            Llm = llm,
+            Contextualization = ctx!,
         };
     }
 }
@@ -75,5 +77,5 @@ internal sealed class RawChunkingOptions
     public int? ChunkOverlap { get; set; }
     public int? MaxSegmentChars { get; set; }
     public string? ChunkerType { get; set; }
-    public RawLlmProviderOptions? Llm { get; set; }
+    public RawContextualizationOptions? Contextualization { get; set; }
 }

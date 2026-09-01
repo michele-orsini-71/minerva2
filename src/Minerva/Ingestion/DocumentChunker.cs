@@ -19,10 +19,6 @@ public class DocumentChunker : IDocumentChunker
         _logger = logger;
     }
 
-    /// <summary>
-    /// Chunks a document into an ordered list of <see cref="Chunk"/> records.
-    /// Handles large-document segmentation internally.
-    /// </summary>
     public IReadOnlyList<Chunk> Chunk(string collectionName, string sourceId, string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -32,19 +28,11 @@ public class DocumentChunker : IDocumentChunker
         return BuildChunks(collectionName, sourceId, textChunks, startIndex: 0);
     }
 
-    /// <summary>
-    /// Splits a large document into segments under <see cref="ChunkingOptions.MaxSegmentChars"/>.
-    /// Used by the pipeline when segments need separate summarization.
-    /// </summary>
     public IReadOnlyList<string> SegmentDocument(string text)
     {
         return SplitMarkdownToBudget(text, _options.MaxSegmentChars, overlap: 0);
     }
 
-    /// <summary>
-    /// Chunks a single text segment, starting chunk indices at <paramref name="startIndex"/>.
-    /// Used by the pipeline when processing large documents segment-by-segment.
-    /// </summary>
     public IReadOnlyList<Chunk> ChunkSegment(
         string collectionName, string sourceId, string text, int startIndex)
     {
@@ -70,12 +58,6 @@ public class DocumentChunker : IDocumentChunker
         return chunks;
     }
 
-    /// <summary>
-    /// Unified core: splits markdown into pieces each ≤ <paramref name="maxChars"/>.
-    /// Used both for chunker output (embedder budget) and segmenter output (LLM budget).
-    /// Algorithm: header-aware split → greedy pack → recursive separator fallback →
-    /// brute-force slice with overlap. Returns <c>[text]</c> verbatim when input fits.
-    /// </summary>
     private List<string> SplitMarkdownToBudget(string text, int maxChars, int overlap)
     {
         if (text.Length <= maxChars)

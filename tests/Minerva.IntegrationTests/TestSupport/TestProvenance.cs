@@ -12,6 +12,7 @@ internal static class TestProvenance
         int chunkOverlap = 100,
         int maxSegmentChars = 8000,
         bool contextualizationEnabled = false,
+        ContextualizationLevel level = ContextualizationLevel.None,
         string? contextualizationModel = null,
         string? summarizerPromptVersion = null,
         string? contextualizerPromptVersion = null,
@@ -20,7 +21,7 @@ internal static class TestProvenance
         new(
             new CollectionInvariants(
                 embeddingModel, embeddingDimension, chunkerType, targetChunkSize,
-                chunkOverlap, maxSegmentChars, contextualizationEnabled,
+                chunkOverlap, maxSegmentChars, contextualizationEnabled, level,
                 contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
             new CollectionLastRun(ingestorVersion, schemaVersion));
 

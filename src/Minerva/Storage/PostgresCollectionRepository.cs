@@ -121,7 +121,7 @@ public class PostgresCollectionRepository : ICollectionRepository
             return new Collection(
                 Name: reader.GetString(0),
                 Description: reader.IsDBNull(1) ? null : reader.GetString(1),
-                Provenance: bag.Provenance,
+                Provenance: NormalizeLegacyProvenance(bag.Provenance),
                 ClientProvenance: bag.Client,
                 CreatedAt: reader.GetFieldValue<DateTimeOffset>(3),
                 LastUpdatedAt: reader.GetFieldValue<DateTimeOffset>(4));
@@ -131,6 +131,17 @@ public class PostgresCollectionRepository : ICollectionRepository
             throw new InvalidOperationException(
                 $"Collection '{reader.GetString(0)}' has malformed or unreadable metadata.", ex);
         }
+    }
+
+    // Provenance serialized before ContextualizationLevel existed has no "level" property,
+    // which deserializes as None even when contextualization was on. New writes guarantee
+    // Enabled == (Level != None), so this combination can only be legacy per-chunk data.
+    private static CollectionProvenance NormalizeLegacyProvenance(CollectionProvenance provenance)
+    {
+        var invariants = provenance.Invariants;
+        if (invariants is { ContextualizationEnabled: true, Level: ContextualizationLevel.None })
+            return provenance with { Invariants = invariants with { Level = ContextualizationLevel.PerChunk } };
+        return provenance;
     }
 
     private static void AddMetadataParameter(NpgsqlCommand cmd, string name, Collection collection)
