@@ -208,7 +208,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
                    prev_chunk_id, next_chunk_id,
                    pdb.score(id) AS rank
         FROM chunks
-        WHERE collection_name = @coll AND content ||| @query
+        WHERE collection_name = @coll AND (coalesce(contextual_prefix || ' ', '') ||  content) ||| @query
         ORDER BY rank DESC
         LIMIT @topk
         """;
