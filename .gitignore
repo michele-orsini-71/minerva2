@@ -506,7 +506,7 @@ bin-markdown-indexer/
 eval/datasets/private
 eval/sweeps/private
 eval/results/private
-eval/experiments/*/config.local.json
+eval/notebooks/config.local.json
 
 wikipedia_en_100_nopic_2026-04.zim
 uv.lock
@@ -516,6 +516,7 @@ uv.lock
 eval/results
 eval/experiments/scratch-*/
 eval/collections/wikipedia-en-corpus
+eval/collections/wikipedia-small-en-corpus
 eval/corpus-builder/zim
 eval/corpus-builder/out
 eval/corpus-builder/zim-cluster-articles.jsonl

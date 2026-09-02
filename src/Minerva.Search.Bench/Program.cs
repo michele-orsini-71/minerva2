@@ -8,13 +8,13 @@ using Minerva.Search.Bench.Validation;
 
 try
 {
-    if (args.Length == 0 || args.Contains("-h") || args.Contains("--help"))
+    if (args.Length == 0 || args[0] is "-h" or "--help")
     {
         PrintTopLevelUsage(Console.Out);
         return args.Length == 0 ? 2 : 0;
     }
 
-    if (args.Contains("-v") || args.Contains("--version"))
+    if (args[0] is "-v" or "--version")
     {
         PrintVersion(Console.Out);
         return 0;

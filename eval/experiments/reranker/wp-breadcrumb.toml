@@ -1,0 +1,9 @@
+dataset = "../../datasets/wikipedia-v1.jsonl"
+collection = "wp-breadcrumb"
+top_k = 50
+candidate_pool_size = 100
+label = "reranker"
+
+[matrix]
+enable_reranker = [true]
+hybrid_alpha = [0.3, 0.5, 0.7]

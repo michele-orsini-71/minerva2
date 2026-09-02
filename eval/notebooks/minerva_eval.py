@@ -143,6 +143,18 @@ def gold_ranks(results, top_k=50) -> list[GoldRank]:
                                 g, ranks.get(g, top_k + 1)))
     return out
 
+def covering_ranks(results, top_k=50) -> pd.Series:
+    # covering rank = smallest k whose top-k contains ALL the query's golds:
+    # gold_ranks emits one row per gold source, so max over the query's group
+    df = pd.DataFrame(gold_ranks(results, top_k))
+    return df.groupby(["label", "collection", "alpha", "query_id"])["rank"].max()
+
+def covering_rank_stats(results, top_k=50):
+    # a gold beyond top_k carries the sentinel top_k + 1: read it as "> top_k", not a real rank
+    covering = covering_ranks(results, top_k)
+    return covering.groupby(["label", "collection", "alpha"]).agg(
+        median="median", p95=lambda s: s.quantile(0.95), max="max")
+
 @dataclass(frozen=True)
 class AverageChunkRank:
     query_id: str
