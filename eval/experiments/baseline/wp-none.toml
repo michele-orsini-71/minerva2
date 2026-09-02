@@ -1,5 +1,5 @@
 dataset = "../../datasets/wikipedia-v1.jsonl"
-collection = "wikipedia-nollm"
+collection = "wp-none"
 top_k = 50
 candidate_pool_size = 100
 label = "baseline"

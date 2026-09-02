@@ -6,7 +6,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "run --sweep eval/sweeps/<your-sweep>.toml --out eval/results"
+      "commandLineArgs": "run --sweep eval/experiments/<experiment>/<config>.toml --out eval/experiments/<experiment>/runs"
     },
     "Minerva.Search.Bench authoring": {
       "commandName": "Project",
