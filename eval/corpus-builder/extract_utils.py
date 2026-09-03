@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import hashlib
+import re
 from bs4 import BeautifulSoup
 from html_to_markdown import convert, ConversionOptions, PreprocessingOptions
 from libzim.reader import Archive, Entry #type: ignore
@@ -27,13 +28,45 @@ def clean_html(raw):
 def md_filename(entry) -> str:
     return entry.path.replace("/", "_") + ".md"
 
-def to_markdown(text: str) -> str | None:
-    # cleaned = clean_html(text)
-    # if cleaned is None:
-    #     return None
+truncationMarkers = ["see also", "references", "notes and references", "notes, references and sources", "references and notes", "citations", "further reading", "external links", "bibliography"]
+removeSectionMarkers = [ "notes", "footnotes", "explanatory notes" ]
+marker_detector = re.compile(r"^(#{2,4})\s+(.+?)\s*$")
+license_line = "This article is issued from [Wikipedia]"
+def strip_trailing_sections(markdown_content: str) -> str:
+    new_content:list[str] = []
+    inside_section_removal = 0
+    for line in markdown_content.splitlines():
+        if line.startswith(license_line):
+            continue
+        
+        match = marker_detector.match(line)
+        if match is None:
+            if inside_section_removal == 0:
+                new_content.append(line)
+        else:
+            term = match.group(2).strip().lower()
+            level = len(match.group(1))
+            if term in truncationMarkers:
+                break
+            elif term in removeSectionMarkers:
+                if inside_section_removal == 0:
+                    inside_section_removal = level
+            else:
+                if inside_section_removal != 0 and level <= inside_section_removal:
+                    inside_section_removal = 0
 
+                if inside_section_removal == 0:
+                    new_content.append(line)
+
+    new_content.append('\n')
+    return '\n'.join(new_content) 
+
+def to_markdown(text: str) -> str | None:
     result = convert(text, options)
-    return result.content
+    if result.content is None:
+        return result.content
+        
+    return strip_trailing_sections(result.content)
 
 
 # Validate the manifest against the zim before any extraction: right zim, no
