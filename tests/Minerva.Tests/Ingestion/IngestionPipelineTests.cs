@@ -24,13 +24,9 @@ public class IngestionPipelineTests
         IChunkContextualizer? Contextualizer);
 
     private static TestBed CreatePipeline(
-        ContextualizationLevel level = ContextualizationLevel.None)
+        bool withSummarizer = false,
+        bool withContextualizer = false)
     {
-        // Mirror the builder's contract: summarizer at DocumentBrief and above,
-        // contextualizer only at PerChunk.
-        bool withSummarizer = level >= ContextualizationLevel.DocumentBrief;
-        bool withContextualizer = level == ContextualizationLevel.PerChunk;
-
         var chunker = Substitute.For<IDocumentChunker>();
         chunker.SegmentDocument(Arg.Any<string>())
             .Returns(ci => (IReadOnlyList<string>)[ci.Arg<string>()]);
@@ -72,7 +68,7 @@ public class IngestionPipelineTests
         }
 
         var pipeline = new IngestionPipeline(
-            chunker, embedder, summarizer, contextualizer, level,
+            chunker, embedder, summarizer, contextualizer,
             repo, NullLogger<IngestionPipeline>.Instance);
 
         return new TestBed(pipeline, chunker, embedder, repo, summarizer, contextualizer);
@@ -134,7 +130,7 @@ public class IngestionPipelineTests
     [Fact]
     public async Task IngestAsync_SkipsContextualizationWhenDisabled()
     {
-        var bed = CreatePipeline(ContextualizationLevel.None);
+        var bed = CreatePipeline(withSummarizer: false, withContextualizer: false);
         var doc = new Document(SourceId, "Title", "Content.");
 
         var result = await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
@@ -257,7 +253,6 @@ public class IngestionPipelineTests
         var contextualizer = new ChunkContextualizer(llm);
         var pipelineWithSummarizer = new IngestionPipeline(
             bed.Chunker, bed.Embedder, summarizer, contextualizer,
-            ContextualizationLevel.PerChunk,
             bed.Repo, NullLogger<IngestionPipeline>.Instance);
 
         var doc = new Document(SourceId, "Title", "doc body");
@@ -281,7 +276,7 @@ public class IngestionPipelineTests
     [Fact]
     public async Task IngestAsync_WithContextualizer_AppliesPrefixes()
     {
-        var bed = CreatePipeline(ContextualizationLevel.PerChunk);
+        var bed = CreatePipeline(withSummarizer: true, withContextualizer: true);
 
         // Multi-chunk path: contextualization (and the summarizer it depends on) only runs when
         // a doc produces more than one chunk. Override the default 1-chunk mock to return 2.
@@ -300,97 +295,6 @@ public class IngestionPipelineTests
             CollectionName, SourceId,
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.All(c => c.ContextualPrefix == "ctx")),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestAsync_DocumentBrief_UsesSummaryAsEveryChunkPrefix()
-    {
-        var bed = CreatePipeline(ContextualizationLevel.DocumentBrief);
-        bed.Chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns(ci => (IReadOnlyList<Chunk>)
-            [
-                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 0, ci.ArgAt<string>(2)),
-                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 1, ci.ArgAt<string>(2)),
-            ]);
-
-        var doc = new Document(SourceId, "Title", "Content.");
-
-        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
-                chunks => chunks.All(c => c.ContextualPrefix == "A summary.")),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestAsync_Breadcrumb_UsesHeadingTrailAsPrefix()
-    {
-        var bed = CreatePipeline(ContextualizationLevel.Breadcrumb);
-        bed.Chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns((IReadOnlyList<Chunk>)
-            [
-                MakeChunk(CollectionName, SourceId, 0, "# Jamaica\n\nIntro text."),
-                MakeChunk(CollectionName, SourceId, 1, "## Government\n\nParliament details."),
-            ]);
-
-        var doc = new Document(SourceId, "Jamaica", "text");
-
-        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(chunks =>
-                chunks[0].ContextualPrefix == "Jamaica"
-                && chunks[1].ContextualPrefix == "Jamaica > Government"),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestAsync_Breadcrumb_NoHeadings_FallsBackToDocumentTitle()
-    {
-        var bed = CreatePipeline(ContextualizationLevel.Breadcrumb);
-        bed.Chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns((IReadOnlyList<Chunk>)
-            [
-                MakeChunk(CollectionName, SourceId, 0, "Plain text, first part."),
-                MakeChunk(CollectionName, SourceId, 1, "Plain text, second part."),
-            ]);
-
-        var doc = new Document(SourceId, "My Note", "text");
-
-        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
-                chunks => chunks.All(c => c.ContextualPrefix == "My Note")),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task IngestAsync_DocumentBrief_LargeDocument_UsesOwnSegmentSummary()
-    {
-        var bed = CreatePipeline(ContextualizationLevel.DocumentBrief);
-        bed.Chunker.SegmentDocument(Arg.Any<string>())
-            .Returns((IReadOnlyList<string>)["seg-zero", "seg-one"]);
-        bed.Summarizer!.SummarizeSegmentsAsync(
-                Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(ci => (IReadOnlyList<string>)ci.Arg<IReadOnlyList<string>>()
-                .Select(s => $"summary of {s}").ToArray());
-
-        var doc = new Document(SourceId, "Title", "text");
-
-        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(chunks =>
-                chunks.Count == 2
-                && chunks[0].ContextualPrefix == "summary of seg-zero"
-                && chunks[1].ContextualPrefix == "summary of seg-one"),
             Arg.Any<CancellationToken>());
     }
 }

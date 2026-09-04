@@ -12,7 +12,6 @@ public class IngestionPipeline
     private readonly IEmbeddingService _embeddingService;
     private readonly IDocumentSummarizer? _summarizer;
     private readonly IChunkContextualizer? _contextualizer;
-    private readonly ContextualizationLevel _level;
     private readonly IChunkWriter _chunkWriter;
     private readonly ILogger<IngestionPipeline> _logger;
 
@@ -21,7 +20,6 @@ public class IngestionPipeline
         IEmbeddingService embeddingService,
         IDocumentSummarizer? summarizer,
         IChunkContextualizer? contextualizer,
-        ContextualizationLevel level,
         IChunkWriter chunkWriter,
         ILogger<IngestionPipeline> logger)
     {
@@ -29,7 +27,6 @@ public class IngestionPipeline
         _embeddingService = embeddingService;
         _summarizer = summarizer;
         _contextualizer = contextualizer;
-        _level = level;
         _chunkWriter = chunkWriter;
         _logger = logger;
     }
@@ -42,6 +39,7 @@ public class IngestionPipeline
     {
         var sw = Stopwatch.StartNew();
 
+        // 1. Integrate attachments
         var text = AttachmentIntegrator.Integrate(
             document.Text, document.Attachments ?? new Dictionary<string, AttachmentDescription>());
 
@@ -59,6 +57,7 @@ public class IngestionPipeline
             return new IngestionResult(0, 0, 0, 0, sw.Elapsed);
         }
 
+        // 2. Compare against caller-provided hash — skip if unchanged
         var contentHash = HashHelper.ComputeContentHash(text);
 
         if (storedContentHash == contentHash)
@@ -69,12 +68,13 @@ public class IngestionPipeline
 
         bool isUpdate = storedContentHash is not null;
 
+        // 3. Segment, summarize, chunk, contextualize
         List<Chunk> allChunks;
         IReadOnlyList<string>? contextPrefixes;
         try
         {
             (allChunks, contextPrefixes) = await ProcessDocumentAsync(
-                collectionName, document, text, ct);
+                collectionName, document.SourceId, text, ct);
         }
         catch (LlmContextOverflowException ex)
         {
@@ -94,18 +94,21 @@ public class IngestionPipeline
                 $"Ingestion failed for document '{document.SourceId}' ({text.Length} chars): {ex.Message}", ex);
         }
 
+        // 4. Apply contextual prefixes
         if (contextPrefixes is not null)
         {
             for (int i = 0; i < allChunks.Count; i++)
                 allChunks[i] = allChunks[i] with { ContextualPrefix = contextPrefixes[i] };
         }
 
+        // 5. Embed — text for embedding includes contextual prefix when present
         var textsForEmbedding = allChunks
             .Select(c => ContextualText.buildContextualText(c.Content, c.ContextualPrefix))
             .ToList();
 
         var embeddings = await _embeddingService.EmbedAsync(textsForEmbedding, ct: ct);
 
+        // 6. Build ChunkWithEmbedding records with adjacency pointers
         var chunksWithEmbeddings = new List<ChunkWithEmbedding>(allChunks.Count);
         for (int i = 0; i < allChunks.Count; i++)
         {
@@ -124,6 +127,7 @@ public class IngestionPipeline
                 NextChunkId: i < allChunks.Count - 1 ? allChunks[i + 1].Id : null));
         }
 
+        // 7. Atomic upsert
         await _chunkWriter.UpsertChunksAsync(
             collectionName, document.SourceId, chunksWithEmbeddings, ct);
 
@@ -149,31 +153,15 @@ public class IngestionPipeline
 
     private async Task<(List<Chunk> chunks, IReadOnlyList<string>? contextPrefixes)>
         ProcessDocumentAsync(
-            string collectionName, Document document, string text, CancellationToken ct)
+            string collectionName, string sourceId, string text, CancellationToken ct)
     {
         var segments = _chunker.SegmentDocument(text);
         bool isLargeDoc = segments.Count > 1;
 
-        var (chunks, prefixes) = isLargeDoc
-            ? await ProcessLargeDocumentAsync(collectionName, document.SourceId, segments, ct)
-            : await ProcessSingleDocumentAsync(collectionName, document.SourceId, text, ct);
+        if (isLargeDoc)
+            return await ProcessLargeDocumentAsync(collectionName, sourceId, segments, ct);
 
-        if (_level == ContextualizationLevel.Breadcrumb && chunks.Count > 1)
-        {
-            chunks = HeadingTrailAnnotator.Annotate(chunks);
-            prefixes = BreadcrumbPrefixes(chunks, document.Title);
-        }
-
-        return (chunks, prefixes);
-    }
-
-    private static List<string> BreadcrumbPrefixes(List<Chunk> annotatedChunks, string documentTitle)
-    {
-        return annotatedChunks
-            .Select(c => c.HeadingTrail is { Count: > 0 } trail
-                ? string.Join(" > ", trail)
-                : documentTitle)
-            .ToList();
+        return await ProcessSingleDocumentAsync(collectionName, sourceId, text, ct);
     }
 
     private async Task<(List<Chunk>, IReadOnlyList<string>?)> ProcessSingleDocumentAsync(
@@ -190,12 +178,9 @@ public class IngestionPipeline
             ? await _summarizer.SummarizeAsync(text, ct)
             : null;
 
-        // At DocumentBrief the summary itself is every chunk's prefix;
-        // at PerChunk the contextualizer derives one prefix per chunk from it.
+        // Contextualize (optional, requires summary)
         IReadOnlyList<string>? prefixes = null;
-        if (summary is not null && _level == ContextualizationLevel.DocumentBrief)
-            prefixes = Enumerable.Repeat(summary, chunks.Count).ToList();
-        else if (summary is not null && _contextualizer is not null)
+        if (_contextualizer is not null && summary is not null)
             prefixes = await _contextualizer.ContextualizeAsync(summary, chunks, ct);
 
         return (chunks, prefixes);
@@ -219,14 +204,8 @@ public class IngestionPipeline
             var segChunks = _chunker.ChunkSegment(
                 collectionName, sourceId, segments[s], startIndex);
 
-            // This segment's summary becomes the prefix directly (DocumentBrief)
-            // or feeds the per-chunk contextualizer (PerChunk)
-            if (summaries is not null && _level == ContextualizationLevel.DocumentBrief)
-            {
-                allPrefixes ??= new List<string>();
-                allPrefixes.AddRange(Enumerable.Repeat(summaries[s], segChunks.Count));
-            }
-            else if (_contextualizer is not null && summaries is not null)
+            // Contextualize with this segment's summary
+            if (_contextualizer is not null && summaries is not null)
             {
                 var prefixes = await _contextualizer.ContextualizeAsync(
                     summaries[s], segChunks, ct);

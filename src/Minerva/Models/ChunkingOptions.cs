@@ -12,5 +12,5 @@ public sealed record ChunkingOptions
     public required int ChunkOverlap { get; init; }
     public required int MaxSegmentChars { get; init; }
     public required ChunkerType ChunkerType { get; init; }
-    public required ContextualizationOptions Contextualization { get; init; }
+    public LlmProviderOptions? Llm { get; init; }
 }

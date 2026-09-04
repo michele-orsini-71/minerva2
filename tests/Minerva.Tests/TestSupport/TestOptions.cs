@@ -10,14 +10,13 @@ internal static class TestOptions
         int chunkOverlap = 200,
         int maxSegmentChars = 8000,
         ChunkerType chunkerType = ChunkerType.Custom,
-        ContextualizationOptions? contextualization = null) => new()
+        LlmProviderOptions? llm = null) => new()
     {
         TargetChunkSize = targetChunkSize,
         ChunkOverlap = chunkOverlap,
         MaxSegmentChars = maxSegmentChars,
         ChunkerType = chunkerType,
-        Contextualization = contextualization
-            ?? new ContextualizationOptions { Level = ContextualizationLevel.None },
+        Llm = llm,
     };
 
     public static EmbeddingProviderOptions Embedding(
@@ -74,7 +73,6 @@ internal static class TestOptions
         int chunkOverlap = 200,
         int maxSegmentChars = 8000,
         bool contextualizationEnabled = false,
-        ContextualizationLevel level = ContextualizationLevel.None,
         string? contextualizationModel = null,
         string? summarizerPromptVersion = null,
         string? contextualizerPromptVersion = null,
@@ -83,7 +81,7 @@ internal static class TestOptions
         new(
             new CollectionInvariants(
                 embeddingModel, embeddingDimension, chunkerType, targetChunkSize,
-                chunkOverlap, maxSegmentChars, contextualizationEnabled, level,
+                chunkOverlap, maxSegmentChars, contextualizationEnabled,
                 contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
             new CollectionLastRun(ingestorVersion, schemaVersion));
 }

@@ -19,8 +19,7 @@ public class MinervaIngestOptionsBinderTests
             "TargetChunkSize": 1200,
             "ChunkOverlap": 200,
             "MaxSegmentChars": 8000,
-            "ChunkerType": "Custom",
-            "Contextualization": { "Level": "None" }
+            "ChunkerType": "Custom"
           }
         }
         """;
@@ -42,22 +41,21 @@ public class MinervaIngestOptionsBinderTests
         Assert.Equal(200, options.Chunking.ChunkOverlap);
         Assert.Equal(8000, options.Chunking.MaxSegmentChars);
         Assert.Equal(ChunkerType.Custom, options.Chunking.ChunkerType);
-        Assert.Equal(ContextualizationLevel.None, options.Chunking.Contextualization.Level);
-        Assert.Null(options.Chunking.Contextualization.Llm);
+        Assert.Null(options.Chunking.Llm);
     }
 
     [Fact]
-    public void Bind_LevelNone_ProducesNullLlm()
+    public void Bind_ChunkingLlmAbsent_ProducesNullLlm()
     {
         var cfg = ConfigFromJson.Build(ValidJson);
 
         var options = MinervaIngestOptionsBinder.Bind(cfg);
 
-        Assert.Null(options.Chunking.Contextualization.Llm);
+        Assert.Null(options.Chunking.Llm);
     }
 
     [Fact]
-    public void Bind_LevelPerChunkWithLlm_ProducesPopulatedLlm()
+    public void Bind_ChunkingLlmPresent_ProducesPopulatedLlm()
     {
         const string json = """
             {
@@ -73,13 +71,10 @@ public class MinervaIngestOptionsBinderTests
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
-                "Contextualization": {
-                  "Level": "PerChunk",
-                  "Llm": {
-                    "BaseUrl": "http://localhost:1234/v1",
-                    "Model": "gemma",
-                    "Concurrency": 2
-                  }
+                "Llm": {
+                  "BaseUrl": "http://localhost:1234/v1",
+                  "Model": "gemma",
+                  "Concurrency": 2
                 }
               }
             }
@@ -87,12 +82,10 @@ public class MinervaIngestOptionsBinderTests
 
         var options = MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json));
 
-        var llm = options.Chunking.Contextualization.Llm;
-        Assert.Equal(ContextualizationLevel.PerChunk, options.Chunking.Contextualization.Level);
-        Assert.NotNull(llm);
-        Assert.Equal("http://localhost:1234/v1", llm!.BaseUrl);
-        Assert.Equal("gemma", llm.Model);
-        Assert.Equal(2, llm.Concurrency);
+        Assert.NotNull(options.Chunking.Llm);
+        Assert.Equal("http://localhost:1234/v1", options.Chunking.Llm!.BaseUrl);
+        Assert.Equal("gemma", options.Chunking.Llm.Model);
+        Assert.Equal(2, options.Chunking.Llm.Concurrency);
     }
 
     [Fact]
@@ -110,8 +103,7 @@ public class MinervaIngestOptionsBinderTests
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": { "Level": "None" }
+                "ChunkerType": "Custom"
               }
             }
             """;
@@ -139,8 +131,7 @@ public class MinervaIngestOptionsBinderTests
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": { "Level": "None" }
+                "ChunkerType": "Custom"
               }
             }
             """;
@@ -169,12 +160,9 @@ public class MinervaIngestOptionsBinderTests
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
-                "Contextualization": {
-                  "Level": "PerChunk",
-                  "Llm": {
-                    "BaseUrl": "http://localhost:1234/v1",
-                    "Concurrency": 1
-                  }
+                "Llm": {
+                  "BaseUrl": "http://localhost:1234/v1",
+                  "Concurrency": 1
                 }
               }
             }
@@ -184,7 +172,7 @@ public class MinervaIngestOptionsBinderTests
             () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Single(ex.Failures);
-        Assert.Equal("Chunking.Contextualization.Llm.Model", ex.Failures[0].Path);
+        Assert.Equal("Chunking.Llm.Model", ex.Failures[0].Path);
     }
 
     [Fact]
@@ -200,8 +188,7 @@ public class MinervaIngestOptionsBinderTests
               "Chunking": {
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": { "Level": "None" }
+                "ChunkerType": "Custom"
               }
             }
             """;
@@ -230,12 +217,9 @@ public class MinervaIngestOptionsBinderTests
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
                 "ChunkerType": "Custom",
-                "Contextualization": {
-                  "Level": "PerChunk",
-                  "Llm": {
-                    "BaseUrl": "bad-url",
-                    "Concurrency": 1
-                  }
+                "Llm": {
+                  "BaseUrl": "bad-url",
+                  "Concurrency": 1
                 }
               }
             }
@@ -245,10 +229,10 @@ public class MinervaIngestOptionsBinderTests
             () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         var paths = ex.Failures.Select(f => f.Path).ToList();
-        Assert.Contains("ConnectionString", paths);                          // top-level
-        Assert.Contains("Embedding.Model", paths);                            // child
-        Assert.Contains("Chunking.Contextualization.Llm.BaseUrl", paths);     // great-grandchild
-        Assert.Contains("Chunking.Contextualization.Llm.Model", paths);       // great-grandchild
+        Assert.Contains("ConnectionString", paths);              // top-level
+        Assert.Contains("Embedding.Model", paths);                // child
+        Assert.Contains("Chunking.Llm.BaseUrl", paths);           // grandchild
+        Assert.Contains("Chunking.Llm.Model", paths);             // grandchild
     }
 
     [Fact]
@@ -267,8 +251,7 @@ public class MinervaIngestOptionsBinderTests
                 "TargetChunkSize": 1200,
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
-                "ChunkerType": "BogusValue",
-                "Contextualization": { "Level": "None" }
+                "ChunkerType": "BogusValue"
               }
             }
             """;
@@ -296,8 +279,7 @@ public class MinervaIngestOptionsBinderTests
                 "TargetChunkSize": 100,
                 "ChunkOverlap": 200,
                 "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": { "Level": "None" }
+                "ChunkerType": "Custom"
               }
             }
             """;
@@ -327,98 +309,5 @@ public class MinervaIngestOptionsBinderTests
             () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
 
         Assert.Contains(ex.Failures, f => f.Path == "Chunking");
-    }
-
-    [Fact]
-    public void Bind_MissingContextualizationSection_ReportsSectionRequired()
-    {
-        const string json = """
-            {
-              "ConnectionString": "Host=h;Database=d",
-              "Embedding": {
-                "BaseUrl": "http://localhost:11434/v1",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
-              },
-              "Chunking": {
-                "TargetChunkSize": 1200,
-                "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom"
-              }
-            }
-            """;
-
-        var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
-
-        Assert.Single(ex.Failures);
-        Assert.Equal("Chunking.Contextualization", ex.Failures[0].Path);
-    }
-
-    [Fact]
-    public void Bind_LlmLevelWithoutLlm_ReportsLlmRequired()
-    {
-        const string json = """
-            {
-              "ConnectionString": "Host=h;Database=d",
-              "Embedding": {
-                "BaseUrl": "http://localhost:11434/v1",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
-              },
-              "Chunking": {
-                "TargetChunkSize": 1200,
-                "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": { "Level": "DocumentBrief" }
-              }
-            }
-            """;
-
-        var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
-
-        Assert.Single(ex.Failures);
-        Assert.Equal("Chunking.Contextualization.Llm", ex.Failures[0].Path);
-    }
-
-    [Fact]
-    public void Bind_NonLlmLevelWithLlm_ReportsLlmNotNeeded()
-    {
-        const string json = """
-            {
-              "ConnectionString": "Host=h;Database=d",
-              "Embedding": {
-                "BaseUrl": "http://localhost:11434/v1",
-                "Model": "nomic",
-                "Concurrency": 1,
-                "BatchSize": 4
-              },
-              "Chunking": {
-                "TargetChunkSize": 1200,
-                "ChunkOverlap": 200,
-                "MaxSegmentChars": 8000,
-                "ChunkerType": "Custom",
-                "Contextualization": {
-                  "Level": "Breadcrumb",
-                  "Llm": {
-                    "BaseUrl": "http://localhost:1234/v1",
-                    "Model": "gemma",
-                    "Concurrency": 1
-                  }
-                }
-              }
-            }
-            """;
-
-        var ex = Assert.Throws<OptionsValidationException>(
-            () => MinervaIngestOptionsBinder.Bind(ConfigFromJson.Build(json)));
-
-        Assert.Single(ex.Failures);
-        Assert.Equal("Chunking.Contextualization.Llm", ex.Failures[0].Path);
     }
 }

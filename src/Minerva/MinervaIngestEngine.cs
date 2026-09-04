@@ -124,7 +124,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         Compare("targetChunkSize", stored.TargetChunkSize, configured.TargetChunkSize);
         Compare("chunkOverlap", stored.ChunkOverlap, configured.ChunkOverlap);
         Compare("maxSegmentChars", stored.MaxSegmentChars, configured.MaxSegmentChars);
-        Compare("contextualizationLevel", stored.Level, configured.Level);
+        Compare("contextualizationEnabled", stored.ContextualizationEnabled, configured.ContextualizationEnabled);
         Compare("contextualizationModel", stored.ContextualizationModel, configured.ContextualizationModel);
         Compare("summarizerPromptVersion", stored.SummarizerPromptVersion, configured.SummarizerPromptVersion);
         Compare("contextualizerPromptVersion", stored.ContextualizerPromptVersion, configured.ContextualizerPromptVersion);
@@ -135,7 +135,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     private async Task<CollectionProvenance> BuildProvenanceAsync(CancellationToken ct)
     {
         var dimension = await _dimensionProvider.GetDimensionAsync(ct);
-        var level = _chunking.Contextualization.Level;
+        var contextualizationEnabled = _chunking.Llm is not null;
 
         var invariants = new CollectionInvariants(
             EmbeddingModel: _configuredEmbeddingModel,
@@ -144,11 +144,10 @@ internal sealed class MinervaIngestEngine : IIngestEngine
             TargetChunkSize: _chunking.TargetChunkSize,
             ChunkOverlap: _chunking.ChunkOverlap,
             MaxSegmentChars: _chunking.MaxSegmentChars,
-            ContextualizationEnabled: level != ContextualizationLevel.None,
-            Level: level,
-            ContextualizationModel: _chunking.Contextualization.Llm?.Model,
-            SummarizerPromptVersion: level >= ContextualizationLevel.DocumentBrief ? DocumentSummarizer.PromptVersion : null,
-            ContextualizerPromptVersion: level == ContextualizationLevel.PerChunk ? ChunkContextualizer.PromptVersion : null);
+            ContextualizationEnabled: contextualizationEnabled,
+            ContextualizationModel: contextualizationEnabled ? _chunking.Llm!.Model : null,
+            SummarizerPromptVersion: contextualizationEnabled ? DocumentSummarizer.PromptVersion : null,
+            ContextualizerPromptVersion: contextualizationEnabled ? ChunkContextualizer.PromptVersion : null);
 
         var lastRun = new CollectionLastRun(
             IngestorVersion: IngestorVersion,

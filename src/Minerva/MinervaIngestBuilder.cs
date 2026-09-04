@@ -23,11 +23,11 @@ public static class MinervaIngestBuilder
 
         OpenAICompatibleLlmProvider? llmProvider = null;
         ILlmClient? llmClient = null;
-        if (options.Chunking.Contextualization.Llm is not null)
+        if (options.Chunking.Llm is not null)
         {
             try
             {
-                var providerFactory = new ProviderFactory(options.Embedding, options.Chunking.Contextualization.Llm);
+                var providerFactory = new ProviderFactory(options.Embedding, options.Chunking.Llm);
                 llmProvider = (OpenAICompatibleLlmProvider)providerFactory.CreateLlmProvider();
                 llmClient = llmProvider;
             }
@@ -38,14 +38,11 @@ public static class MinervaIngestBuilder
             }
         }
 
-        // Binder validation guarantees Llm (hence llmClient) is present exactly
-        // when the level is DocumentBrief or PerChunk.
-        var level = options.Chunking.Contextualization.Level;
-        IDocumentSummarizer? summarizer = level >= ContextualizationLevel.DocumentBrief
-            ? new DocumentSummarizer(llmClient!)
+        IDocumentSummarizer? summarizer = llmClient is not null
+            ? new DocumentSummarizer(llmClient)
             : null;
-        IChunkContextualizer? contextualizer = level == ContextualizationLevel.PerChunk
-            ? new ChunkContextualizer(llmClient!)
+        IChunkContextualizer? contextualizer = llmClient is not null
+            ? new ChunkContextualizer(llmClient)
             : null;
 
         IDocumentChunker chunker = options.Chunking.ChunkerType switch
@@ -60,7 +57,6 @@ public static class MinervaIngestBuilder
             core.EmbeddingService,
             summarizer,
             contextualizer,
-            level,
             core.ChunkWriter,
             loggerFactory.CreateLogger<IngestionPipeline>());
 
