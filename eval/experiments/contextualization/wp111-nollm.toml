@@ -1,8 +1,8 @@
-dataset = "../../datasets/wikipedia-v1.jsonl"
-collection = "wikipedia-qwen2-5"
+dataset = "../../datasets/wp111-v1.jsonl"
+collection = "wp111-nollm"
 top_k = 50
 candidate_pool_size = 100
-label = "reranker"
+label = "wp111-contextualization"
 
 [matrix]
 enable_reranker = [true]

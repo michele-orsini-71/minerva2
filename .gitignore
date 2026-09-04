@@ -524,3 +524,4 @@ eval/corpus-builder/zim-cluster-embeddings.jsonl
 eval/corpus-builder/zim-cluster.done
 
 dev-docs
+eval/collections/markdown-indexer

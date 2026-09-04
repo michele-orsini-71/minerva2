@@ -1,5 +1,5 @@
-dataset = "../../datasets/wikipedia-v1.jsonl"
-collection = "wp-none"
+dataset = "../../datasets/wp1283-v1.jsonl"
+collection = "wp1283-nollm"
 top_k = 50
 candidate_pool_size = 100
 label = "baseline"
