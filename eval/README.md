@@ -9,7 +9,7 @@
 Two corpora share the same layout: `wp1283` (full, 1283 articles) and `wp111`
 (111 articles, fast loop). Names follow `{corpus}-{context}`, where context is
 `nollm` (no contextualization) or the model alias of the contextualizing LLM
-(`e2b`, `q317b`, ...).
+(`e2b`, ...).
 
 ## Everyday loop
 
