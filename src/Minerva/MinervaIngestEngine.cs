@@ -10,6 +10,8 @@ namespace Minerva;
 
 internal sealed class MinervaIngestEngine : IIngestEngine
 {
+    private const int MaxConsecutiveFailures = 5;
+
     private readonly IngestionPipeline _ingestionPipeline;
     private readonly ICollectionService _collections;
     private readonly IChunkWriter _chunkWriter;
@@ -53,18 +55,41 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
 
-        int added = 0, updated = 0, unchanged = 0, deleted = 0;
+        int added = 0, updated = 0, unchanged = 0, deleted = 0, failed = 0;
+        int consecutiveFailures = 0;
 
         await foreach (var document in documents.WithCancellation(ct))
         {
             existing.TryGetValue(document.SourceId, out var storedHash);
-            var result = await _ingestionPipeline.IngestAsync(
-                collectionName, document, storedHash, ct);
-            added += result.Added;
-            updated += result.Updated;
-            unchanged += result.Unchanged;
-            deleted += result.Deleted;
-            seen.Add(document.SourceId);
+            try
+            {
+                var result = await _ingestionPipeline.IngestAsync(
+                    collectionName, document, storedHash, ct);
+                added += result.Added;
+                updated += result.Updated;
+                unchanged += result.Unchanged;
+                deleted += result.Deleted;
+                seen.Add(document.SourceId);
+                consecutiveFailures = 0;
+            }
+            catch (ProviderUnavailableException ex)
+            {
+                _logger.LogError(ex, "Ingestion failed for {SourceId}", document.SourceId);
+                consecutiveFailures++;
+                failed++;
+                // Keep the failed document out of the removal loop below: a transient
+                // provider error must not delete a document that is already indexed.
+                seen.Add(document.SourceId);
+
+                // Per-document retries already happened in the provider. This many failures
+                // in a row means the provider is down, not that the documents are bad.
+                if (consecutiveFailures >= MaxConsecutiveFailures)
+                {
+                    throw new IngestionAbortedException(
+                        $"Ingestion stopped after {MaxConsecutiveFailures} consecutive provider errors",
+                        ex, added + updated + unchanged, failed, sw.Elapsed);
+                }
+            }
         }
 
         foreach (var sourceId in existing.Keys)
@@ -74,7 +99,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
             deleted++;
         }
 
-        return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed);
+        return new IngestionResult(added, updated, deleted, unchanged, sw.Elapsed, failed);
     }
 
     public async Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default)

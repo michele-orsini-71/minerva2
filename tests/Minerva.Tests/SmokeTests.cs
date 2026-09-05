@@ -23,7 +23,7 @@ public class SmokeTests
     [Fact]
     public void IngestionResult_record_properties_are_set()
     {
-        var result = new IngestionResult(3, 1, 2, 5, TimeSpan.FromSeconds(1.5));
+        var result = new IngestionResult(3, 1, 2, 5, TimeSpan.FromSeconds(1.5), 0);
 
         Assert.Equal(3, result.Added);
         Assert.Equal(1, result.Updated);

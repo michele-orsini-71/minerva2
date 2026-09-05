@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using Minerva.Exceptions;
 using Minerva.Models;
 
 namespace Minerva.MarkdownIndexer;
@@ -29,7 +30,7 @@ public sealed class MarkdownIndexer
         _logger = logger;
     }
 
-    public async Task RunAsync(CancellationToken ct = default)
+    public async Task<IngestionResult> RunAsync(CancellationToken ct = default)
     {
         var collection = await _engine.QueryCollectionInfoAsync(_options.CollectionName, ct);
         if (collection != null)
@@ -51,12 +52,23 @@ public sealed class MarkdownIndexer
 
         var clientProvenance = new ClientProvenance(ClientProvenanceName, clientData);
 
-        var result = await _engine.IngestAsync(
-            _options.CollectionName, clientProvenance, EnumerateDocumentsAsync(ct), _options.AllowRecreateOnConfigMismatch, ct);
+        try
+        {
+            var result = await _engine.IngestAsync(
+                _options.CollectionName, clientProvenance, EnumerateDocumentsAsync(ct), _options.AllowRecreateOnConfigMismatch, ct);
 
-        _logger.LogInformation(
-            "Sync: +{Added} ~{Updated} -{Deleted} ={Unchanged} in {Elapsed}",
-            result.Added, result.Updated, result.Deleted, result.Unchanged, result.Elapsed);
+            _logger.LogInformation(
+                "Sync: +{Added} ~{Updated} -{Deleted} ={Unchanged} !!{Failed} in {Elapsed}",
+                result.Added, result.Updated, result.Deleted, result.Unchanged, result.Failed, result.Elapsed);
+            return result;
+        }
+        catch (IngestionAbortedException ex)
+        {
+            // Logged here so the file log records the partial outcome; the caller maps it to an exit code.
+            _logger.LogError(ex, "{Message}, partial result: +{Ingested} !!{Failed} in {Elapsed}",
+                ex.Message, ex.Ingested, ex.Failed, ex.Elapsed);
+            throw;
+        }
     }
 
     // A scope field defines which files belong to the corpus. A change to any of them can

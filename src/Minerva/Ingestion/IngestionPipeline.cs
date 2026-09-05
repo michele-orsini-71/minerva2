@@ -50,11 +50,11 @@ public class IngestionPipeline
                 _logger.LogInformation(
                     "Document {SourceId} is now empty; removing prior chunks", document.SourceId);
                 await _chunkWriter.DeleteBySourceIdAsync(collectionName, document.SourceId, ct);
-                return new IngestionResult(0, 0, Deleted: 1, 0, sw.Elapsed);
+                return new IngestionResult(0, 0, Deleted: 1, 0, sw.Elapsed, 0);
             }
 
             _logger.LogDebug("Document {SourceId} is empty, skipping", document.SourceId);
-            return new IngestionResult(0, 0, 0, 0, sw.Elapsed);
+            return new IngestionResult(0, 0, 0, 0, sw.Elapsed, 0);
         }
 
         // 2. Compare against caller-provided hash — skip if unchanged
@@ -63,7 +63,7 @@ public class IngestionPipeline
         if (storedContentHash == contentHash)
         {
             _logger.LogDebug("Document {SourceId} unchanged, skipping ingestion", document.SourceId);
-            return new IngestionResult(0, 0, 0, Unchanged: 1, sw.Elapsed);
+            return new IngestionResult(0, 0, 0, Unchanged: 1, sw.Elapsed, 0);
         }
 
         bool isUpdate = storedContentHash is not null;
@@ -140,7 +140,8 @@ public class IngestionPipeline
             Updated: isUpdate ? 1 : 0,
             Deleted: 0,
             Unchanged: 0,
-            sw.Elapsed);
+            sw.Elapsed,
+            Failed: 0);
     }
 
     public async Task RemoveAsync(

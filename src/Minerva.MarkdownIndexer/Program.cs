@@ -71,7 +71,12 @@ try
     var indexer = await MarkdownIndexerBuilder.CreateAsync(
         indexerOptions, engine, loggerFactory, cts.Token);
 
-    await indexer.RunAsync(cts.Token);
+    var result = await indexer.RunAsync(cts.Token);
+    if (result.Failed > 0)
+    {
+        Console.Error.WriteLine($"{result.Failed} document(s) failed to ingest; rerun to retry them.");
+        return 3;
+    }
     return 0;
 }
 catch (OptionsValidationException ex)
@@ -83,6 +88,12 @@ catch (MinervaStartupException ex)
 {
     Console.Error.WriteLine(ex.Message);
     return 2;
+}
+catch (IngestionAbortedException ex)
+{
+    Console.Error.WriteLine($"{ex.Message}: {ex.InnerException?.Message}");
+    Console.Error.WriteLine($"Ingested {ex.Ingested}, failed {ex.Failed}; rerun to continue.");
+    return 4;
 }
 catch (OperationCanceledException)
 {

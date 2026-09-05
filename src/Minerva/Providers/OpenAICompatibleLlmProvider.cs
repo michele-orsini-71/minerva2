@@ -75,6 +75,11 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
             }, cancellationToken);
             return ToChatResponse(completion);
         }
+        catch (ClientResultException ex) when (IsTransient400(ex))
+        {
+            var body = ReadResponseBody(ex);
+            throw new ProviderUnavailableException($"Model was unloaded (HTTP 400): {body ?? ex.Message}", ex);
+        }
         catch (ClientResultException ex) when (ex.Status == 400)
         {
             var body = ReadResponseBody(ex);
@@ -290,17 +295,21 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         }
     }
 
+    private static bool IsTransient400(ClientResultException ex) =>
+        ex.Status == 400 &&
+        (ReadResponseBody(ex)?.Contains("unloaded", StringComparison.OrdinalIgnoreCase) ?? false);
+
     private static ResiliencePipeline BuildResiliencePipeline() =>
         new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
                 ShouldHandle = new PredicateBuilder()
-                    .Handle<ClientResultException>(ex => ex.Status is 429 or >= 500)
+                    .Handle<ClientResultException>(ex => ex.Status is 429 or >= 500 || IsTransient400(ex))
                     .Handle<HttpRequestException>()
                     .Handle<TimeoutException>(),
-                MaxRetryAttempts = 3,
+                MaxRetryAttempts = 5,
                 BackoffType = DelayBackoffType.Exponential,
-                Delay = TimeSpan.FromSeconds(1),
+                Delay = TimeSpan.FromSeconds(5),
                 UseJitter = true,
             })
             .Build();

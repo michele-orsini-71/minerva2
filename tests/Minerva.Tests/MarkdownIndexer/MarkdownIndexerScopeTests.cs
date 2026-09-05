@@ -228,7 +228,7 @@ public class MarkdownIndexerScopeTests
         {
             Ingested = true;
             IngestedProvenance = clientProvenance;
-            return Task.FromResult(new IngestionResult(0, 0, 0, 0, TimeSpan.Zero));
+            return Task.FromResult(new IngestionResult(0, 0, 0, 0, TimeSpan.Zero, 0));
         }
     }
 }

@@ -5,4 +5,5 @@ public record IngestionResult(
     int Updated,
     int Deleted,
     int Unchanged,
-    TimeSpan Elapsed);
+    TimeSpan Elapsed,
+    int Failed);
