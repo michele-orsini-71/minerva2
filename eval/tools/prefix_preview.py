@@ -17,6 +17,8 @@ when embedding individual chunks of this document."""
 files = [
     Path("eval/collections/wikipedia-small-en-corpus/Dinosaur.md"),
     Path("eval/collections/wikipedia-small-en-corpus/Glanders.md"),
+    Path("eval/collections/wikipedia-small-en-corpus/bird.md"),
+    Path("eval/collections/wikipedia-small-en-corpus/Jamaica.md"),
 ]
 
 def split_string(string:str, lenght:int) -> list[str]:
@@ -57,8 +59,11 @@ def callLMSummary(document:str) -> str:
         { "role": "user", "content": document}])
     return response.choices[0].message.content or ""
 
-def callLLMContextualize(summary: str, chunk: str) -> str:
+def callLLMContextualize(title: str, summary: str, chunk: str) -> str:
     prompt = f"""
+<document_title>
+{title}
+</document_title>
 <document>
 {summary}
 </document>
@@ -66,11 +71,13 @@ Here is the chunk we want to situate within the whole document:
 <chunk>
 {chunk}
 </chunk>
-You write index annotations for text chunks. Given a document summary and a
-chunk, answer with one or two sentences, at most 60 words, in this form:
-<document subject>. <section topic>: <the specific names, terms, dates and
+You write index annotations for text chunks. You receive the document title,
+a document summary, optionally a section summary, and a chunk. Answer with one
+or two sentences, at most 60 words, in this form:
+<document title, copied exactly from the document_title tag>, <what the document
+is about in a few words>. <section topic>: <the specific names, terms, dates and
 claims found in the chunk>.
-Example answer:
+Example answer for a document titled "Quinine":
 <annotation>
 Quinine, antimalarial alkaloid from cinchona bark. History: William Perkin's
 1856 attempt to synthesize quinine produced mauveine, the first synthetic dye;
@@ -82,24 +89,36 @@ Answer only with the annotation.
     response:ChatCompletion = client.chat.completions.create(model="google/gemma-4-e2b", temperature=0, messages=[
         { "role": "user", "content": prompt}])
     if response.choices[0].message.content:
-        return response.choices[0].message.content.strip().removeprefix("<annotation>").removesuffix("</annotation>").strip()
+        contextualization = response.choices[0].message.content.strip().removeprefix("<annotation>").removesuffix("</annotation>").strip()
+        if not contextualization.lower().startswith(title.lower()):
+            print(f"correction adding the title {title}")
+            contextualization = title + ", " + contextualization
+        return contextualization
+
     return ""
+
+def sort_chunks(chunks: list[str]) -> list[str]:
+    special = [c for c in chunks if "\n|" in c or "\n- " in c or "\n* " in c]
+    regular = [c for c in chunks if c not in special]
+    return (special + regular)
+
 
 @dataclass
 class DocumentFragment:
     segment: str
-    original_document_id: str
+    document_title: str
     chunks:list[str]
     chunk_contexts:list[str]
     extended_chunk_contexts:list[str]
     extended_local_chunk_contexts:list[str]
     summary: str
     
-    def __init__(self, original_document_id: str, segment: str):
+    def __init__(self, document_title: str, segment: str):
         self.segment = segment
-        self.original_document_id = original_document_id
+        self.document_title = document_title
         all_chunks = split_paragraphs(segment, CHUNK_LENGTH)
-        self.chunks = [c for c in all_chunks if len(c) >= MIN_CHUNK_CHARS][:MAX_CHUNKS_PER_SEGMENT]
+        # self.chunks = [c for c in all_chunks if len(c) >= MIN_CHUNK_CHARS][:MAX_CHUNKS_PER_SEGMENT]
+        self.chunks = [c for c in sort_chunks(all_chunks) if len(c) >= MIN_CHUNK_CHARS][:MAX_CHUNKS_PER_SEGMENT]
         self.summary = ""
         self.chunk_contexts = []
         self.extended_chunk_contexts = []
@@ -121,7 +140,7 @@ class DocumentFragment:
             self.build_summary()
             
         for chunk in self.chunks:
-            self.chunk_contexts.append(callLLMContextualize(self.summary, chunk))
+            self.chunk_contexts.append(callLLMContextualize(self.document_title, self.summary, chunk))
 
     def build_extended_chunk_contexts(self, grand_summary):
         if len(self.extended_chunk_contexts):
@@ -129,7 +148,7 @@ class DocumentFragment:
             return
             
         for chunk in self.chunks:
-            self.extended_chunk_contexts.append(callLLMContextualize(grand_summary, chunk))
+            self.extended_chunk_contexts.append(callLLMContextualize(self.document_title, grand_summary, chunk))
 
     def build_extended_local_chunk_contexts(self, grand_summary):
         if len(self.extended_local_chunk_contexts):
@@ -137,7 +156,11 @@ class DocumentFragment:
             return
             
         for chunk in self.chunks:
-            self.extended_local_chunk_contexts.append(callLLMContextualize(f"Document summary:\n{grand_summary}\n\nSection summary:\n{self.summary}", chunk))
+            if grand_summary == self.summary:
+                self.extended_local_chunk_contexts.append(callLLMContextualize(self.document_title, grand_summary, chunk))
+            else:
+                self.extended_local_chunk_contexts.append(
+                    callLLMContextualize(self.document_title, f"<document_summary>\n{grand_summary}</document_summary>\n<section_summary>\n{self.summary}</section_summary>\n", chunk))
 
 @dataclass
 class Document:
@@ -164,8 +187,10 @@ class Document:
 
     # all segments are summarized (the document summary needs them all);
     # only the first MAX_SEGMENTS_PER_DOC get their chunks contextualized
+    # def previewed_fragments(self) -> list[DocumentFragment]:
+    #     return self.fragments[:MAX_SEGMENTS_PER_DOC]
     def previewed_fragments(self) -> list[DocumentFragment]:
-        return self.fragments[:MAX_SEGMENTS_PER_DOC]
+        return self.fragments
 
     def build_regular_chunk_contexts(self):
         for fragment in self.previewed_fragments():
@@ -183,25 +208,29 @@ for file in files:
     with open(file) as f:
         document = f.read()
         file_segments:list[DocumentFragment]
+        document_title = file.stem
         if len(document) > SEGMENT_LENGTH:
-            file_segments = [ DocumentFragment(str(file), segment) for segment in split_paragraphs(document, SEGMENT_LENGTH) ]
+            file_segments = [ DocumentFragment(document_title, segment) for segment in split_paragraphs(document, SEGMENT_LENGTH) ]
         else:
-            file_segments = [ DocumentFragment(str(file), document) ]
+            file_segments = [ DocumentFragment(document_title, document) ]
 
-        print(f'"Doc: {str(file)}, segments {len(file_segments)}, contextualizing the first {MAX_SEGMENTS_PER_DOC}')
+        print(f'"Doc: {str(file)}, segments {len(file_segments)}')
+        # print(f'"Doc: {str(file)}, segments {len(file_segments)}, contextualizing the first {MAX_SEGMENTS_PER_DOC}')
         print('======================')
         document = Document(file_segments)
         document.build_summaries()
-        document.build_regular_chunk_contexts()
-        document.build_extended_chunk_contexts()
+        # document.build_regular_chunk_contexts()
+        # document.build_extended_chunk_contexts()
         document.build_extended_local_chunk_contexts()
 
         for fragment in document.previewed_fragments():
             for i, chunk in enumerate(fragment.chunks):
-                print("=" * 20, fragment.original_document_id, "chunk", i)
+                print("=" * 20, fragment.document_title, "chunk", i)
                 print(chunk[:300].replace("\n", " "), "...")
-                for name, ctx in [("A segment", fragment.chunk_contexts[i]),
-                                ("B document", fragment.extended_chunk_contexts[i]),
-                                ("C doc+segment", fragment.extended_local_chunk_contexts[i])]:
+                for name, ctx in [("C doc+segment", fragment.extended_local_chunk_contexts[i])]:
                     print(f"--- {name} ({len(ctx)})\n{ctx}")
+                # for name, ctx in [("A segment", fragment.chunk_contexts[i]),
+                #                 ("B document", fragment.extended_chunk_contexts[i]),
+                #                 ("C doc+segment", fragment.extended_local_chunk_contexts[i])]:
+                #     print(f"--- {name} ({len(ctx)})\n{ctx}")
 
