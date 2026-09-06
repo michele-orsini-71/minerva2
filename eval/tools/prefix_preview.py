@@ -1,4 +1,4 @@
-import sys
+import re
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 from pathlib import Path
@@ -71,13 +71,11 @@ Here is the chunk we want to situate within the whole document:
 <chunk>
 {chunk}
 </chunk>
-You write index annotations for text chunks. You receive the document title,
-a document summary, optionally a section summary, and a chunk. Answer with one
-or two sentences, at most 60 words, in this form:
-<document title, copied exactly from the document_title tag>, <what the document
-is about in a few words>. <section topic>: <the specific names, terms, dates and
+You write index annotations for text chunks. Given a document title, a document
+summary and a chunk, answer with one or two sentences, at most 60 words, in this form:
+<document title>. <section topic>: <the specific names, terms, dates and
 claims found in the chunk>.
-Example answer for a document titled "Quinine":
+Example answer for the document titled "Quinine":
 <annotation>
 Quinine, antimalarial alkaloid from cinchona bark. History: William Perkin's
 1856 attempt to synthesize quinine produced mauveine, the first synthetic dye;
@@ -90,6 +88,7 @@ Answer only with the annotation.
         { "role": "user", "content": prompt}])
     if response.choices[0].message.content:
         contextualization = response.choices[0].message.content.strip().removeprefix("<annotation>").removesuffix("</annotation>").strip()
+        contextualization = re.sub(rf"^<\s*{re.escape(title)}\s*>", title, contextualization, flags=re.IGNORECASE)
         if not contextualization.lower().startswith(title.lower()):
             print(f"correction adding the title {title}")
             contextualization = title + ", " + contextualization
