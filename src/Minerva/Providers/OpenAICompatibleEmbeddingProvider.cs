@@ -12,6 +12,12 @@ internal interface IEmbeddingProbeFacade
     Task<int> EmbedAndCountDimensionsAsync(string input, CancellationToken ct);
 }
 
+internal interface IEmbeddingGenerationFacade
+{
+    Task<OpenAI.Embeddings.OpenAIEmbeddingCollection> GenerateEmbeddingsAsync(
+        IList<string> inputs, CancellationToken ct);
+}
+
 public sealed class OpenAICompatibleEmbeddingProvider
     : IEmbeddingGenerator<string, Embedding<float>>, IEmbeddingClient, IEmbeddingDimensionProvider
 {
@@ -19,6 +25,7 @@ public sealed class OpenAICompatibleEmbeddingProvider
     private readonly RateLimiter _rateLimiter;
     private readonly ResiliencePipeline _resiliencePipeline;
     private readonly IEmbeddingProbeFacade _probeFacade;
+    private readonly IEmbeddingGenerationFacade _generationFacade;
     private readonly Lazy<Task<int>> _dimensionLazy;
 
     public OpenAICompatibleEmbeddingProvider(
@@ -35,14 +42,17 @@ public sealed class OpenAICompatibleEmbeddingProvider
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint,
-        IEmbeddingProbeFacade? probeFacade)
+        IEmbeddingProbeFacade? probeFacade,
+        IEmbeddingGenerationFacade? generationFacade = null,
+        TimeSpan? retryBaseDelay = null)
     {
         _client = client;
         _rateLimiter = rateLimiter;
         Metadata = new EmbeddingGeneratorMetadata(
             nameof(OpenAICompatibleEmbeddingProvider), endpoint, modelId);
-        _resiliencePipeline = BuildResiliencePipeline();
+        _resiliencePipeline = BuildResiliencePipeline(retryBaseDelay ?? TimeSpan.FromSeconds(1));
         _probeFacade = probeFacade ?? new SdkEmbeddingProbeFacade(_client);
+        _generationFacade = generationFacade ?? new SdkEmbeddingGenerationFacade(_client);
         _dimensionLazy = new Lazy<Task<int>>(
             () => ProbeDimensionCoreAsync(CancellationToken.None),
             LazyThreadSafetyMode.ExecutionAndPublication);
@@ -67,9 +77,7 @@ public sealed class OpenAICompatibleEmbeddingProvider
                     await _rateLimiter.AcquireAsync(ct);
                     try
                     {
-                        OpenAI.Embeddings.OpenAIEmbeddingCollection embeddings =
-                            await _client.GenerateEmbeddingsAsync(valuesList, cancellationToken: ct);
-                        return embeddings;
+                        return await _generationFacade.GenerateEmbeddingsAsync(valuesList, ct);
                     }
                     finally
                     {
@@ -180,7 +188,7 @@ public sealed class OpenAICompatibleEmbeddingProvider
 
     public void Dispose() => _rateLimiter.Dispose();
 
-    private static ResiliencePipeline BuildResiliencePipeline() =>
+    private static ResiliencePipeline BuildResiliencePipeline(TimeSpan baseDelay) =>
         new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
@@ -190,7 +198,7 @@ public sealed class OpenAICompatibleEmbeddingProvider
                     .Handle<TimeoutException>(),
                 MaxRetryAttempts = 3,
                 BackoffType = DelayBackoffType.Exponential,
-                Delay = TimeSpan.FromSeconds(1),
+                Delay = baseDelay,
                 UseJitter = true,
             })
             .Build();
@@ -210,5 +218,16 @@ public sealed class OpenAICompatibleEmbeddingProvider
                     "Embedding dimension probe returned no embeddings.");
             return embeddings[0].ToFloats().Length;
         }
+    }
+
+    private sealed class SdkEmbeddingGenerationFacade : IEmbeddingGenerationFacade
+    {
+        private readonly OpenAI.Embeddings.EmbeddingClient _client;
+
+        public SdkEmbeddingGenerationFacade(OpenAI.Embeddings.EmbeddingClient client) => _client = client;
+
+        public async Task<OpenAI.Embeddings.OpenAIEmbeddingCollection> GenerateEmbeddingsAsync(
+            IList<string> inputs, CancellationToken ct) =>
+            await _client.GenerateEmbeddingsAsync(inputs, cancellationToken: ct);
     }
 }

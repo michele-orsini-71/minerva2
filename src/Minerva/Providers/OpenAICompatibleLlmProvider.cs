@@ -38,13 +38,14 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         RateLimiter rateLimiter,
         string modelId,
         Uri endpoint,
-        IChatClientFacade? chatFacade)
+        IChatClientFacade? chatFacade,
+        TimeSpan? retryBaseDelay = null)
     {
         _client = client;
         _rateLimiter = rateLimiter;
         Metadata = new ChatClientMetadata(
             nameof(OpenAICompatibleLlmProvider), endpoint, modelId);
-        _resiliencePipeline = BuildResiliencePipeline();
+        _resiliencePipeline = BuildResiliencePipeline(retryBaseDelay ?? TimeSpan.FromSeconds(5));
         _chatFacade = chatFacade ?? new SdkChatClientFacade(_client);
     }
 
@@ -299,7 +300,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
         ex.Status == 400 &&
         (ReadResponseBody(ex)?.Contains("unloaded", StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static ResiliencePipeline BuildResiliencePipeline() =>
+    private static ResiliencePipeline BuildResiliencePipeline(TimeSpan baseDelay) =>
         new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
@@ -309,7 +310,7 @@ public sealed class OpenAICompatibleLlmProvider : IChatClient, ILlmClient, ILlmA
                     .Handle<TimeoutException>(),
                 MaxRetryAttempts = 5,
                 BackoffType = DelayBackoffType.Exponential,
-                Delay = TimeSpan.FromSeconds(5),
+                Delay = baseDelay,
                 UseJitter = true,
             })
             .Build();

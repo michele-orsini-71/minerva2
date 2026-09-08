@@ -21,9 +21,15 @@ class HttpRerankerProvider : IRerankerClient
 
     // public HttpRerankerProvider(Uri endpoint)
     public HttpRerankerProvider(string modelId, Uri endpointUri)
+        : this(modelId, endpointUri, new HttpClientHandler(), retryBaseDelay: null)
     {
-        _http = new HttpClient { BaseAddress = endpointUri };
-        _relisiencePipeline = BuildResiliencePipeline();
+    }
+
+    internal HttpRerankerProvider(
+        string modelId, Uri endpointUri, HttpMessageHandler handler, TimeSpan? retryBaseDelay)
+    {
+        _http = new HttpClient(handler) { BaseAddress = endpointUri };
+        _relisiencePipeline = BuildResiliencePipeline(retryBaseDelay ?? TimeSpan.FromSeconds(1));
         _modelId = modelId;
     }
 
@@ -49,7 +55,7 @@ class HttpRerankerProvider : IRerankerClient
          }, cancellationToken);
     }
 
-    private static ResiliencePipeline BuildResiliencePipeline() =>
+    private static ResiliencePipeline BuildResiliencePipeline(TimeSpan baseDelay) =>
     new ResiliencePipelineBuilder()
         .AddRetry(new RetryStrategyOptions
         {
@@ -59,7 +65,7 @@ class HttpRerankerProvider : IRerankerClient
                 .Handle<TaskCanceledException>(ex => ex.InnerException is TimeoutException),
             MaxRetryAttempts = 3,
             BackoffType = DelayBackoffType.Exponential,
-            Delay = TimeSpan.FromSeconds(1),
+            Delay = baseDelay,
             UseJitter = true,
         })
         .Build();
@@ -74,7 +80,7 @@ class HttpRerankerProvider : IRerankerClient
         if (!string.Equals(_modelId, response.model, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Server responded with model '{response.model}', not the configured '{response.model}'. " +
+                $"Server responded with model '{response.model}', not the configured '{_modelId}'. " +
                 $"Check the model name in configuration matches exactly what the server exposes.");
         }
     }
@@ -92,8 +98,8 @@ class HttpRerankerProvider : IRerankerClient
         catch (Exception ex)
         {
             return new PreflightFailure(
-                "Llm",
-                $"LLM endpoint at '{_http.BaseAddress}' did not respond, or model '{_modelId}' is not available: {ex.Message}. Verify the endpoint URL, the API key, and the model name.",
+                "Reranker",
+                $"Reranker endpoint at '{_http.BaseAddress}' did not respond, or model '{_modelId}' is not available: {ex.Message}. Verify the endpoint URL, the API key, and the model name.",
                 ex);
         }
 
