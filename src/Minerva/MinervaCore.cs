@@ -23,9 +23,7 @@ internal sealed record MinervaCoreServices(
 {
     public async Task<IReadOnlyList<PreflightFailure>> PreflightAsync(CancellationToken ct)
     {
-        var failures = new List<PreflightFailure>();
-        if (await DatabasePreflight.PreflightAsync(ct) is { } db)
-            failures.Add(db);
+        var failures = new List<PreflightFailure>(await DatabasePreflight.PreflightAsync(ct));
         if (await EmbeddingProvider.PreflightAsync(ct) is { } emb)
             failures.Add(emb);
         return failures;

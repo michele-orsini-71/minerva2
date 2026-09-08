@@ -12,7 +12,7 @@ public sealed class DatabasePreflight
         _dataSource = dataSource;
     }
 
-    public async Task<PreflightFailure?> PreflightAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<PreflightFailure>> PreflightAsync(CancellationToken ct = default)
     {
         NpgsqlConnection conn;
         try
@@ -21,59 +21,97 @@ public sealed class DatabasePreflight
         }
         catch (PostgresException ex) when (ex.SqlState == "3D000")
         {
-            return new PreflightFailure(
+            return [new PreflightFailure(
                 "Storage.Postgres",
                 $"Database does not exist: {ex.MessageText}. Create it (CREATE DATABASE \"...\";) or fix Minerva:ConnectionString.",
-                ex);
+                ex)];
         }
         catch (PostgresException ex) when (ex.SqlState == "28P01")
         {
-            return new PreflightFailure(
+            return [new PreflightFailure(
                 "Storage.Postgres",
                 "Postgres rejected the credentials. Verify username and password in Minerva:ConnectionString.",
-                ex);
+                ex)];
         }
         catch (Exception ex) when (ex is NpgsqlException || ex is TimeoutException)
         {
-            return new PreflightFailure(
+            return [new PreflightFailure(
                 "Storage.Postgres",
                 $"Postgres did not respond: {ex.Message}. Verify the server is running and reachable.",
-                ex);
+                ex)];
         }
 
         await using (conn)
         {
-            return await CheckPgVectorAsync(conn, ct)
-                ?? await CheckPgSearchBitmapIntersectionAsync(conn, ct);
+            var failures = new List<PreflightFailure>();
+
+            if (await CheckPgVectorAsync(conn, ct) is { } vector)
+                failures.Add(vector);
+
+            // The bitmap check reads pg_search's version, so it only makes sense once the extension exists.
+            if (await CheckPgSearchAsync(conn, ct) is { } search)
+                failures.Add(search);
+            else if (await CheckPgSearchBitmapIntersectionAsync(conn, ct) is { } bitmap)
+                failures.Add(bitmap);
+
+            return failures;
         }
+    }
+
+    private static async Task<bool> IsExtensionInstalledAsync(
+        NpgsqlConnection conn, string extension, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT 1 FROM pg_extension WHERE extname = @extension", conn);
+        cmd.Parameters.AddWithValue("extension", extension);
+        var enabled = await cmd.ExecuteScalarAsync(ct);
+        return enabled is not null && enabled is not DBNull;
+    }
+
+    private static async Task<bool> IsExtensionAvailableAsync(
+        NpgsqlConnection conn, string extension, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT 1 FROM pg_available_extensions WHERE name = @extension", conn);
+        cmd.Parameters.AddWithValue("extension", extension);
+        var available = await cmd.ExecuteScalarAsync(ct);
+        return available is not null && available is not DBNull;
     }
 
     private static async Task<PreflightFailure?> CheckPgVectorAsync(
         NpgsqlConnection conn, CancellationToken ct)
     {
-        await using (var cmd = new NpgsqlCommand(
-            "SELECT 1 FROM pg_extension WHERE extname = 'vector'", conn))
-        {
-            var enabled = await cmd.ExecuteScalarAsync(ct);
-            if (enabled is not null && enabled is not DBNull)
-                return null;
-        }
+        if (await IsExtensionInstalledAsync(conn, "vector", ct))
+            return null;
 
-        await using (var cmd = new NpgsqlCommand(
-            "SELECT 1 FROM pg_available_extensions WHERE name = 'vector'", conn))
+        if (await IsExtensionAvailableAsync(conn, "vector", ct))
         {
-            var available = await cmd.ExecuteScalarAsync(ct);
-            if (available is not null && available is not DBNull)
-            {
-                return new PreflightFailure(
-                    "Storage.PgVector",
-                    "pgvector is installed on the server but not enabled in this database. Run: CREATE EXTENSION vector; (may require superuser).");
-            }
+            return new PreflightFailure(
+                "Storage.PgVector",
+                "pgvector is installed on the server but not enabled in this database. Run: CREATE EXTENSION vector; (may require superuser).");
         }
 
         return new PreflightFailure(
             "Storage.PgVector",
             "pgvector is not visible to this connection. Install it via your distro (e.g. apt install postgresql-16-pgvector) or enable it via your managed-Postgres provider.");
+    }
+
+    private static async Task<PreflightFailure?> CheckPgSearchAsync(
+        NpgsqlConnection conn, CancellationToken ct)
+    {
+        if (await IsExtensionInstalledAsync(conn, "pg_search", ct))
+            return null;
+
+        if (await IsExtensionAvailableAsync(conn, "pg_search", ct))
+        {
+            return new PreflightFailure(
+                "Storage.PgSearch",
+                "pg_search is installed on the server but not enabled in this database. Run sql-scripts/create-pgsearch-extension.sql as a superuser (the application role cannot: pg_search is not a trusted extension).");
+        }
+
+        return new PreflightFailure(
+            "Storage.PgSearch",
+            "pg_search is not visible to this connection. Install the ParadeDB pg_search package for your Postgres version, add pg_search to shared_preload_libraries and restart the server. See docs/reference/installation.md.");
     }
 
     // These releases fail with "bitmap intersection stream ... claimed twice" on Minerva's

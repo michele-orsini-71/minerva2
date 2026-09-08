@@ -15,6 +15,10 @@ is macOS + Homebrew; adjust paths for other platforms.
 | `pgvector` | `brew install pgvector` | automatic (migration 001; trusted extension) |
 | `pg_search` | prebuilt pkg, see below | **manual, superuser** (migration 004 only no-ops past it) |
 
+Both extensions are verified by the startup preflight before any migration
+runs. A missing or not-enabled extension stops Minerva with a message that
+names the step to take, so a wrong setup never reaches migration 004.
+
 `pg_search` (ParadeDB, the BM25 leg) sequence:
 
 1. Download the pkg matching the Postgres major version and macOS codename
@@ -32,6 +36,12 @@ is macOS + Homebrew; adjust paths for other platforms.
    `verify-pgsearch-extension.sql`.
 
 Note: since pg_search v0.25 `pgvector` must be installed before it.
+
+pg_search 0.25.5 and 0.25.6 have a bitmap intersection bug that breaks
+Minerva's BM25 queries. The preflight detects these versions and requires
+`src/Minerva/sql-scripts/disable-pgsearch-bitmap-intersection.sql` to have
+been run against the database. Run it against every database Minerva
+connects to, including the integration test database (`minerva_test`).
 
 Database and role bootstrap (once): see the Bootstrap section of
 [sql-scripts/README.md](../../src/Minerva/sql-scripts/README.md).
