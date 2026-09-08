@@ -43,7 +43,8 @@ public sealed class DatabasePreflight
 
         await using (conn)
         {
-            return await CheckPgVectorAsync(conn, ct);
+            return await CheckPgVectorAsync(conn, ct)
+                ?? await CheckPgSearchBitmapIntersectionAsync(conn, ct);
         }
     }
 
@@ -73,5 +74,35 @@ public sealed class DatabasePreflight
         return new PreflightFailure(
             "Storage.PgVector",
             "pgvector is not visible to this connection. Install it via your distro (e.g. apt install postgresql-16-pgvector) or enable it via your managed-Postgres provider.");
+    }
+
+    // These releases fail with "bitmap intersection stream ... claimed twice" on Minerva's
+    // filter + BM25 query shape. See sql-scripts/disable-pgsearch-bitmap-intersection.sql.
+    private static readonly string[] PgSearchVersionsWithBitmapIntersectionBug = ["0.25.5", "0.25.6"];
+
+    private static async Task<PreflightFailure?> CheckPgSearchBitmapIntersectionAsync(
+        NpgsqlConnection conn, CancellationToken ct)
+    {
+        string? version;
+        await using (var cmd = new NpgsqlCommand(
+            "SELECT extversion FROM pg_extension WHERE extname = 'pg_search'", conn))
+        {
+            version = await cmd.ExecuteScalarAsync(ct) as string;
+        }
+
+        if (version is null || !PgSearchVersionsWithBitmapIntersectionBug.Contains(version))
+            return null;
+
+        await using (var cmd = new NpgsqlCommand(
+            "SHOW paradedb.enable_bitmap_intersection", conn))
+        {
+            var setting = await cmd.ExecuteScalarAsync(ct) as string;
+            if (string.Equals(setting, "off", StringComparison.OrdinalIgnoreCase))
+                return null;
+        }
+
+        return new PreflightFailure(
+            "Storage.PgSearch",
+            $"pg_search {version} has a bitmap intersection bug that breaks Minerva's BM25 queries. Run sql-scripts/disable-pgsearch-bitmap-intersection.sql as the database owner, then reconnect.");
     }
 }
