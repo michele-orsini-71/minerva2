@@ -11,5 +11,6 @@ dependencies = [
     "numpy>=2.5.0",
     "openai>=3.8.0",
     "pandas>=3.0.3",
+    "psycopg[binary]>=3.3.5",
     "pydantic>=2.13.4",
 ]
