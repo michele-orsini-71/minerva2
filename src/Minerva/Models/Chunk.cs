@@ -7,6 +7,5 @@ public record Chunk(
     int ChunkIndex,
     string Content,
     string ContentHash,
-    string? ContextualPrefix = null,
     string? PrevChunkId = null,
     string? NextChunkId = null);

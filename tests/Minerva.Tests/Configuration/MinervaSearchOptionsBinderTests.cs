@@ -356,7 +356,6 @@ public class MinervaSearchOptionsBinderTests
                 "Chunking": {
                   "TargetChunkSize": 1200,
                   "ChunkOverlap": 200,
-                  "MaxSegmentChars": 8000,
                   "ChunkerType": "Custom"
                 }
               },

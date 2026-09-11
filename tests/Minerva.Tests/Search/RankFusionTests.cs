@@ -12,7 +12,6 @@ public class RankFusionTests
             SourceId: $"src-{id}",
             CollectionName: "c",
             ChunkIndex: 0,
-            ContextualPrefix: null,
             Content: id,
             RawScore: 0.0), rank);
 

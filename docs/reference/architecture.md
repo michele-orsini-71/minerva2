@@ -59,31 +59,16 @@ var results = await minerva.SearchAsync(query, collections, options);
   full-text search combined via Reciprocal Rank Fusion. See
   [rank-fusion.md](rank-fusion.md) and
   [full-text-search.md](full-text-search.md).
-- **Contextual preprocessing, per the Anthropic article, optional per
-  collection.** (1) summarize the document once; (2) per chunk, send
-  summary + chunk to an LLM for a short contextual prefix; (3) prepend the
-  prefix before embedding. Optional because local-model ingestion is slow and
-  prompt caching is unavailable locally. Large documents are split into
-  **segments** at high-level headings (configurable token threshold), each
-  segment summarized separately; segments (coarse, for summarization) are a
-  different level than chunks (fine, for embedding).
-- **Lexical index excludes the contextual prefix** — the BM25 index covers
-  chunk text after attachment integration but without the prefix. The
-  prefix improves semantic search, not keyword matching; excluding it keeps
-  keyword behavior identical whether contextualization is on or off.
-  (Revisit at the contextualization re-ingest: indexing prefix+content
-  needs a combined-text column, since `pg_search` indexes columns, not
-  expressions.)
-- **Multiple collections, per-collection provider config** — embedding model,
-  LLM config, and rate limiting per collection.
+- **Multiple collections, per-collection provider config** — embedding model
+  and rate limiting per collection.
 - **Rate limiting and batching per provider** — requests-per-minute,
   concurrency (critical for local models that handle one request at a time),
   embedding batch size. Carried forward from v1 (`SemaphoreSlim` + sliding
   window token bucket).
 - **Client-owned document identity** — clients provide a `sourceId`; ingesting
   an existing `sourceId` replaces all chunks for that document.
-- **Atomic updates with retry.** All processing (summarize, chunk,
-  contextualize, embed) completes before any DB write; then a single
+- **Atomic updates with retry.** All processing (chunk, embed) completes
+  before any DB write; then a single
   transaction deletes old chunks and inserts new ones. A failure partway
   leaves the previous version untouched.
 
@@ -93,11 +78,9 @@ var results = await minerva.SearchAsync(query, collections, options);
 Document (any size) + optional attachment dictionary
   │
   ├─[1] Integrate attachment descriptions into text
-  ├─[2] Summarize document (1 LLM call/doc, or per segment for large docs)   (optional)
-  ├─[3] Chunk (markdown-aware; within each segment for large docs)
-  ├─[4] Contextualize each chunk (1 LLM call/chunk: summary + chunk → prefix) (optional, paired with [2])
-  ├─[5] Embed each contextualized chunk (1 embedding call/chunk)
-  └─[6] Atomic store: delete old chunks for sourceId, insert new
+  ├─[2] Chunk (markdown-aware)
+  ├─[3] Embed each chunk (1 embedding call/chunk)
+  └─[4] Atomic store: delete old chunks for sourceId, insert new
         (dense vector + BM25-indexed post-attachment text + JSONB metadata), one transaction
 ```
 
@@ -108,6 +91,9 @@ Document (any size) + optional attachment dictionary
   combined with BM25 + embeddings + reranking (35% from contextualization
   alone). Prompt caching brings contextualization cost to ~$1.02 per million
   document tokens, but only on cloud providers, not local servers.
+  Implemented, measured on the full Wikipedia corpus with a local 2B model,
+  and removed on 2026-09-11: no retrieval gain, 55-60 h of ingestion. See
+  [2026-09-06-contextualization-improvements.md](../measurements/2026-09-06-contextualization-improvements.md).
 - **BGE-M3 evaluated and rejected** — it gives dense + sparse + ColBERT
   vectors in one pass, but requires a specialized server (not OpenAI-compatible)
   to expose sparse output and would lock the user into one model. BM25 in

@@ -50,14 +50,10 @@ If step 4 or 5 fail, run
 
 - [Per-collection size and column
   breakdown.sql](Per-collection%20size%20and%20column%20breakdown.sql) — total
-  bytes per column (content, contextual prefix, embedding) grouped by
+  bytes per column (content, embedding) grouped by
   collection. The BM25 index is table-wide, not a column; measure it via
   `pg_stat_user_indexes` (see
   [storage-footprint.md](../../../docs/measurements/storage-footprint.md)).
-- [Average prefix overhead per
-  chunk.sql](Average%20prefix%20overhead%20per%20chunk.sql) — average size of
-  `contextual_prefix` vs. `content`, as an absolute value and as a percentage.
-  Helpful when tuning contextual chunking.
 
 ## Maintenance
 

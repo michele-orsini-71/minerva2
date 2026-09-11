@@ -29,12 +29,6 @@ public static class ChunkingOptionsBinder
                 stagePrefix + "ChunkOverlap",
                 $"must be < TargetChunkSize (got {o} >= {t})."));
 
-        BinderHelpers.ValidateRequiredPositiveInt(raw.MaxSegmentChars, stagePrefix + "MaxSegmentChars", failures);
-        if (raw.MaxSegmentChars is int m && m > 0 && raw.TargetChunkSize is int tcs && tcs > 0 && m < tcs)
-            failures.Add(new OptionsFailure(
-                stagePrefix + "MaxSegmentChars",
-                $"must be >= TargetChunkSize (got {m} < {tcs})."));
-
         ChunkerType chunkerType = default;
         bool chunkerValid = false;
         if (string.IsNullOrWhiteSpace(raw.ChunkerType))
@@ -52,19 +46,13 @@ public static class ChunkingOptionsBinder
             chunkerValid = true;
         }
 
-        LlmProviderOptions? llm = null;
-        if (raw.Llm is not null)
-            llm = LlmProviderOptionsBinder.TryBuild(raw.Llm, stagePrefix + "Llm.", failures);
-
         if (failures.Count > before) return null;
 
         return new ChunkingOptions
         {
             TargetChunkSize = raw.TargetChunkSize!.Value,
             ChunkOverlap = raw.ChunkOverlap!.Value,
-            MaxSegmentChars = raw.MaxSegmentChars!.Value,
             ChunkerType = chunkerValid ? chunkerType : default,
-            Llm = llm,
         };
     }
 }
@@ -73,7 +61,5 @@ internal sealed class RawChunkingOptions
 {
     public int? TargetChunkSize { get; set; }
     public int? ChunkOverlap { get; set; }
-    public int? MaxSegmentChars { get; set; }
     public string? ChunkerType { get; set; }
-    public RawLlmProviderOptions? Llm { get; set; }
 }

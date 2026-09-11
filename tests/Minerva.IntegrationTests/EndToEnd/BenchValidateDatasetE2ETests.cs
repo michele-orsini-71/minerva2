@@ -32,7 +32,6 @@ public class BenchValidateDatasetE2ETests : IAsyncLifetime
         {
             TargetChunkSize = 600,
             ChunkOverlap = 100,
-            MaxSegmentChars = 8000,
             ChunkerType = ChunkerType.Custom,
         };
 
@@ -50,8 +49,6 @@ public class BenchValidateDatasetE2ETests : IAsyncLifetime
         var ingestionPipeline = new IngestionPipeline(
             new DocumentChunker(chunking),
             embeddingService,
-            summarizer: null,
-            contextualizer: null,
             chunkRepository,
             loggerFactory.CreateLogger<IngestionPipeline>());
 

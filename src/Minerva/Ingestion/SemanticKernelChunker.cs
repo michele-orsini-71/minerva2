@@ -22,17 +22,8 @@ public class SemanticKernelChunker : IDocumentChunker
             throw new ChunkingException("Cannot chunk empty or whitespace-only text.");
 
         var textChunks = SplitMarkdown(text);
-        return BuildChunks(collectionName, sourceId, textChunks, startIndex: 0);
+        return BuildChunks(collectionName, sourceId, textChunks);
     }
-
-    public IReadOnlyList<Chunk> ChunkSegment(
-        string collectionName, string sourceId, string text, int startIndex)
-    {
-        var textChunks = SplitMarkdown(text);
-        return BuildChunks(collectionName, sourceId, textChunks, startIndex);
-    }
-
-    public IReadOnlyList<string> SegmentDocument(string text) => [text];
 
     private List<string> SplitMarkdown(string text)
     {
@@ -52,19 +43,18 @@ public class SemanticKernelChunker : IDocumentChunker
     }
 
     private static List<Chunk> BuildChunks(
-        string collectionName, string sourceId, IReadOnlyList<string> textChunks, int startIndex)
+        string collectionName, string sourceId, IReadOnlyList<string> textChunks)
     {
         var chunks = new List<Chunk>(textChunks.Count);
-        for (int i = 0; i < textChunks.Count; i++)
+        for (int index = 0; index < textChunks.Count; index++)
         {
-            int index = startIndex + i;
             chunks.Add(new Chunk(
                 Id: HashHelper.GenerateChunkId(collectionName, sourceId, index),
                 SourceId: sourceId,
                 CollectionName: collectionName,
                 ChunkIndex: index,
-                Content: textChunks[i],
-                ContentHash: HashHelper.ComputeContentHash(textChunks[i])));
+                Content: textChunks[index],
+                ContentHash: HashHelper.ComputeContentHash(textChunks[index])));
         }
         return chunks;
     }

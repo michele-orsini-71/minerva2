@@ -62,9 +62,7 @@ internal static class MinervaCore
         OpenAICompatibleEmbeddingProvider embeddingProvider;
         try
         {
-            // ProviderFactory's LLM is search/ingest specific; for embedding only,
-            // pass null and let the factory skip LLM wiring.
-            var providerFactory = new ProviderFactory(embedding, llm: null);
+            var providerFactory = new ProviderFactory(embedding);
             embeddingProvider = (OpenAICompatibleEmbeddingProvider)
                 providerFactory.CreateEmbeddingProvider();
         }

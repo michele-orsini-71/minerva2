@@ -1,9 +1,0 @@
-dataset = "../../datasets/wp111-v1.jsonl"
-collection = "wp111-nollm"
-top_k = 50
-candidate_pool_size = 100
-label = "wp111-contextualization"
-
-[matrix]
-enable_reranker = [false]
-hybrid_alpha = [0.3, 0.5, 0.7]

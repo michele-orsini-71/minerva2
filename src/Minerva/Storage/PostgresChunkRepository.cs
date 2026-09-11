@@ -35,9 +35,8 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         // 2. Insert new chunks (without adjacency pointers first, to avoid FK violations)
         const string insertSql = """
             INSERT INTO chunks (id, collection_name, source_id, chunk_index, content, content_hash,
-                               contextual_prefix, embedding, metadata)
-            VALUES (@id, @coll, @src, @idx, @content, @hash, @prefix,
-                    @embedding, @metadata)
+                               embedding, metadata)
+            VALUES (@id, @coll, @src, @idx, @content, @hash, @embedding, @metadata)
             """;
 
         foreach (var chunk in chunks)
@@ -49,7 +48,6 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             cmd.Parameters.AddWithValue("idx", chunk.ChunkIndex);
             cmd.Parameters.AddWithValue("content", chunk.Content);
             cmd.Parameters.AddWithValue("hash", chunk.ContentHash);
-            cmd.Parameters.AddWithValue("prefix", (object?)chunk.ContextualPrefix ?? DBNull.Value);
 
             cmd.Parameters.AddWithValue("embedding", new Vector(chunk.Embedding));
 
@@ -152,7 +150,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
     {
         const string sql = """
             SELECT id, source_id, collection_name, chunk_index, content, content_hash,
-                   contextual_prefix, prev_chunk_id, next_chunk_id, metadata
+                   prev_chunk_id, next_chunk_id, metadata
             FROM chunks WHERE id = ANY(@ids)
             """;
 
@@ -174,7 +172,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT id, source_id, collection_name, chunk_index, content, contextual_prefix, metadata,
+            SELECT id, source_id, collection_name, chunk_index, content, metadata,
                    prev_chunk_id, next_chunk_id,
                    embedding <=> @embedding::vector AS distance
             FROM chunks
@@ -204,11 +202,11 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         CancellationToken ct = default)
     {
         const string sql = """
-        SELECT id, source_id, collection_name, chunk_index, content, contextual_prefix, metadata,
+        SELECT id, source_id, collection_name, chunk_index, content, metadata,
                    prev_chunk_id, next_chunk_id,
                    pdb.score(id) AS rank
         FROM chunks
-        WHERE collection_name = @coll AND (coalesce(contextual_prefix || ' ', '') ||  content) ||| @query
+        WHERE collection_name = @coll AND content ||| @query
         ORDER BY rank DESC
         LIMIT @topk
         """;
@@ -230,7 +228,7 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
 
     private static ChunkRecord ReadChunkRecord(NpgsqlDataReader reader)
     {
-        var metadataJson = reader.IsDBNull(9) ? null : reader.GetString(9);
+        var metadataJson = reader.IsDBNull(8) ? null : reader.GetString(8);
         var metadata = metadataJson is not null
             ? JsonSerializer.Deserialize<Dictionary<string, object>>(metadataJson)
             : null;
@@ -242,15 +240,14 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             ChunkIndex: reader.GetInt32(3),
             Content: reader.GetString(4),
             ContentHash: reader.GetString(5),
-            ContextualPrefix: reader.IsDBNull(6) ? null : reader.GetString(6),
-            PrevChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
-            NextChunkId: reader.IsDBNull(8) ? null : reader.GetString(8),
+            PrevChunkId: reader.IsDBNull(6) ? null : reader.GetString(6),
+            NextChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
             Metadata: metadata);
     }
 
     private static ChunkSearchRecord ReadSearchRecord(NpgsqlDataReader reader)
     {
-        var metadataJson = reader.IsDBNull(6) ? null : reader.GetString(6);
+        var metadataJson = reader.IsDBNull(5) ? null : reader.GetString(5);
         var metadata = metadataJson is not null
             ? JsonSerializer.Deserialize<Dictionary<string, object>>(metadataJson)
             : null;
@@ -261,10 +258,9 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
             CollectionName: reader.GetString(2),
             ChunkIndex: reader.GetInt32(3),
             Content: reader.GetString(4),
-            ContextualPrefix: reader.IsDBNull(5) ? null : reader.GetString(5),
-            RawScore: reader.GetDouble(9),
-            PrevChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
-            NextChunkId: reader.IsDBNull(8) ? null : reader.GetString(8),
+            RawScore: reader.GetDouble(8),
+            PrevChunkId: reader.IsDBNull(6) ? null : reader.GetString(6),
+            NextChunkId: reader.IsDBNull(7) ? null : reader.GetString(7),
             Metadata: metadata);
     }
 

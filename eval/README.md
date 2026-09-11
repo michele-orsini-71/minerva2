@@ -7,9 +7,9 @@
 - `notebooks/` — shared analysis library (`minerva_eval.py`) and its Python env
 
 Two corpora share the same layout: `wp1283` (full, 1283 articles) and `wp111`
-(111 articles, fast loop). Names follow `{corpus}-{context}`, where context is
-`nollm` (no contextualization) or the model alias of the contextualizing LLM
-(`e2b`, ...).
+(111 articles, fast loop). Collections are named `{corpus}-nollm`; the suffix
+dates from the contextualization experiment and is kept so existing runs stay
+comparable.
 
 ## Everyday loop
 

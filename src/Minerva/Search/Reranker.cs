@@ -13,7 +13,7 @@ class Reranker : IReranker
         string query, IReadOnlyList<ScoredChunk> candidates, CancellationToken cancellationToken)
     {
         var textsForRanking = candidates
-            .Select(c => ContextualText.buildContextualText(c.Chunk.Content, c.Chunk.ContextualPrefix))
+            .Select(c => c.Chunk.Content)
             .ToList();
 
         float[] scores = await _client.RankTexts(

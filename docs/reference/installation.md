@@ -48,9 +48,8 @@ Database and role bootstrap (once): see the Bootstrap section of
 
 ## Model servers
 
-- **Embeddings + contextualizer LLM**: an OpenAI-compatible server on
-  `127.0.0.1:1234` (LM Studio in dev) serving `text-embedding-bge-m3` and the
-  contextualization model. Health-check curl commands in
+- **Embeddings**: an OpenAI-compatible server on `127.0.0.1:1234` (LM Studio
+  in dev) serving `text-embedding-bge-m3`. Health-check curl commands in
   [running-and-debugging.md](running-and-debugging.md).
 - **Reranker** (optional leg): `bge-reranker-v2-m3` via a llama.cpp server;
   only needed when `EnableReranker` is on.

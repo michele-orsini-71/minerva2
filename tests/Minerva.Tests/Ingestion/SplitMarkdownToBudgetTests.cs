@@ -8,12 +8,11 @@ namespace Minerva.Tests.Ingestion;
 public class SplitMarkdownToBudgetTests
 {
     private static DocumentChunker CreateChunker(
-        int targetChunkSize = 1200, int overlap = 200, int maxSegmentChars = 8000)
+        int targetChunkSize = 1200, int overlap = 200)
     {
         return new DocumentChunker(TestOptions.Chunking(
             targetChunkSize: targetChunkSize,
-            chunkOverlap: overlap,
-            maxSegmentChars: maxSegmentChars));
+            chunkOverlap: overlap));
     }
 
     // -----------------------------------------------------------------------
@@ -21,11 +20,11 @@ public class SplitMarkdownToBudgetTests
     // -----------------------------------------------------------------------
 
     [Fact]
-    public void SegmentDocument_SingleTopLevelHeading_RespectsBudget()
+    public void Chunk_SingleTopLevelHeading_RespectsBudget()
     {
         // MacTree-shaped synthetic doc: one '#' at the top, many lower-level
-        // headings beneath it, total far above threshold. The legacy segmenter
-        // split only at the highest heading level and returned one giant segment;
+        // headings beneath it, total far above threshold. The legacy splitter
+        // split only at the highest heading level and returned one giant piece;
         // the unified core must respect the budget regardless of heading shape.
         var sb = new StringBuilder();
         sb.AppendLine("# Top");
@@ -41,13 +40,13 @@ public class SplitMarkdownToBudgetTests
             $"Test setup: doc must be large, was {text.Length}");
 
         const int budget = 8000;
-        var chunker = CreateChunker(maxSegmentChars: budget);
-        var segments = chunker.SegmentDocument(text);
+        var chunker = CreateChunker(targetChunkSize: budget, overlap: 0);
+        var chunks = chunker.Chunk("coll", "src1", text);
 
-        Assert.True(segments.Count > 1, "Large doc must split into multiple segments");
-        Assert.All(segments, s =>
-            Assert.True(s.Length <= budget,
-                $"Segment of {s.Length} chars exceeds budget {budget}"));
+        Assert.True(chunks.Count > 1, "Large doc must split into multiple chunks");
+        Assert.All(chunks, c =>
+            Assert.True(c.Content.Length <= budget,
+                $"Chunk of {c.Content.Length} chars exceeds budget {budget}"));
     }
 
     [Fact]
@@ -75,8 +74,7 @@ public class SplitMarkdownToBudgetTests
     }
 
     // -----------------------------------------------------------------------
-    // Behavior: header-aware splitting via the public Chunk / SegmentDocument
-    // entry points. Moved from DocumentChunkerTests.
+    // Behavior: header-aware splitting via the public Chunk entry point. Moved from DocumentChunkerTests.
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -144,19 +142,19 @@ public class SplitMarkdownToBudgetTests
     }
 
     [Fact]
-    public void SegmentDocument_SmallDocument_ReturnsSingleSegment()
+    public void Chunk_SmallDocument_ReturnsTextVerbatim()
     {
         var text = "# Title\nShort content.";
-        var chunker = CreateChunker(maxSegmentChars: 8000);
+        var chunker = CreateChunker(targetChunkSize: 8000, overlap: 0);
 
-        var segments = chunker.SegmentDocument(text);
+        var chunks = chunker.Chunk("coll", "src1", text);
 
-        Assert.Single(segments);
-        Assert.Equal(text, segments[0]);
+        Assert.Single(chunks);
+        Assert.Equal(text, chunks[0].Content);
     }
 
     [Fact]
-    public void SegmentDocument_ExceedsBudget_AllSegmentsUnderBudget()
+    public void Chunk_ExceedsBudget_AllChunksUnderBudget()
     {
         var sections = Enumerable.Range(1, 5)
             .Select(i => $"# Section {i}\n{new string('x', 2000)}")
@@ -164,13 +162,13 @@ public class SplitMarkdownToBudgetTests
         var text = string.Join("\n\n", sections);
 
         const int budget = 3000;
-        var chunker = CreateChunker(maxSegmentChars: budget);
-        var segments = chunker.SegmentDocument(text);
+        var chunker = CreateChunker(targetChunkSize: budget, overlap: 0);
+        var chunks = chunker.Chunk("coll", "src1", text);
 
-        Assert.True(segments.Count > 1, "Large document should be split into segments");
-        Assert.All(segments, s =>
-            Assert.True(s.Length <= budget,
-                $"Segment of {s.Length} chars exceeds budget {budget}"));
+        Assert.True(chunks.Count > 1, "Large document should be split into chunks");
+        Assert.All(chunks, c =>
+            Assert.True(c.Content.Length <= budget,
+                $"Chunk of {c.Content.Length} chars exceeds budget {budget}"));
     }
 
     [Fact]

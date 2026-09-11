@@ -78,16 +78,6 @@ collection whose build configuration changed; `AllowSourceScopeChange` permits
 reindexing when the source scope — root path, excluded directories or file
 extensions — changed, which otherwise blocks to avoid mass insert or deletion.
 
-> **Local-runtime tip.** If you point `Minerva.Embedding` and `Minerva.Llm` at
-> the same local runtime (Ollama, LM Studio, …), keep both models resident —
-> otherwise the watcher will trigger model swaps in and out of VRAM whenever it
-> alternates between embedding and summarization/contextualization.
->
-> - **Ollama**: set `OLLAMA_MAX_LOADED_MODELS=2` (or higher) and a generous
->   `OLLAMA_KEEP_ALIVE` (e.g. `24h`).
-> - **LM Studio**: load both models in the _Models_ panel before starting the
->   watcher.
-
 ## Building a standalone binary
 
 `build-markdown-indexer-cli.sh` (at the repo root) publishes a self-contained

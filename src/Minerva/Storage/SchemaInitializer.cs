@@ -79,7 +79,7 @@ public partial class SchemaInitializer : ICollectionProvisioner
         var result = await cmd.ExecuteScalarAsync(ct);
         if (result is not string name)
             throw new InvalidOperationException("No migrations have been applied.");
-        // _migrations stores file names (e.g. "003_collection_provenance.sql");
+        // _migrations stores file names (e.g. "001_initial.sql");
         // the recorded schema version drops the extension.
         return name.EndsWith(".sql", StringComparison.Ordinal) ? name[..^4] : name;
     }

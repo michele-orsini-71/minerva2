@@ -8,7 +8,6 @@ public record ChunkWithEmbedding(
     string Content,
     string ContentHash,
     float[] Embedding,
-    string? ContextualPrefix = null,
     string? PrevChunkId = null,
     string? NextChunkId = null,
     Dictionary<string, object>? Metadata = null);
@@ -20,7 +19,6 @@ public record ChunkRecord(
     int ChunkIndex,
     string Content,
     string ContentHash,
-    string? ContextualPrefix = null,
     string? PrevChunkId = null,
     string? NextChunkId = null,
     Dictionary<string, object>? Metadata = null);
@@ -30,7 +28,6 @@ public record ChunkSearchRecord(
     string SourceId,
     string CollectionName,
     int ChunkIndex,
-    string? ContextualPrefix,
     string Content,
     double RawScore,
     string? PrevChunkId = null,

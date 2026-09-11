@@ -28,7 +28,6 @@ public class RerankerTests
                 SourceId: $"src-{id}",
                 CollectionName: "c",
                 ChunkIndex: 0,
-                ContextualPrefix: null,
                 Content: content,
                 RawScore: 0.0),
             Score: 0.0);

@@ -148,11 +148,6 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         Compare("chunkerType", stored.ChunkerType, configured.ChunkerType);
         Compare("targetChunkSize", stored.TargetChunkSize, configured.TargetChunkSize);
         Compare("chunkOverlap", stored.ChunkOverlap, configured.ChunkOverlap);
-        Compare("maxSegmentChars", stored.MaxSegmentChars, configured.MaxSegmentChars);
-        Compare("contextualizationEnabled", stored.ContextualizationEnabled, configured.ContextualizationEnabled);
-        Compare("contextualizationModel", stored.ContextualizationModel, configured.ContextualizationModel);
-        Compare("summarizerPromptVersion", stored.SummarizerPromptVersion, configured.SummarizerPromptVersion);
-        Compare("contextualizerPromptVersion", stored.ContextualizerPromptVersion, configured.ContextualizerPromptVersion);
 
         return drifts;
     }
@@ -160,19 +155,13 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     private async Task<CollectionProvenance> BuildProvenanceAsync(CancellationToken ct)
     {
         var dimension = await _dimensionProvider.GetDimensionAsync(ct);
-        var contextualizationEnabled = _chunking.Llm is not null;
 
         var invariants = new CollectionInvariants(
             EmbeddingModel: _configuredEmbeddingModel,
             EmbeddingDimension: dimension,
             ChunkerType: _chunking.ChunkerType,
             TargetChunkSize: _chunking.TargetChunkSize,
-            ChunkOverlap: _chunking.ChunkOverlap,
-            MaxSegmentChars: _chunking.MaxSegmentChars,
-            ContextualizationEnabled: contextualizationEnabled,
-            ContextualizationModel: contextualizationEnabled ? _chunking.Llm!.Model : null,
-            SummarizerPromptVersion: contextualizationEnabled ? DocumentSummarizer.PromptVersion : null,
-            ContextualizerPromptVersion: contextualizationEnabled ? ChunkContextualizer.PromptVersion : null);
+            ChunkOverlap: _chunking.ChunkOverlap);
 
         var lastRun = new CollectionLastRun(
             IngestorVersion: IngestorVersion,

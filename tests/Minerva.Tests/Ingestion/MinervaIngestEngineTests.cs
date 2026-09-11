@@ -23,8 +23,6 @@ public class MinervaIngestEngineTests
         IReadOnlyDictionary<string, string>? existing = null)
     {
         var chunker = Substitute.For<IDocumentChunker>();
-        chunker.SegmentDocument(Arg.Any<string>())
-            .Returns(ci => (IReadOnlyList<string>)[ci.Arg<string>()]);
         chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns(ci => (IReadOnlyList<Chunk>)
                 [MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), ci.ArgAt<string>(2))]);
@@ -47,14 +45,12 @@ public class MinervaIngestEngineTests
             .Returns(existing ?? new Dictionary<string, string>());
 
         var pipeline = new IngestionPipeline(
-            chunker, embedder, summarizer: null, contextualizer: null,
-            repo, NullLogger<IngestionPipeline>.Instance);
+            chunker, embedder, repo, NullLogger<IngestionPipeline>.Instance);
 
         var chunking = new ChunkingOptions
         {
             TargetChunkSize = 100,
             ChunkOverlap = 0,
-            MaxSegmentChars = 1000,
             ChunkerType = ChunkerType.Custom,
         };
 

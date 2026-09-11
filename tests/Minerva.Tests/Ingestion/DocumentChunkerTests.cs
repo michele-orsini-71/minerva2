@@ -9,12 +9,11 @@ namespace Minerva.Tests.Ingestion;
 public class DocumentChunkerTests
 {
     private static DocumentChunker CreateChunker(
-        int targetChunkSize = 1200, int overlap = 200, int maxSegmentChars = 8000)
+        int targetChunkSize = 1200, int overlap = 200)
     {
         return new DocumentChunker(TestOptions.Chunking(
             targetChunkSize: targetChunkSize,
-            chunkOverlap: overlap,
-            maxSegmentChars: maxSegmentChars));
+            chunkOverlap: overlap));
     }
 
     [Fact]

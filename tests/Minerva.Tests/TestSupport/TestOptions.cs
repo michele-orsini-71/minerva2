@@ -8,15 +8,11 @@ internal static class TestOptions
     public static ChunkingOptions Chunking(
         int targetChunkSize = 1200,
         int chunkOverlap = 200,
-        int maxSegmentChars = 8000,
-        ChunkerType chunkerType = ChunkerType.Custom,
-        LlmProviderOptions? llm = null) => new()
+        ChunkerType chunkerType = ChunkerType.Custom) => new()
     {
         TargetChunkSize = targetChunkSize,
         ChunkOverlap = chunkOverlap,
-        MaxSegmentChars = maxSegmentChars,
         ChunkerType = chunkerType,
-        Llm = llm,
     };
 
     public static EmbeddingProviderOptions Embedding(
@@ -32,20 +28,6 @@ internal static class TestOptions
         ApiKey = apiKey,
         Concurrency = concurrency,
         BatchSize = batchSize,
-        RequestsPerMinute = requestsPerMinute,
-    };
-
-    public static LlmProviderOptions Llm(
-        string baseUrl = "http://localhost:11434/v1",
-        string model = "test-llm",
-        string? apiKey = null,
-        int concurrency = 1,
-        int? requestsPerMinute = null) => new()
-    {
-        BaseUrl = baseUrl,
-        Model = model,
-        ApiKey = apiKey,
-        Concurrency = concurrency,
         RequestsPerMinute = requestsPerMinute,
     };
 
@@ -71,17 +53,10 @@ internal static class TestOptions
         ChunkerType chunkerType = ChunkerType.Custom,
         int targetChunkSize = 1200,
         int chunkOverlap = 200,
-        int maxSegmentChars = 8000,
-        bool contextualizationEnabled = false,
-        string? contextualizationModel = null,
-        string? summarizerPromptVersion = null,
-        string? contextualizerPromptVersion = null,
         string ingestorVersion = "0.0.0-test",
         string schemaVersion = "003_collection_provenance") =>
         new(
             new CollectionInvariants(
-                embeddingModel, embeddingDimension, chunkerType, targetChunkSize,
-                chunkOverlap, maxSegmentChars, contextualizationEnabled,
-                contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
+                embeddingModel, embeddingDimension, chunkerType, targetChunkSize, chunkOverlap),
             new CollectionLastRun(ingestorVersion, schemaVersion));
 }

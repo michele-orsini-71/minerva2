@@ -1,9 +1,6 @@
 from pathlib import Path
 import re
 import json
-import hashlib
-from functools import lru_cache
-from collections import defaultdict
 import pandas as pd
 from pydantic import BaseModel, Field
 
@@ -170,106 +167,4 @@ def average_chunk_ranks(results, top_k=50) -> list[AverageChunkRank]:
         for g in r.gold_sources:
             out.append(AverageChunkRank(r.query_id, r.collection, r.cell.hybrid_alpha,
                                 g, ranks.get(g, top_k + 1)))
-    return out
-
-@lru_cache(maxsize=None)
-def chunk_index_of(collection: str, source_id: str, chunk_id: str, max_scan: int = 5000) -> int:
-    """Recover a chunk's index by inverting the deterministic id hash
-    (chunk_id = sha256(f"{collection}:{source_id}:{index}")). Cached per distinct chunk."""
-    for i in range(max_scan):
-        if hashlib.sha256(f"{collection}:{source_id}:{i}".encode()).hexdigest() == chunk_id:
-            return i
-    raise ValueError(f"chunk_index not found for {chunk_id} within {max_scan} scans")
-
-def source_chunk_ranks(result: EvalResult, source_id: str) -> dict[int, int]:
-    """{chunk_index: best rank} for one source's chunks in one result."""
-    out: dict[int, int] = {}
-    for h in result.hits:
-        if h.source_id != source_id:
-            continue
-        idx = chunk_index_of(result.collection, source_id, h.chunk_id)
-        if idx not in out or h.rank < out[idx]:
-            out[idx] = h.rank
-    return out
-
-@dataclass(frozen=True)
-class ChunkDelta:
-    query_id: str
-    alpha: float
-    gold: str
-    mean_delta: float   # baseline rank - treatment rank; > 0 = treatment ranks the gold's chunks higher
-    n_chunks: int
-
-def paired_chunk_deltas(results, baseline: str, treatment: str, top_k: int = 50) -> list[ChunkDelta]:
-    """Per (query, alpha, gold): mean signed rank change of the gold source's chunks, pairing
-    baseline vs treatment on chunk_index. A chunk present on only one side is floored to top_k + 1,
-    so a chunk rescued from beyond the cutoff still counts. Positive mean_delta means the treatment
-    (contextualization) ranks the gold's chunks higher (lower rank number)."""
-    by_cell: dict[tuple[str, float], dict[str, EvalResult]] = defaultdict(dict)
-    for r in results:
-        by_cell[(r.query_id, r.cell.hybrid_alpha)][r.collection] = r
-
-    out = []
-    for (query_id, alpha), by_collection in by_cell.items():
-        base = by_collection.get(baseline)
-        treat = by_collection.get(treatment)
-        if base is None or treat is None:
-            continue
-        for g in set(base.gold_sources) | set(treat.gold_sources):
-            base_ranks = source_chunk_ranks(base, g)
-            treat_ranks = source_chunk_ranks(treat, g)
-            indices = set(base_ranks) | set(treat_ranks)
-            if not indices:
-                continue
-            deltas = [base_ranks.get(i, top_k + 1) - treat_ranks.get(i, top_k + 1) for i in indices]
-            out.append(ChunkDelta(query_id, alpha, g, sum(deltas) / len(deltas), len(indices)))
-    return out
-
-@dataclass(frozen=True)
-class ChunkWinLoss:
-    query_id: str
-    alpha: float
-    gold: str
-    better_chunk_baseline_count: int    # chunks the baseline ranks better (lower rank number)
-    better_chunk_treatment_count: int   # chunks the treatment ranks better
-    net_wins: int                       # treatment - baseline; > 0 = treatment wins more often
-    n_chunks: int
-
-def paired_chunk_winloss(results, baseline: str, treatment: str, top_k: int = 50) -> list[ChunkWinLoss]:
-    """Per (query, alpha, gold): count how many of the gold source's chunks the treatment ranks
-    better than the baseline vs how many the baseline ranks better, pairing on chunk_index. A chunk
-    present on only one side is floored to top_k + 1. net_wins is treatment wins minus baseline wins;
-    positive means contextualization ranks more chunks higher than the baseline does. Ties don't count."""
-    by_cell: dict[tuple[str, float], dict[str, EvalResult]] = defaultdict(dict)
-    for r in results:
-        by_cell[(r.query_id, r.cell.hybrid_alpha)][r.collection] = r
-
-    out = []
-    for (query_id, alpha), by_collection in by_cell.items():
-        base = by_collection.get(baseline)
-        treat = by_collection.get(treatment)
-        if base is None or treat is None:
-            continue
-        for g in set(base.gold_sources) | set(treat.gold_sources):
-            base_ranks = source_chunk_ranks(base, g)
-            treat_ranks = source_chunk_ranks(treat, g)
-            indices = set(base_ranks) | set(treat_ranks)
-            if not indices:
-                continue
-            better_chunk_baseline_count = 0
-            better_chunk_treatment_count = 0
-            for i in indices:
-                base_rank = base_ranks.get(i, top_k + 1)
-                treat_rank = treat_ranks.get(i, top_k + 1)
-                if treat_rank < base_rank:
-                    better_chunk_treatment_count += 1
-                elif base_rank < treat_rank:
-                    better_chunk_baseline_count += 1
-            out.append(ChunkWinLoss(
-                query_id, alpha, g,
-                better_chunk_baseline_count,
-                better_chunk_treatment_count,
-                better_chunk_treatment_count - better_chunk_baseline_count,
-                len(indices),
-            ))
     return out

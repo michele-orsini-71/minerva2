@@ -44,16 +44,7 @@ brew services list                                   # postgres
 curl http://127.0.0.1:1234/v1/embeddings \           # LM Studio embedder
   -H "Content-Type: application/json" \
   -d '{"model":"text-embedding-bge-m3","input":"Some text to embed"}'
-
-curl http://localhost:1234/v1/chat/completions \     # LM Studio LLM
-  -H "Content-Type: application/json" \
-  -d '{"model":"google/gemma-3-4b","messages":[{"role":"user","content":"hi"}],"max_tokens":100}'
 ```
-
-When ingesting and contextualizing at once, load all needed models into the
-local server in parallel; otherwise it swaps models per chunk. For
-contextualization the working model is `gemma-3-4b` (vision/instruct/large
-variants are not used here).
 
 ## How the app runs — Generic Host, not a one-shot
 
@@ -96,21 +87,19 @@ within `DebounceMs`), not from a breakpoint session.
 
 ## Preflight checks — the probe facades
 
-Startup readiness probes (embedding dimension check, LLM availability) call
-the model server through tiny `internal` facade interfaces
-(`IEmbeddingProbeFacade`, `IChatClientFacade`), each with one production
-implementation delegating to the OpenAI SDK. The **hot paths**
-(`OpenAICompatibleEmbeddingProvider`, `OpenAICompatibleLlmProvider`) call the
-SDK directly, wrapped in Polly + a rate limiter; the facades are used **only**
-on probe paths, which must **bypass** Polly and the rate limiter.
+The startup readiness probe (embedding dimension check) calls the model
+server through a tiny `internal` facade interface (`IEmbeddingProbeFacade`)
+with one production implementation delegating to the OpenAI SDK. The **hot
+path** (`OpenAICompatibleEmbeddingProvider`) calls the SDK directly, wrapped
+in Polly + a rate limiter; the facade is used **only** on the probe path,
+which must **bypass** Polly and the rate limiter.
 
-The seam exists because the OpenAI SDK's `EmbeddingClient` / `ChatClient` are
-sealed with no test double. The facade (≈15 lines per provider, one extra
-virtual call) lets unit tests assert probe-specific invariants: HTTP 400 →
-LLM check still passes (reasoning-model exception); call count = 1 (proves
-Polly bypass — Polly would retry 3×); failure caching and cancellation
-discipline for the embedding probe. This is a seam for a sealed external
-boundary, not a test framework leaking into production.
+The seam exists because the OpenAI SDK's `EmbeddingClient` is sealed with no
+test double. The facade (≈15 lines, one extra virtual call) lets unit tests
+assert probe-specific invariants: call count = 1 (proves Polly bypass — Polly
+would retry 3×); failure caching and cancellation discipline for the
+embedding probe. This is a seam for a sealed external boundary, not a test
+framework leaking into production.
 
 ## PostgreSQL mechanics
 
@@ -173,7 +162,9 @@ Minerva's lock id encodes ASCII: `classid` `0x004D494E` = "MIN", `objid`
 Applied migrations are recorded in a table; pending ones live as embedded SQL
 resources under `Minerva.Storage.Migrations.*`, sorted by resource name with
 `StringComparer.Ordinal` — hence the zero-padded prefixes (`001_initial.sql`,
-`002_indexes.sql`, …) for a deterministic, locale-independent apply order.
+`002_…`) for a deterministic, locale-independent apply order. Today the whole
+schema is one migration: no other deployment exists, so the chain was collapsed
+on 2026-09-11 instead of carrying create-then-drop steps.
 Each migration runs in a transaction that both applies the DDL and records it
 in the migration table, so the two stay consistent. Most PostgreSQL DDL is
 transactional (unlike MySQL), which is what makes this pattern clean. Keep

@@ -13,7 +13,7 @@ experiment pass explicit roots, e.g. `load_all_results([Path("../baseline/runs")
 
 Two kinds of experiments, same folder shape:
 
-- **Durable** (baseline, reranker, contextualization): `runs/` and the executed notebook
+- **Durable** (baseline, reranker): `runs/` and the executed notebook
   are committed. They witness the measured performance and serve as stable comparison
   targets for other experiments.
 - **Scratch** (`scratch-*` folders, gitignored): intermediate attempts. Delete when done,

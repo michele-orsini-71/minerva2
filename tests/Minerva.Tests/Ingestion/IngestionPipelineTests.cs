@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using Minerva.Exceptions;
 using Minerva.Ingestion;
 using Minerva.Models;
 using Minerva.Utilities;
@@ -19,24 +18,14 @@ public class IngestionPipelineTests
         IngestionPipeline Pipeline,
         IDocumentChunker Chunker,
         IEmbeddingService Embedder,
-        IChunkWriter Repo,
-        IDocumentSummarizer? Summarizer,
-        IChunkContextualizer? Contextualizer);
+        IChunkWriter Repo);
 
-    private static TestBed CreatePipeline(
-        bool withSummarizer = false,
-        bool withContextualizer = false)
+    private static TestBed CreatePipeline()
     {
         var chunker = Substitute.For<IDocumentChunker>();
-        chunker.SegmentDocument(Arg.Any<string>())
-            .Returns(ci => (IReadOnlyList<string>)[ci.Arg<string>()]);
         chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns(ci => (IReadOnlyList<Chunk>)
                 [MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 0, ci.ArgAt<string>(2))]);
-        chunker.ChunkSegment(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>())
-            .Returns(ci => (IReadOnlyList<Chunk>)
-                [MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1),
-                    ci.ArgAt<int>(3), ci.ArgAt<string>(2))]);
 
         var embedder = Substitute.For<IEmbeddingService>();
         embedder.EmbedAsync(
@@ -49,29 +38,10 @@ public class IngestionPipelineTests
 
         var repo = Substitute.For<IChunkWriter>();
 
-        IDocumentSummarizer? summarizer = null;
-        if (withSummarizer)
-        {
-            summarizer = Substitute.For<IDocumentSummarizer>();
-            summarizer.SummarizeAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns("A summary.");
-        }
-
-        IChunkContextualizer? contextualizer = null;
-        if (withContextualizer)
-        {
-            contextualizer = Substitute.For<IChunkContextualizer>();
-            contextualizer.ContextualizeAsync(
-                    Arg.Any<string>(), Arg.Any<IReadOnlyList<Chunk>>(), Arg.Any<CancellationToken>())
-                .Returns(ci => (IReadOnlyList<string>)ci.Arg<IReadOnlyList<Chunk>>()
-                    .Select(_ => "ctx").ToArray());
-        }
-
         var pipeline = new IngestionPipeline(
-            chunker, embedder, summarizer, contextualizer,
-            repo, NullLogger<IngestionPipeline>.Instance);
+            chunker, embedder, repo, NullLogger<IngestionPipeline>.Instance);
 
-        return new TestBed(pipeline, chunker, embedder, repo, summarizer, contextualizer);
+        return new TestBed(pipeline, chunker, embedder, repo);
     }
 
     private static Chunk MakeChunk(
@@ -125,22 +95,6 @@ public class IngestionPipelineTests
         Assert.Equal(1, result.Updated);
         Assert.Equal(0, result.Added);
         Assert.Equal(0, result.Unchanged);
-    }
-
-    [Fact]
-    public async Task IngestAsync_SkipsContextualizationWhenDisabled()
-    {
-        var bed = CreatePipeline(withSummarizer: false, withContextualizer: false);
-        var doc = new Document(SourceId, "Title", "Content.");
-
-        var result = await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        Assert.Equal(1, result.Added);
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
-                chunks => chunks.All(c => c.ContextualPrefix == null)),
-            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -221,80 +175,4 @@ public class IngestionPipelineTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task IngestAsync_LlmContextOverflow_PropagatesWithLayeredEnrichment()
-    {
-        // Real DocumentSummarizer + real IngestionPipeline + fake ILlmClient that throws
-        // LlmContextOverflowException as the provider would. Verify enrichment at each
-        // layer: provider supplies InputChars/ServerResponseBody, summarizer adds
-        // SegmentIndex/TotalSegments, pipeline adds DocumentPath.
-        var bed = CreatePipeline();
-
-        // Multi-segment path: 3 segments so that the failure happens at segment index 1.
-        bed.Chunker.SegmentDocument(Arg.Any<string>())
-            .Returns((IReadOnlyList<string>)["seg-zero", "seg-one-fails", "seg-two"]);
-
-        var llm = Substitute.For<ILlmClient>();
-        llm.GenerateAsync(Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci =>
-            {
-                var prompt = ci.ArgAt<string>(1);
-                if (prompt == "seg-zero")
-                    return Task.FromResult("summary-zero");
-                throw new LlmContextOverflowException(
-                    "LLM rejected request (HTTP 400): too long")
-                {
-                    InputChars = 100,
-                    ServerResponseBody = "too long",
-                };
-            });
-
-        var summarizer = new DocumentSummarizer(llm);
-        var contextualizer = new ChunkContextualizer(llm);
-        var pipelineWithSummarizer = new IngestionPipeline(
-            bed.Chunker, bed.Embedder, summarizer, contextualizer,
-            bed.Repo, NullLogger<IngestionPipeline>.Instance);
-
-        var doc = new Document(SourceId, "Title", "doc body");
-
-        var ex = await Assert.ThrowsAsync<LlmContextOverflowException>(
-            () => pipelineWithSummarizer.IngestAsync(CollectionName, doc, storedContentHash: null));
-
-        // Provider-layer fields preserved end-to-end
-        Assert.Equal(100, ex.InputChars);
-        Assert.Equal("too long", ex.ServerResponseBody);
-        // Summarizer-layer enrichment
-        Assert.Equal(1, ex.SegmentIndex);
-        Assert.Equal(3, ex.TotalSegments);
-        // Pipeline-layer enrichment
-        Assert.Equal(SourceId, ex.DocumentPath);
-        // Composed message names each layer's context
-        Assert.Contains("Ingestion failed", ex.Message);
-        Assert.Contains("segment 2/3", ex.Message);
-    }
-
-    [Fact]
-    public async Task IngestAsync_WithContextualizer_AppliesPrefixes()
-    {
-        var bed = CreatePipeline(withSummarizer: true, withContextualizer: true);
-
-        // Multi-chunk path: contextualization (and the summarizer it depends on) only runs when
-        // a doc produces more than one chunk. Override the default 1-chunk mock to return 2.
-        bed.Chunker.Chunk(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>())
-            .Returns(ci => (IReadOnlyList<Chunk>)
-            [
-                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 0, ci.ArgAt<string>(2)),
-                MakeChunk(ci.ArgAt<string>(0), ci.ArgAt<string>(1), 1, ci.ArgAt<string>(2)),
-            ]);
-
-        var doc = new Document(SourceId, "Title", "Content.");
-
-        await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
-
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
-            Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
-                chunks => chunks.All(c => c.ContextualPrefix == "ctx")),
-            Arg.Any<CancellationToken>());
-    }
 }

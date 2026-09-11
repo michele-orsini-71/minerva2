@@ -29,11 +29,6 @@ public class CollectionRepositoryTests : IAsyncLifetime
             chunkerType: ChunkerType.Custom,
             targetChunkSize: 512,
             chunkOverlap: 64,
-            maxSegmentChars: 8000,
-            contextualizationEnabled: true,
-            contextualizationModel: "qwen2.5",
-            summarizerPromptVersion: "1",
-            contextualizerPromptVersion: "1",
             ingestorVersion: "0.1.0+abc1234",
             schemaVersion: "003_collection_provenance");
         var collection = new Collection("test-coll", "A test collection", provenance, TestProvenance.Client());
@@ -51,11 +46,6 @@ public class CollectionRepositoryTests : IAsyncLifetime
         Assert.Equal(ChunkerType.Custom, inv.ChunkerType);
         Assert.Equal(512, inv.TargetChunkSize);
         Assert.Equal(64, inv.ChunkOverlap);
-        Assert.Equal(8000, inv.MaxSegmentChars);
-        Assert.True(inv.ContextualizationEnabled);
-        Assert.Equal("qwen2.5", inv.ContextualizationModel);
-        Assert.Equal("1", inv.SummarizerPromptVersion);
-        Assert.Equal("1", inv.ContextualizerPromptVersion);
 
         Assert.Equal("0.1.0+abc1234", retrieved.Provenance.LastRun.IngestorVersion);
         Assert.Equal("003_collection_provenance", retrieved.Provenance.LastRun.SchemaVersion);
@@ -63,24 +53,6 @@ public class CollectionRepositoryTests : IAsyncLifetime
         // Convenience accessors hydrate from the invariants.
         Assert.Equal("text-embedding-3-small", retrieved.EmbeddingModel);
         Assert.Equal(1536, retrieved.EmbeddingDimension);
-    }
-
-    [Fact]
-    public async Task ContextualizationDisabled_OmitsOptionalFields()
-    {
-        var provenance = TestProvenance.Create(
-            embeddingModel: "bge-m3", embeddingDimension: 1024,
-            contextualizationEnabled: false);
-        await _repo.CreateAsync(new Collection("no-ctx", null, provenance, TestProvenance.Client()));
-
-        var retrieved = await _repo.GetAsync("no-ctx");
-
-        Assert.NotNull(retrieved);
-        var inv = retrieved.Provenance.Invariants;
-        Assert.False(inv.ContextualizationEnabled);
-        Assert.Null(inv.ContextualizationModel);
-        Assert.Null(inv.SummarizerPromptVersion);
-        Assert.Null(inv.ContextualizerPromptVersion);
     }
 
     [Fact]

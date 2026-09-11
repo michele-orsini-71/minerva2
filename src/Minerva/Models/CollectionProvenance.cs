@@ -9,12 +9,7 @@ public sealed record CollectionInvariants(
     int EmbeddingDimension,
     ChunkerType ChunkerType,
     int TargetChunkSize,
-    int ChunkOverlap,
-    int MaxSegmentChars,
-    bool ContextualizationEnabled,
-    string? ContextualizationModel,
-    string? SummarizerPromptVersion,
-    string? ContextualizerPromptVersion);
+    int ChunkOverlap);
 
 public sealed record CollectionLastRun(
     string IngestorVersion,

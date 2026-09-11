@@ -48,11 +48,6 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
         Assert.Equal(ChunkerType.Custom, inv.ChunkerType);
         Assert.Equal(512, inv.TargetChunkSize);
         Assert.Equal(chunking.ChunkOverlap, inv.ChunkOverlap);
-        Assert.Equal(chunking.MaxSegmentChars, inv.MaxSegmentChars);
-        Assert.False(inv.ContextualizationEnabled);
-        Assert.Null(inv.ContextualizationModel);
-        Assert.Null(inv.SummarizerPromptVersion);
-        Assert.Null(inv.ContextualizerPromptVersion);
 
         var schemaVersion = await _fixture.SchemaInitializer.GetCurrentSchemaVersionAsync();
         Assert.Equal(schemaVersion, collection.Provenance.LastRun.SchemaVersion);
@@ -101,8 +96,6 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
         var ingestionPipeline = new IngestionPipeline(
             new DocumentChunker(chunking),
             embeddingService,
-            summarizer: null,
-            contextualizer: null,
             chunkRepository,
             loggerFactory.CreateLogger<IngestionPipeline>());
 
@@ -124,7 +117,6 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
     {
         TargetChunkSize = targetChunkSize,
         ChunkOverlap = 100,
-        MaxSegmentChars = 8000,
         ChunkerType = ChunkerType.Custom,
     };
 

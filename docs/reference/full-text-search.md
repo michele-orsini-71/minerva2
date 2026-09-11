@@ -23,7 +23,7 @@ much query traffic is exact-token recall versus conceptual recall.
 
 ## Current implementation
 
-The index is declared in migration `004_pg_search_extension.sql`:
+The index is declared in migration `001_initial.sql`:
 
 ```sql
 CREATE INDEX chunks_bm25_idx ON chunks
@@ -42,10 +42,7 @@ USING bm25 (
 - **Stop words need no filter under BM25**: a term present in most documents
   gets a near-zero IDF weight automatically. (This was a real weakness of
   `ts_rank`, which has no IDF.)
-- The index covers `content` only — the raw chunk text, without the
-  contextual prefix. Indexing the prefix is deferred to the
-  contextualization re-ingest, and will need a combined-text column
-  (pg_search indexes columns, not expressions).
+- The index covers `content` — the chunk text after attachment integration.
 - Postgres maintains the index inside the same INSERT that writes the chunk;
   ingestion has no lexical-indexing step of its own.
 

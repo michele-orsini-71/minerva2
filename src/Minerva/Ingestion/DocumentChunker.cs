@@ -21,7 +21,6 @@ public class DocumentChunker : IDocumentChunker
 
     /// <summary>
     /// Chunks a document into an ordered list of <see cref="Chunk"/> records.
-    /// Handles large-document segmentation internally.
     /// </summary>
     public IReadOnlyList<Chunk> Chunk(string collectionName, string sourceId, string text)
     {
@@ -29,50 +28,28 @@ public class DocumentChunker : IDocumentChunker
             throw new ChunkingException("Cannot chunk empty or whitespace-only text.");
 
         var textChunks = SplitMarkdownToBudget(text, _options.TargetChunkSize, _options.ChunkOverlap);
-        return BuildChunks(collectionName, sourceId, textChunks, startIndex: 0);
-    }
-
-    /// <summary>
-    /// Splits a large document into segments under <see cref="ChunkingOptions.MaxSegmentChars"/>.
-    /// Used by the pipeline when segments need separate summarization.
-    /// </summary>
-    public IReadOnlyList<string> SegmentDocument(string text)
-    {
-        return SplitMarkdownToBudget(text, _options.MaxSegmentChars, overlap: 0);
-    }
-
-    /// <summary>
-    /// Chunks a single text segment, starting chunk indices at <paramref name="startIndex"/>.
-    /// Used by the pipeline when processing large documents segment-by-segment.
-    /// </summary>
-    public IReadOnlyList<Chunk> ChunkSegment(
-        string collectionName, string sourceId, string text, int startIndex)
-    {
-        var textChunks = SplitMarkdownToBudget(text, _options.TargetChunkSize, _options.ChunkOverlap);
-        return BuildChunks(collectionName, sourceId, textChunks, startIndex);
+        return BuildChunks(collectionName, sourceId, textChunks);
     }
 
     private static List<Chunk> BuildChunks(
-        string collectionName, string sourceId, List<string> textChunks, int startIndex)
+        string collectionName, string sourceId, List<string> textChunks)
     {
         var chunks = new List<Chunk>(textChunks.Count);
-        for (int i = 0; i < textChunks.Count; i++)
+        for (int index = 0; index < textChunks.Count; index++)
         {
-            int index = startIndex + i;
             chunks.Add(new Chunk(
                 Id: HashHelper.GenerateChunkId(collectionName, sourceId, index),
                 SourceId: sourceId,
                 CollectionName: collectionName,
                 ChunkIndex: index,
-                Content: textChunks[i],
-                ContentHash: HashHelper.ComputeContentHash(textChunks[i])));
+                Content: textChunks[index],
+                ContentHash: HashHelper.ComputeContentHash(textChunks[index])));
         }
         return chunks;
     }
 
     /// <summary>
-    /// Unified core: splits markdown into pieces each ≤ <paramref name="maxChars"/>.
-    /// Used both for chunker output (embedder budget) and segmenter output (LLM budget).
+    /// Splits markdown into pieces each ≤ <paramref name="maxChars"/>.
     /// Algorithm: header-aware split → greedy pack → recursive separator fallback →
     /// brute-force slice with overlap. Returns <c>[text]</c> verbatim when input fits.
     /// </summary>

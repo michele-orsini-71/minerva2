@@ -10,18 +10,11 @@ internal static class TestProvenance
         ChunkerType chunkerType = ChunkerType.Custom,
         int targetChunkSize = 600,
         int chunkOverlap = 100,
-        int maxSegmentChars = 8000,
-        bool contextualizationEnabled = false,
-        string? contextualizationModel = null,
-        string? summarizerPromptVersion = null,
-        string? contextualizerPromptVersion = null,
         string ingestorVersion = "0.0.0-test",
         string schemaVersion = "003_collection_provenance") =>
         new(
             new CollectionInvariants(
-                embeddingModel, embeddingDimension, chunkerType, targetChunkSize,
-                chunkOverlap, maxSegmentChars, contextualizationEnabled,
-                contextualizationModel, summarizerPromptVersion, contextualizerPromptVersion),
+                embeddingModel, embeddingDimension, chunkerType, targetChunkSize, chunkOverlap),
             new CollectionLastRun(ingestorVersion, schemaVersion));
 
     public static ClientProvenance Client(
