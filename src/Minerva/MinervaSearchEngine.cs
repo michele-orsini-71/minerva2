@@ -91,8 +91,28 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         return await _collections.GetAsync(collectionName, ct);
     }
 
-    public async Task<IReadOnlyList<Collection>> QueryListCollections(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default)
     {
         return await _collections.ListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(collectionName))
+            throw new ArgumentException(
+                "Collection name must be a non-empty, non-whitespace string.",
+                nameof(collectionName));
+        if (string.IsNullOrWhiteSpace(sourceId))
+            throw new ArgumentException(
+                "Source id must be a non-empty, non-whitespace string.",
+                nameof(sourceId));
+
+        _ = await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
+
+        return await _chunkCatalog.GetSourceChunksAsync(collectionName, sourceId, ct);
     }
 }

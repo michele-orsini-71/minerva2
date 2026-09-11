@@ -1,3 +1,4 @@
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using Minerva;
@@ -19,7 +20,7 @@ public static class MinervaMcpServerTools
     [McpServerTool(Name = "list_collections"), Description("Get list of available collections.")]
     public static async Task<IReadOnlyList<CollectionInfo>> GetCollections(ISearchEngine engine)
     {
-        var collections = await engine.QueryListCollections();
+        var collections = await engine.QueryListCollectionsAsync();
         return collections
             .Select(c => new CollectionInfo(
                 c.Name, c.Description, c.EmbeddingModel, c.EmbeddingDimension,
@@ -41,7 +42,24 @@ public static class MinervaMcpServerTools
             .Select(r => new SearchHit(r.ChunkId, r.SourceId, r.ChunkIndex, r.Score, r.Content))
             .ToList();
     }
+
+    [McpServerTool(Name = "get_source"), Description("Get the full text of a source, reconstructed from its chunks in order.")]
+    public static async Task<SourceText> GetSource(
+        ISearchEngine engine,
+        [Description("Name of the collection.")] string collection,
+        [Description("Id of the source, as returned by search.")] string sourceId,
+        CancellationToken ct = default)
+    {
+        var chunks = await engine.GetSourceChunksAsync(collection, sourceId, ct);
+        if (chunks.Count == 0)
+            throw new McpException($"Source '{sourceId}' not found in collection '{collection}'.");
+
+        var content = string.Join("\n\n", chunks.Select(c => c.Content));
+        return new SourceText(sourceId, chunks.Count, content);
+    }
 }
+
+public sealed record SourceText(string SourceId, int ChunkCount, string Content);
 
 public sealed record SearchHit(
     string ChunkId,

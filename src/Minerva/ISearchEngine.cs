@@ -17,5 +17,10 @@ public interface ISearchEngine
 
     Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
 
-    Task<IReadOnlyList<Collection>> QueryListCollections(CancellationToken ct = default);
+    Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default);
 }

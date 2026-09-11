@@ -145,6 +145,29 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         return result is not null;
     }
 
+    public async Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+        string collectionName, string sourceId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT id, source_id, collection_name, chunk_index, content, content_hash,
+                   prev_chunk_id, next_chunk_id, metadata
+            FROM chunks
+            WHERE collection_name = @coll AND source_id = @src
+            ORDER BY chunk_index
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("coll", collectionName);
+        cmd.Parameters.AddWithValue("src", sourceId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var results = new List<ChunkRecord>();
+        while (await reader.ReadAsync(ct))
+            results.Add(ReadChunkRecord(reader));
+        return results;
+    }
+
     public async Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(
         IReadOnlyList<string> chunkIds, CancellationToken ct = default)
     {
