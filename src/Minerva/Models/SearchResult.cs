@@ -3,6 +3,7 @@ namespace Minerva.Models;
 public record SearchResult(
     string ChunkId,
     string SourceId,
+    int ChunkIndex,
     string CollectionName,
     string Content,
     double Score,

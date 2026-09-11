@@ -23,10 +23,13 @@ public class SweepRunLoopTests
         public Task<Collection?> QueryCollectionInfoAsync(
             string collectionName, CancellationToken ct = default)
             => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<Collection>> QueryListCollections(CancellationToken ct = default)
+            => throw new NotImplementedException();
     }
 
     private static SearchResult Hit(string sourceId)
-        => new("chunk", sourceId, "col", "content", 1.0);
+        => new("chunk", sourceId, 0, "col", "content", 1.0);
 
     private static ParsedEntry Entry(string id, string query, string gold)
         => new(1, id, query, [gold]);

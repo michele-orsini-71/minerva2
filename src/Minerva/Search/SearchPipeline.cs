@@ -103,6 +103,7 @@ class SearchPipeline
         new(
             ChunkId: r.Chunk.Id,
             SourceId: r.Chunk.SourceId,
+            ChunkIndex: r.Chunk.ChunkIndex,
             CollectionName: r.Chunk.CollectionName,
             Content: r.Chunk.Content,
             Score: r.Score,

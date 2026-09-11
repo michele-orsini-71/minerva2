@@ -26,7 +26,29 @@ public static class MinervaMcpServerTools
                 c.CreatedAt, c.LastUpdatedAt))
             .ToList();
     }
+
+    [McpServerTool(Name = "search"), Description("Hybrid search over a collection. Returns the best matching chunks.")]
+    public static async Task<IReadOnlyList<SearchHit>> Search(
+        ISearchEngine engine,
+        [Description("The search query.")] string query,
+        [Description("Name of the collection to search.")] string collection,
+        [Description("Maximum number of hits to return.")] int? topK = null,
+        CancellationToken ct = default)
+    {
+        var overrides = new SearchOverrides { TopK = topK, ExpandContext = false };
+        var results = await engine.SearchAsync(query, collection, overrides, ct);
+        return results
+            .Select(r => new SearchHit(r.ChunkId, r.SourceId, r.ChunkIndex, r.Score, r.Content))
+            .ToList();
+    }
 }
+
+public sealed record SearchHit(
+    string ChunkId,
+    string SourceId,
+    int ChunkIndex,
+    double Score,
+    string Content);
  
 
 
