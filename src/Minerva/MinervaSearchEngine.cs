@@ -90,4 +90,9 @@ internal sealed class MinervaSearchEngine : ISearchEngine
     {
         return await _collections.GetAsync(collectionName, ct);
     }
+
+    public async Task<IReadOnlyList<Collection>> QueryListCollections(CancellationToken ct = default)
+    {
+        return await _collections.ListAsync(ct);
+    }
 }

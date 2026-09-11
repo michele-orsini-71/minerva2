@@ -16,4 +16,6 @@ public interface ISearchEngine
         CancellationToken ct = default);
 
     Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
+
+    Task<IReadOnlyList<Collection>> QueryListCollections(CancellationToken ct = default);
 }
