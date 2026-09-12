@@ -77,8 +77,7 @@ internal class IngestionPipeline
                 CollectionName: chunk.CollectionName,
                 ChunkIndex: chunk.ChunkIndex,
                 Content: chunk.Content,
-                // Chunk 0 stores the document-level content hash for change detection
-                ContentHash: i == 0 ? contentHash : chunk.ContentHash,
+                ContentHash: chunk.ContentHash,
                 Embedding: embeddings[i],
                 PrevChunkId: i > 0 ? allChunks[i - 1].Id : null,
                 NextChunkId: i < allChunks.Count - 1 ? allChunks[i + 1].Id : null));
@@ -86,7 +85,8 @@ internal class IngestionPipeline
 
         // 7. Atomic upsert
         await _sourceWriter.UpsertSourceAsync(
-            collectionName, document.SourceId, document.Title, text, chunksWithEmbeddings, ct);
+            collectionName, document.SourceId, document.Title, contentHash, text,
+            chunksWithEmbeddings, ct);
 
         _logger.LogInformation(
             "Ingested document {SourceId}: {ChunkCount} chunks ({Action})",

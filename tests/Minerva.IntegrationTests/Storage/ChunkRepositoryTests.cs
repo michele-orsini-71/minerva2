@@ -37,30 +37,30 @@ public class ChunkRepositoryTests : IAsyncLifetime
     public async Task UpsertAndGetContentHash_RoundTrips()
     {
         var chunks = CreateTestChunks("doc-1", 3);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-1", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-1", "Title", "hash", "text", chunks);
 
         var hash = await _chunkRepo.GetContentHashAsync(CollectionName, "doc-1");
-        Assert.Equal(chunks[0].ContentHash, hash);
+        Assert.Equal("hash", hash);
     }
 
     [Fact]
     public async Task Upsert_ReplacesExistingChunks()
     {
         var original = CreateTestChunks("doc-replace", 2);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-replace", "Title", "text", original);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-replace", "Title", "hash", "text", original);
 
         var replacement = CreateTestChunks("doc-replace", 3, contentPrefix: "new-");
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-replace", "New title", "new text", replacement);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-replace", "New title", "new-hash", "new text", replacement);
 
         var hash = await _chunkRepo.GetContentHashAsync(CollectionName, "doc-replace");
-        Assert.Equal(replacement[0].ContentHash, hash);
+        Assert.Equal("new-hash", hash);
     }
 
     [Fact]
     public async Task AdjacencyPointers_AreCorrect()
     {
         var chunks = CreateTestChunks("doc-adj", 3);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-adj", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-adj", "Title", "hash", "text", chunks);
 
         var ids = chunks.Select(c => c.Id).ToList();
         var retrieved = await _chunkRepo.GetAdjacentChunksAsync(ids);
@@ -84,7 +84,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
     public async Task GetSourceInfo_ReturnsTitleCountsAndLength()
     {
         var chunks = CreateTestChunks("doc-info", 4);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-info", "Doc title", "héllo wörld", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-info", "Doc title", "hash", "héllo wörld", chunks);
 
         var info = await _chunkRepo.GetSourceInfoAsync(CollectionName, "doc-info");
 
@@ -105,9 +105,9 @@ public class ChunkRepositoryTests : IAsyncLifetime
     public async Task GetChunkRange_ReturnsChunksInRange_OrderedByIndex()
     {
         var chunks = CreateTestChunks("doc-range", 5);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-range", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-range", "Title", "hash", "text", chunks);
         // Same index range in another source must not leak in.
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-other", "Title", "text",
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-other", "Title", "hash", "text",
             CreateTestChunks("doc-other", 5));
 
         var range = await _chunkRepo.GetChunkRangeAsync(CollectionName, "doc-range", 1, 3);
@@ -121,7 +121,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
     public async Task GetChunkRange_ClipsToExistingIndexes()
     {
         var chunks = CreateTestChunks("doc-clip", 3);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-clip", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-clip", "Title", "hash", "text", chunks);
 
         var range = await _chunkRepo.GetChunkRangeAsync(CollectionName, "doc-clip", 1, 10);
 
@@ -140,7 +140,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
     public async Task DeleteBySourceId_RemovesChunks()
     {
         var chunks = CreateTestChunks("doc-del", 2);
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-del", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-del", "Title", "hash", "text", chunks);
 
         await _chunkRepo.DeleteBySourceIdAsync(CollectionName, "doc-del");
 
@@ -162,7 +162,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
             "far content", HashHelper.ComputeContentHash("far content"),
             [0.0f, 0.0f, 0.0f, 1.0f]);
 
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "vec-doc", "Title", "text", [close, far]);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "vec-doc", "Title", "hash", "text", [close, far]);
 
         // Query near [1,0,0,0]
         var results = await _chunkRepo.VectorSearchAsync(CollectionName, [1.0f, 0.0f, 0.0f, 0.0f], 2);
@@ -186,7 +186,7 @@ public class ChunkRepositoryTests : IAsyncLifetime
                 [0.5f, 0.6f, 0.7f, 0.8f]),
         };
 
-        await _chunkRepo.UpsertSourceAsync(CollectionName, "fts-doc", "Title", "text", chunks);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "fts-doc", "Title", "hash", "text", chunks);
 
         var results = await _chunkRepo.FullTextSearchAsync(CollectionName, "relational database", 10);
 

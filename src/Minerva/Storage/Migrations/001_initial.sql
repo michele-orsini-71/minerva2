@@ -14,10 +14,12 @@ CREATE TABLE IF NOT EXISTS collections (
 
 -- Full text of each ingested source, as chunked (after attachment integration).
 -- Chunks stay the unit of retrieval; this table serves whole-document reads.
+-- content_hash is the hash of content, used by ingestion to skip unchanged sources.
 CREATE TABLE IF NOT EXISTS sources (
     collection_name TEXT NOT NULL REFERENCES collections(name) ON DELETE CASCADE,
     source_id TEXT NOT NULL,
     title TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
     content TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (collection_name, source_id)

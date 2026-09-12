@@ -18,23 +18,26 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
     }
 
     public async Task UpsertSourceAsync(string collectionName, string sourceId, string title,
-        string sourceText, IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default)
+        string contentHash, string sourceText, IReadOnlyList<ChunkWithEmbedding> chunks,
+        CancellationToken ct = default)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
         // 0. Store the source text
         const string upsertSourceSql = """
-            INSERT INTO sources (collection_name, source_id, title, content)
-            VALUES (@coll, @src, @title, @content)
+            INSERT INTO sources (collection_name, source_id, title, content_hash, content)
+            VALUES (@coll, @src, @title, @hash, @content)
             ON CONFLICT (collection_name, source_id)
-            DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, updated_at = NOW()
+            DO UPDATE SET title = EXCLUDED.title, content_hash = EXCLUDED.content_hash,
+                          content = EXCLUDED.content, updated_at = NOW()
             """;
         await using (var sourceCmd = new NpgsqlCommand(upsertSourceSql, conn, tx))
         {
             sourceCmd.Parameters.AddWithValue("coll", collectionName);
             sourceCmd.Parameters.AddWithValue("src", sourceId);
             sourceCmd.Parameters.AddWithValue("title", title);
+            sourceCmd.Parameters.AddWithValue("hash", contentHash);
             sourceCmd.Parameters.AddWithValue("content", sourceText);
             await sourceCmd.ExecuteNonQueryAsync(ct);
         }
@@ -112,8 +115,8 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT content_hash FROM chunks
-            WHERE collection_name = @coll AND source_id = @src AND chunk_index = 0
+            SELECT content_hash FROM sources
+            WHERE collection_name = @coll AND source_id = @src
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -129,8 +132,8 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
         string collectionName, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT source_id, content_hash FROM chunks
-            WHERE collection_name = @coll AND chunk_index = 0
+            SELECT source_id, content_hash FROM sources
+            WHERE collection_name = @coll
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -148,9 +151,8 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT 1 FROM chunks
+            SELECT 1 FROM sources
             WHERE collection_name = @coll AND source_id = @src
-            LIMIT 1
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);

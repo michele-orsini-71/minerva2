@@ -67,7 +67,8 @@ public class IngestionPipelineTests
         Assert.Equal(0, result.Updated);
         await bed.Repo.DidNotReceive().UpsertSourceAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -113,7 +114,7 @@ public class IngestionPipelineTests
         await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         await bed.Repo.Received(1).UpsertSourceAsync(
-            CollectionName, SourceId, "Title", Arg.Any<string>(),
+            CollectionName, SourceId, "Title", Arg.Any<string>(), Arg.Any<string>(),
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(chunks =>
                 chunks.Count == 3
                 && chunks[0].PrevChunkId == null
@@ -141,7 +142,8 @@ public class IngestionPipelineTests
 
         await bed.Repo.DidNotReceive().UpsertSourceAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -169,7 +171,7 @@ public class IngestionPipelineTests
         await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
         await bed.Repo.Received(1).UpsertSourceAsync(
-            CollectionName, SourceId, "Title", Arg.Any<string>(),
+            CollectionName, SourceId, "Title", Arg.Any<string>(), Arg.Any<string>(),
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.Any(c => c.Content.Contains("A photo of a cat"))),
             Arg.Any<CancellationToken>());

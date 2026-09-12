@@ -4,8 +4,8 @@ namespace Minerva.Ingestion;
 
 internal interface ISourceWriter
 {
-    Task UpsertSourceAsync(string collectionName, string sourceId, string title, string sourceText,
-        IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default);
+    Task UpsertSourceAsync(string collectionName, string sourceId, string title, string contentHash,
+        string sourceText, IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default);
 
     Task DeleteBySourceIdAsync(string collectionName, string sourceId,
         CancellationToken ct = default);
