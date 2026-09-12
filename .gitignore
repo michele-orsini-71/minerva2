@@ -497,8 +497,9 @@ chunk-comparison
 chunk-comparison
 
 bin/
-bin-search/
-bin-markdown-indexer/
+bin-minerva-search/
+bin-minerva-markdown-indexer/
+bin-minerva-mcp/
 
 # C# Dev Kit language service cache
 *.lscache
@@ -524,5 +525,5 @@ eval/corpus-builder/zim-cluster-embeddings.jsonl
 eval/corpus-builder/zim-cluster.done
 
 dev-docs
-eval/collections/markdown-indexer
+eval/collections/minerva-markdown-indexer
 

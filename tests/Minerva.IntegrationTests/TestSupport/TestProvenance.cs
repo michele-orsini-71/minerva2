@@ -18,7 +18,7 @@ internal static class TestProvenance
             new CollectionLastRun(ingestorVersion, schemaVersion));
 
     public static ClientProvenance Client(
-        string kind = "markdown-indexer",
+        string kind = "minerva-markdown-indexer",
         Dictionary<string, object>? data = null) =>
         new(kind, data ?? new Dictionary<string, object>());
 }

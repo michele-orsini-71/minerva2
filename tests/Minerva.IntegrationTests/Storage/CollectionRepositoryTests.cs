@@ -109,7 +109,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
     public async Task ClientSection_RoundTrips_AsJsonb()
     {
         var client = new ClientProvenance(
-            "markdown-indexer",
+            "minerva-markdown-indexer",
             new Dictionary<string, object> { ["sourceRoot"] = "/home/user/vault" });
         var collection = new Collection("client-coll", null,
             TestProvenance.Create(), client);
@@ -118,7 +118,7 @@ public class CollectionRepositoryTests : IAsyncLifetime
         var retrieved = await _repo.GetAsync("client-coll");
 
         Assert.NotNull(retrieved);
-        Assert.Equal("markdown-indexer", retrieved.ClientProvenance.kind);
+        Assert.Equal("minerva-markdown-indexer", retrieved.ClientProvenance.kind);
         Assert.Equal("/home/user/vault", retrieved.ClientProvenance.data["sourceRoot"].ToString());
     }
 }

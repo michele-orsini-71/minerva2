@@ -26,7 +26,7 @@ public class MarkdownIndexerScopeTests
         };
 
     private static Collection Existing(
-        Dictionary<string, object> bag, string kind = "markdown-indexer") =>
+        Dictionary<string, object> bag, string kind = "minerva-markdown-indexer") =>
         new("test", null, TestOptions.Provenance(), new ClientProvenance(kind, bag));
 
     private static IndexerOptions Options(

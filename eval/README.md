@@ -35,8 +35,8 @@ DOTNET_ENVIRONMENT=wp111-nollm dotnet run --no-launch-profile --project ../../sr
 
 `DOTNET_ENVIRONMENT` selects the `appsettings.<name>.json` overlay, one per collection.
 For long overnight runs, build the single-file binary with
-`scripts/build-markdown-indexer-cli.sh`, copy it into `collections/` as
-`markdown-indexer` and run `DOTNET_ENVIRONMENT=<name> ./markdown-indexer` instead:
+`scripts/build-minerva-markdown-indexer-cli.sh`, copy it into `collections/` as
+`minerva-markdown-indexer` and run `DOTNET_ENVIRONMENT=<name> ./minerva-markdown-indexer` instead:
 the run then does not pick up source changes made while it is in progress.
 
 ## Dataset changed

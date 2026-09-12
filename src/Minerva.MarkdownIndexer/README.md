@@ -80,29 +80,29 @@ extensions — changed, which otherwise blocks to avoid mass insert or deletion.
 
 ## Building a standalone binary
 
-`build-markdown-indexer-cli.sh` (at the repo root) publishes a self-contained
-binary to `bin-markdown-indexer/`:
+`build-minerva-markdown-indexer-cli.sh` (in scripts folder) publishes a self-contained
+binary to `bin-minerva-markdown-indexer/`:
 
 ```bash
-./build-markdown-indexer-cli.sh
+./build-minerva-markdown-indexer-cli.sh
 ```
 
 Output:
 
-- `bin-markdown-indexer/markdown-indexer` — the executable
-- `bin-markdown-indexer/appsettings.json` — copied from the project
+- `bin-minerva-markdown-indexer/minerva-markdown-indexer` — the executable
+- `bin-minerva-markdown-indexer/appsettings.json` — copied from the project
   (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
 
 Run it with:
 
 ```bash
-./bin-markdown-indexer/markdown-indexer
+./bin-minerva-markdown-indexer/minerva-markdown-indexer
 ```
 
 For long-running ingestions, detach it from the terminal:
 
 ```bash
-nohup ./bin-markdown-indexer/markdown-indexer > logs/run.log 2>&1 &
+nohup ./bin-minerva-markdown-indexer/minerva-markdown-indexer > logs/run.log 2>&1 &
 ```
 
 ## Overriding configuration
@@ -120,8 +120,8 @@ earlier):
 Drop additional files next to the binary:
 
 ```text
-bin-markdown-indexer/
-  markdown-indexer
+bin-minerva-markdown-indexer/
+  minerva-markdown-indexer
   appsettings.json              # base / defaults
   appsettings.experiment-a.json # only the keys to override
   appsettings.experiment-b.json
@@ -130,14 +130,14 @@ bin-markdown-indexer/
 Launch with the matching environment name:
 
 ```bash
-DOTNET_ENVIRONMENT=experiment-a ./bin-markdown-indexer/markdown-indexer
+DOTNET_ENVIRONMENT=experiment-a ./bin-minerva-markdown-indexer/minerva-markdown-indexer
 ```
 
 The profile is merged on top of `appsettings.json`, so it only needs the keys
 that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the
 `appsettings*.json` glob in the csproj copies them on each build.
 
-The files have to sit next to `markdown-indexer` — they are loaded from
+The files have to sit next to `minerva-markdown-indexer` — they are loaded from
 `AppContext.BaseDirectory`.
 
 ### Environment variables (one-off tweaks)
@@ -147,13 +147,13 @@ Use `__` (double underscore) as the section separator:
 ```bash
 Indexer__RootPath=/path/to/notes \
 Indexer__CollectionName=experiment-a \
-./bin-markdown-indexer/markdown-indexer
+./bin-minerva-markdown-indexer/minerva-markdown-indexer
 ```
 
 ### Command-line args
 
 ```bash
-./bin-markdown-indexer/markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
+./bin-minerva-markdown-indexer/minerva-markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
 ```
 
 ## Files

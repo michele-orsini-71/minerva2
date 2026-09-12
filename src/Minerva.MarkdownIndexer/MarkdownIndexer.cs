@@ -8,7 +8,7 @@ namespace Minerva.MarkdownIndexer;
 
 public sealed class MarkdownIndexer
 {
-    public static readonly string ClientProvenanceName = "markdown-indexer";
+    public static readonly string ClientProvenanceName = "minerva-markdown-indexer";
     public static readonly string RootPathField = "root-path";
     public static readonly string ExcludeDirectoriesField = "exclude-directories";
     public static readonly string FileExtensionsField = "file-extensions";

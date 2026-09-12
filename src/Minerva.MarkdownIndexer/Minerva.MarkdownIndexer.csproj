@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>markdown-indexer</AssemblyName>
+    <AssemblyName>minerva-markdown-indexer</AssemblyName>
     <StampGitVersion>true</StampGitVersion>
   </PropertyGroup>
 

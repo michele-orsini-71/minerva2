@@ -25,7 +25,7 @@
       }
     },
     "ClientProvenance": {
-      "kind": "markdown-indexer",
+      "kind": "minerva-markdown-indexer",
       "data": {
         "root-path": "./wikipedia-en-corpus",
         "file-extensions": [
