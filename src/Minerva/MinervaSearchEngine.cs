@@ -9,18 +9,18 @@ internal sealed class MinervaSearchEngine : ISearchEngine
 {
     private readonly SearchPipeline _searchPipeline;
     private readonly ICollectionService _collections;
-    private readonly IChunkCatalog _chunkCatalog;
+    private readonly ISourceCatalog _sourceCatalog;
     private readonly SearchOptions _defaults;
 
     public MinervaSearchEngine(
         SearchPipeline searchPipeline,
         ICollectionService collections,
-        IChunkCatalog chunkCatalog,
+        ISourceCatalog sourceCatalog,
         SearchOptions defaults)
     {
         _searchPipeline = searchPipeline;
         _collections = collections;
-        _chunkCatalog = chunkCatalog;
+        _sourceCatalog = sourceCatalog;
         _defaults = defaults;
     }
 
@@ -83,7 +83,7 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         _ = await _collections.GetAsync(collectionName, ct)
             ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
 
-        return await _chunkCatalog.SourceIdExistsAsync(collectionName, sourceId, ct);
+        return await _sourceCatalog.SourceIdExistsAsync(collectionName, sourceId, ct);
     }
 
     public async Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default)
@@ -96,7 +96,7 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         return await _collections.ListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+    public async Task<SourceText?> GetSourceAsync(
         string collectionName,
         string sourceId,
         CancellationToken ct = default)
@@ -113,6 +113,7 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         _ = await _collections.GetAsync(collectionName, ct)
             ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
 
-        return await _chunkCatalog.GetSourceChunksAsync(collectionName, sourceId, ct);
+        var content = await _sourceCatalog.GetSourceTextAsync(collectionName, sourceId, ct);
+        return content is null ? null : new SourceText(sourceId, content);
     }
 }

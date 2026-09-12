@@ -3,7 +3,7 @@ using Minerva.Exceptions;
 
 namespace Minerva.Providers;
 
-public sealed partial class CredentialResolver
+internal sealed partial class CredentialResolver
 {
     private static readonly Regex EnvVarPattern = EnvVarRegex();
     private static readonly Regex LiteralKeyPattern = LiteralKeyRegex();

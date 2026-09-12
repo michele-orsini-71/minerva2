@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Search;
 
-public static class RankFusion
+internal static class RankFusion
 {
     public static IReadOnlyList<ScoredChunk> Fuse(
         IReadOnlyList<RankedChunk> vectorResults,

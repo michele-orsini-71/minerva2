@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace Minerva.Storage;
 
-public sealed class DatabasePreflight
+internal sealed class DatabasePreflight
 {
     private readonly NpgsqlDataSource _dataSource;
 

@@ -46,7 +46,7 @@ USING bm25 (
 - Postgres maintains the index inside the same INSERT that writes the chunk;
   ingestion has no lexical-indexing step of its own.
 
-Query (`PostgresChunkRepository.FullTextSearchAsync`):
+Query (`PostgresSourceRepository.FullTextSearchAsync`):
 
 ```sql
 SELECT id, ..., pdb.score(id) AS rank

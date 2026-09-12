@@ -1,6 +1,6 @@
 namespace Minerva.Search;
 
-public class FullTextSearch
+internal class FullTextSearch
 {
     private readonly IChunkQuery _chunkQuery;
 

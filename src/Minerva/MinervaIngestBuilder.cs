@@ -29,7 +29,7 @@ public static class MinervaIngestBuilder
         var ingestionPipeline = new IngestionPipeline(
             chunker,
             core.EmbeddingService,
-            core.ChunkWriter,
+            core.SourceWriter,
             loggerFactory.CreateLogger<IngestionPipeline>());
 
         await core.SchemaInitializer.InitializeAsync(ct);
@@ -38,7 +38,7 @@ public static class MinervaIngestBuilder
         return new MinervaIngestEngine(
             ingestionPipeline,
             core.Collections,
-            core.ChunkWriter,
+            core.SourceWriter,
             options.Embedding.Model,
             core.EmbeddingProvider,
             options.Chunking,

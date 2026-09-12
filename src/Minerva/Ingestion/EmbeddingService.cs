@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Minerva.Ingestion;
 
-public class EmbeddingService : IEmbeddingService
+internal class EmbeddingService : IEmbeddingService
 {
     private readonly IEmbeddingClient _client;
     private readonly int _batchSize;

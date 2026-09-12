@@ -19,7 +19,7 @@ public interface ISearchEngine
 
     Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default);
 
-    Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+    Task<SourceText?> GetSourceAsync(
         string collectionName,
         string sourceId,
         CancellationToken ct = default);

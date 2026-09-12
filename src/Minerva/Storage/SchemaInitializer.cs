@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Minerva.Storage;
 
-public partial class SchemaInitializer : ICollectionProvisioner
+internal partial class SchemaInitializer : ICollectionProvisioner
 {
     private const long AdvisoryLockId = 0x4D494E455256_01; // "MINERV" + 01
     private static readonly Regex SafeCollectionNamePattern = SafeCollectionNameRegex();

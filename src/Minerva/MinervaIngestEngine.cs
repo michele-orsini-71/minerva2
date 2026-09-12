@@ -14,7 +14,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
 
     private readonly IngestionPipeline _ingestionPipeline;
     private readonly ICollectionService _collections;
-    private readonly IChunkWriter _chunkWriter;
+    private readonly ISourceWriter _sourceWriter;
     private readonly string _configuredEmbeddingModel;
     private readonly IEmbeddingDimensionProvider _dimensionProvider;
     private readonly ChunkingOptions _chunking;
@@ -24,7 +24,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     public MinervaIngestEngine(
         IngestionPipeline ingestionPipeline,
         ICollectionService collections,
-        IChunkWriter chunkWriter,
+        ISourceWriter sourceWriter,
         string configuredEmbeddingModel,
         IEmbeddingDimensionProvider dimensionProvider,
         ChunkingOptions chunking,
@@ -33,7 +33,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
     {
         _ingestionPipeline = ingestionPipeline;
         _collections = collections;
-        _chunkWriter = chunkWriter;
+        _sourceWriter = sourceWriter;
         _configuredEmbeddingModel = configuredEmbeddingModel;
         _dimensionProvider = dimensionProvider;
         _chunking = chunking;
@@ -52,7 +52,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
 
         await PrepareCollectionAsync(collectionName, clientProvenance, allowRecreateOnConfigMismatch, ct);
 
-        var existing = await _chunkWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
+        var existing = await _sourceWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
 
         int added = 0, updated = 0, unchanged = 0, deleted = 0, failed = 0;

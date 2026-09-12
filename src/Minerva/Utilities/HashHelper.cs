@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Minerva.Utilities;
 
-public static class HashHelper
+internal static class HashHelper
 {
     public static string GenerateChunkId(string collectionName, string sourceId, int chunkIndex)
     {

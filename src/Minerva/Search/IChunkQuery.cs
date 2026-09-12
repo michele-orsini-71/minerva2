@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Search;
 
-public interface IChunkQuery
+internal interface IChunkQuery
 {
     Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(
         IReadOnlyList<string> chunkIds, CancellationToken ct = default);

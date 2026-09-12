@@ -12,6 +12,17 @@ CREATE TABLE IF NOT EXISTS collections (
     last_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Full text of each ingested source, as chunked (after attachment integration).
+-- Chunks stay the unit of retrieval; this table serves whole-document reads.
+CREATE TABLE IF NOT EXISTS sources (
+    collection_name TEXT NOT NULL REFERENCES collections(name) ON DELETE CASCADE,
+    source_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (collection_name, source_id)
+);
+
+-- A chunk never exists without its source row; deleting the source removes its chunks.
 CREATE TABLE IF NOT EXISTS chunks (
     id TEXT PRIMARY KEY,
     collection_name TEXT NOT NULL REFERENCES collections(name) ON DELETE CASCADE,
@@ -23,7 +34,9 @@ CREATE TABLE IF NOT EXISTS chunks (
     metadata JSONB,
     prev_chunk_id TEXT REFERENCES chunks(id) ON DELETE SET NULL,
     next_chunk_id TEXT REFERENCES chunks(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (collection_name, source_id)
+        REFERENCES sources(collection_name, source_id) ON DELETE CASCADE
 );
 
 -- B-tree indexes for lookups

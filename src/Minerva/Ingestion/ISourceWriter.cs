@@ -2,9 +2,9 @@ using Minerva.Models;
 
 namespace Minerva.Ingestion;
 
-public interface IChunkWriter
+internal interface ISourceWriter
 {
-    Task UpsertChunksAsync(string collectionName, string sourceId,
+    Task UpsertSourceAsync(string collectionName, string sourceId, string sourceText,
         IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default);
 
     Task DeleteBySourceIdAsync(string collectionName, string sourceId,

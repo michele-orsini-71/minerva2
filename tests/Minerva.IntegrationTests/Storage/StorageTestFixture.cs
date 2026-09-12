@@ -11,7 +11,7 @@ public class StorageTestFixture : IAsyncLifetime
     private const string DisableCleanupEnvVar = "MINERVA_TEST_DISABLE_CLEANUP";
 
     public NpgsqlDataSource DataSource { get; private set; } = null!;
-    public SchemaInitializer SchemaInitializer { get; private set; } = null!;
+    internal SchemaInitializer SchemaInitializer { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {

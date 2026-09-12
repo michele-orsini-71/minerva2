@@ -131,5 +131,5 @@ source of truth.
 | `Models/` | Public records (`Document`, `SearchResult`, …) |
 | `Providers/` | OpenAI-compatible embedding client, `RateLimiter`, `ProviderFactory` |
 | `Search/` | `VectorSearch`, `FullTextSearch`, `Reranker`, `ContextExpander`, `SearchPipeline` (RRF fusion) |
-| `Storage/` | `SchemaInitializer`, `PostgresCollectionRepository`, `PostgresChunkRepository` |
+| `Storage/` | `SchemaInitializer`, `PostgresCollectionRepository`, `PostgresSourceRepository` |
 | `Utilities/` | Cross-cutting helpers |

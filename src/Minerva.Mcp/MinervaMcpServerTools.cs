@@ -50,16 +50,10 @@ public static class MinervaMcpServerTools
         [Description("Id of the source, as returned by search.")] string sourceId,
         CancellationToken ct = default)
     {
-        var chunks = await engine.GetSourceChunksAsync(collection, sourceId, ct);
-        if (chunks.Count == 0)
-            throw new McpException($"Source '{sourceId}' not found in collection '{collection}'.");
-
-        var content = string.Join("\n\n", chunks.Select(c => c.Content));
-        return new SourceText(sourceId, chunks.Count, content);
+        return await engine.GetSourceAsync(collection, sourceId, ct)
+            ?? throw new McpException($"Source '{sourceId}' not found in collection '{collection}'.");
     }
 }
-
-public sealed record SourceText(string SourceId, int ChunkCount, string Content);
 
 public sealed record SearchHit(
     string ChunkId,

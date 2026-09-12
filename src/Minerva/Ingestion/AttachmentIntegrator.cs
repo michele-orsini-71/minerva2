@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Ingestion;
 
-public static class AttachmentIntegrator
+internal static class AttachmentIntegrator
 {
     /// <summary>
     /// Replaces each attachment key found in text with: key + "\n" + description.

@@ -8,7 +8,7 @@ using Minerva.Utilities;
 
 namespace Minerva.Ingestion;
 
-public class DocumentChunker : IDocumentChunker
+internal class DocumentChunker : IDocumentChunker
 {
     private readonly ChunkingOptions _options;
     private readonly ILogger<DocumentChunker>? _logger;

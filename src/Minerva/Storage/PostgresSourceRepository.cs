@@ -8,20 +8,35 @@ using Pgvector;
 
 namespace Minerva.Storage;
 
-public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
+internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCatalog
 {
     private readonly NpgsqlDataSource _dataSource;
 
-    public PostgresChunkRepository(NpgsqlDataSource dataSource)
+    public PostgresSourceRepository(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
 
-    public async Task UpsertChunksAsync(string collectionName, string sourceId,
+    public async Task UpsertSourceAsync(string collectionName, string sourceId, string sourceText,
         IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
+
+        // 0. Store the source text
+        const string upsertSourceSql = """
+            INSERT INTO sources (collection_name, source_id, content)
+            VALUES (@coll, @src, @content)
+            ON CONFLICT (collection_name, source_id)
+            DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()
+            """;
+        await using (var sourceCmd = new NpgsqlCommand(upsertSourceSql, conn, tx))
+        {
+            sourceCmd.Parameters.AddWithValue("coll", collectionName);
+            sourceCmd.Parameters.AddWithValue("src", sourceId);
+            sourceCmd.Parameters.AddWithValue("content", sourceText);
+            await sourceCmd.ExecuteNonQueryAsync(ct);
+        }
 
         // 1. Delete existing chunks for this source
         await using (var deleteCmd = new NpgsqlCommand(
@@ -81,7 +96,8 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
     public async Task DeleteBySourceIdAsync(string collectionName, string sourceId,
         CancellationToken ct = default)
     {
-        const string sql = "DELETE FROM chunks WHERE collection_name = @coll AND source_id = @src";
+        // Chunks go with the source row (FK ON DELETE CASCADE).
+        const string sql = "DELETE FROM sources WHERE collection_name = @coll AND source_id = @src";
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -145,15 +161,12 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         return result is not null;
     }
 
-    public async Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+    public async Task<string?> GetSourceTextAsync(
         string collectionName, string sourceId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT id, source_id, collection_name, chunk_index, content, content_hash,
-                   prev_chunk_id, next_chunk_id, metadata
-            FROM chunks
+            SELECT content FROM sources
             WHERE collection_name = @coll AND source_id = @src
-            ORDER BY chunk_index
             """;
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
@@ -161,11 +174,8 @@ public class PostgresChunkRepository : IChunkWriter, IChunkQuery, IChunkCatalog
         cmd.Parameters.AddWithValue("coll", collectionName);
         cmd.Parameters.AddWithValue("src", sourceId);
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        var results = new List<ChunkRecord>();
-        while (await reader.ReadAsync(ct))
-            results.Add(ReadChunkRecord(reader));
-        return results;
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return result as string;
     }
 
     public async Task<IReadOnlyList<ChunkRecord>> GetAdjacentChunksAsync(

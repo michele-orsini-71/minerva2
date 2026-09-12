@@ -4,7 +4,7 @@ using Minerva.Models;
 
 namespace Minerva.Collections;
 
-public partial class CollectionManager : ICollectionService
+internal partial class CollectionManager : ICollectionService
 {
     private static readonly Regex NamePattern = CollectionNameRegex();
     private static readonly Regex LiteralKeyPattern = LiteralApiKeyRegex();

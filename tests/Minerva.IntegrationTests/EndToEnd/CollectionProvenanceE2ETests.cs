@@ -87,7 +87,7 @@ public class CollectionProvenanceE2ETests : IAsyncLifetime
     {
         var loggerFactory = NullLoggerFactory.Instance;
         var mockEmbeddings = new MockEmbeddingGenerator(EmbeddingDimension);
-        var chunkRepository = new PostgresChunkRepository(_fixture.DataSource);
+        var chunkRepository = new PostgresSourceRepository(_fixture.DataSource);
         var collectionRepository = new PostgresCollectionRepository(_fixture.DataSource);
 
         var embeddingService = new EmbeddingService(

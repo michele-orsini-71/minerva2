@@ -14,7 +14,7 @@ public class MinervaIngestEngineTests
     private const string CollectionName = "test-collection";
     private static readonly float[] SampleVector = [0.1f, 0.2f, 0.3f];
 
-    private sealed record TestBed(MinervaIngestEngine Engine, IChunkWriter Repo);
+    private sealed record TestBed(MinervaIngestEngine Engine, ISourceWriter Repo);
 
     // Real pipeline on top of substitutes; the embedder throws for documents whose
     // source id is in failingSourceIds, which is how a provider failure surfaces.
@@ -40,7 +40,7 @@ public class MinervaIngestEngineTests
                 return Task.FromResult((IReadOnlyList<float[]>)texts.Select(_ => SampleVector).ToArray());
             });
 
-        var repo = Substitute.For<IChunkWriter>();
+        var repo = Substitute.For<ISourceWriter>();
         repo.GetSourceIdsAndHashesAsync(CollectionName, Arg.Any<CancellationToken>())
             .Returns(existing ?? new Dictionary<string, string>());
 

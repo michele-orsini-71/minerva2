@@ -1,14 +1,12 @@
-using Minerva.Models;
-
 namespace Minerva.Search;
 
-public interface IChunkCatalog
+internal interface ISourceCatalog
 {
     Task<bool> SourceIdExistsAsync(
         string collectionName, string sourceId,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+    Task<string?> GetSourceTextAsync(
         string collectionName, string sourceId,
         CancellationToken ct = default);
 }

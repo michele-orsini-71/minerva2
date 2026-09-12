@@ -6,22 +6,22 @@ using Minerva.Utilities;
 
 namespace Minerva.Ingestion;
 
-public class IngestionPipeline
+internal class IngestionPipeline
 {
     private readonly IDocumentChunker _chunker;
     private readonly IEmbeddingService _embeddingService;
-    private readonly IChunkWriter _chunkWriter;
+    private readonly ISourceWriter _sourceWriter;
     private readonly ILogger<IngestionPipeline> _logger;
 
     public IngestionPipeline(
         IDocumentChunker chunker,
         IEmbeddingService embeddingService,
-        IChunkWriter chunkWriter,
+        ISourceWriter sourceWriter,
         ILogger<IngestionPipeline> logger)
     {
         _chunker = chunker;
         _embeddingService = embeddingService;
-        _chunkWriter = chunkWriter;
+        _sourceWriter = sourceWriter;
         _logger = logger;
     }
 
@@ -43,7 +43,7 @@ public class IngestionPipeline
             {
                 _logger.LogInformation(
                     "Document {SourceId} is now empty; removing prior chunks", document.SourceId);
-                await _chunkWriter.DeleteBySourceIdAsync(collectionName, document.SourceId, ct);
+                await _sourceWriter.DeleteBySourceIdAsync(collectionName, document.SourceId, ct);
                 return new IngestionResult(0, 0, Deleted: 1, 0, sw.Elapsed, 0);
             }
 
@@ -85,8 +85,8 @@ public class IngestionPipeline
         }
 
         // 7. Atomic upsert
-        await _chunkWriter.UpsertChunksAsync(
-            collectionName, document.SourceId, chunksWithEmbeddings, ct);
+        await _sourceWriter.UpsertSourceAsync(
+            collectionName, document.SourceId, text, chunksWithEmbeddings, ct);
 
         _logger.LogInformation(
             "Ingested document {SourceId}: {ChunkCount} chunks ({Action})",
@@ -104,7 +104,7 @@ public class IngestionPipeline
     public async Task RemoveAsync(
         string collectionName, string sourceId, CancellationToken ct = default)
     {
-        await _chunkWriter.DeleteBySourceIdAsync(collectionName, sourceId, ct);
+        await _sourceWriter.DeleteBySourceIdAsync(collectionName, sourceId, ct);
         _logger.LogInformation("Removed document {SourceId} from {Collection}",
             sourceId, collectionName);
     }

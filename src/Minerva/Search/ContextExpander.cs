@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Search;
 
-public class ContextExpander
+internal class ContextExpander
 {
     private readonly IChunkQuery _chunkQuery;
 

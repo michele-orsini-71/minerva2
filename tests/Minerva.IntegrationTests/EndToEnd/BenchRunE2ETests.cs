@@ -40,7 +40,7 @@ public class BenchRunE2ETests : IAsyncLifetime
         var mockEmbeddings = new MockEmbeddingGenerator(EmbeddingDimension);
         var loggerFactory = NullLoggerFactory.Instance;
 
-        var chunkRepository = new PostgresChunkRepository(fixture.DataSource);
+        var chunkRepository = new PostgresSourceRepository(fixture.DataSource);
         var collectionRepository = new PostgresCollectionRepository(fixture.DataSource);
 
         var embeddingService = new EmbeddingService(

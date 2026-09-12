@@ -27,7 +27,7 @@ public class SweepRunLoopTests
         public Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default)
             => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<ChunkRecord>> GetSourceChunksAsync(
+        public Task<SourceText?> GetSourceAsync(
             string collectionName, string sourceId, CancellationToken ct = default)
             => throw new NotImplementedException();
     }

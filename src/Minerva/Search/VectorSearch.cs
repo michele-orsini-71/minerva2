@@ -1,6 +1,6 @@
 namespace Minerva.Search;
 
-public class VectorSearch
+internal class VectorSearch
 {
     private readonly IChunkQuery _chunkQuery;
 

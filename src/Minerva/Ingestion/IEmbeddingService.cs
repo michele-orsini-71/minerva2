@@ -1,6 +1,6 @@
 namespace Minerva.Ingestion;
 
-public interface IEmbeddingService
+internal interface IEmbeddingService
 {
     Task<IReadOnlyList<float[]>> EmbedAsync(
         IReadOnlyList<string> texts,

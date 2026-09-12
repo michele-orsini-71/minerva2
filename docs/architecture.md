@@ -90,8 +90,8 @@ described above. Past violations were resolved by:
   `Minerva.Models`.
 - Moving repository ports inward: `ICollectionRepository` /
   `ICollectionProvisioner` live in `Minerva.Collections`; `IChunkRepository` was
-  split into `IChunkWriter` (in `Minerva.Ingestion`) and `IChunkQuery` (in
-  `Minerva.Search`). `PostgresChunkRepository` implements both.
+  split into `ISourceWriter` (in `Minerva.Ingestion`) and `IChunkQuery` (in
+  `Minerva.Search`). `PostgresSourceRepository` implements both.
 - Wrapping `Microsoft.Extensions.AI` behind Minerva-owned ports: `ILlmClient`
   and `IEmbeddingClient`, both defined in `Minerva.Ingestion` and implemented by
   the OpenAI-compatible adapters in `Minerva.Providers`.

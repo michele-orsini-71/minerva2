@@ -14,9 +14,9 @@ internal sealed record MinervaCoreServices(
     NpgsqlDataSource DataSource,
     DatabasePreflight DatabasePreflight,
     SchemaInitializer SchemaInitializer,
-    IChunkWriter ChunkWriter,
+    ISourceWriter SourceWriter,
     IChunkQuery ChunkQuery,
-    IChunkCatalog ChunkCatalog,
+    ISourceCatalog SourceCatalog,
     OpenAICompatibleEmbeddingProvider EmbeddingProvider,
     IEmbeddingService EmbeddingService,
     ICollectionService Collections)
@@ -54,10 +54,10 @@ internal static class MinervaCore
         var schemaInitializer = new SchemaInitializer(
             dataSource, loggerFactory.CreateLogger<SchemaInitializer>());
 
-        var chunkRepository = new PostgresChunkRepository(dataSource);
-        IChunkWriter chunkWriter = chunkRepository;
+        var chunkRepository = new PostgresSourceRepository(dataSource);
+        ISourceWriter sourceWriter = chunkRepository;
         IChunkQuery chunkQuery = chunkRepository;
-        IChunkCatalog chunkCatalog = chunkRepository;
+        ISourceCatalog sourceCatalog = chunkRepository;
 
         OpenAICompatibleEmbeddingProvider embeddingProvider;
         try
@@ -85,9 +85,9 @@ internal static class MinervaCore
             DataSource: dataSource,
             DatabasePreflight: databasePreflight,
             SchemaInitializer: schemaInitializer,
-            ChunkWriter: chunkWriter,
+            SourceWriter: sourceWriter,
             ChunkQuery: chunkQuery,
-            ChunkCatalog: chunkCatalog,
+            SourceCatalog: sourceCatalog,
             EmbeddingProvider: embeddingProvider,
             EmbeddingService: embeddingService,
             Collections: collections);

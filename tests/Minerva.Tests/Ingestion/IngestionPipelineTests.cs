@@ -18,7 +18,7 @@ public class IngestionPipelineTests
         IngestionPipeline Pipeline,
         IDocumentChunker Chunker,
         IEmbeddingService Embedder,
-        IChunkWriter Repo);
+        ISourceWriter Repo);
 
     private static TestBed CreatePipeline()
     {
@@ -36,7 +36,7 @@ public class IngestionPipelineTests
                 (IReadOnlyList<float[]>)ci.Arg<IReadOnlyList<string>>()
                     .Select(_ => SampleVector).ToArray()));
 
-        var repo = Substitute.For<IChunkWriter>();
+        var repo = Substitute.For<ISourceWriter>();
 
         var pipeline = new IngestionPipeline(
             chunker, embedder, repo, NullLogger<IngestionPipeline>.Instance);
@@ -65,8 +65,8 @@ public class IngestionPipelineTests
         Assert.Equal(1, result.Unchanged);
         Assert.Equal(0, result.Added);
         Assert.Equal(0, result.Updated);
-        await bed.Repo.DidNotReceive().UpsertChunksAsync(
-            Arg.Any<string>(), Arg.Any<string>(),
+        await bed.Repo.DidNotReceive().UpsertSourceAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
     }
 
@@ -112,8 +112,8 @@ public class IngestionPipelineTests
 
         await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
+        await bed.Repo.Received(1).UpsertSourceAsync(
+            CollectionName, SourceId, Arg.Any<string>(),
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(chunks =>
                 chunks.Count == 3
                 && chunks[0].PrevChunkId == null
@@ -139,8 +139,8 @@ public class IngestionPipelineTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null));
 
-        await bed.Repo.DidNotReceive().UpsertChunksAsync(
-            Arg.Any<string>(), Arg.Any<string>(),
+        await bed.Repo.DidNotReceive().UpsertSourceAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<IReadOnlyList<ChunkWithEmbedding>>(), Arg.Any<CancellationToken>());
     }
 
@@ -168,8 +168,8 @@ public class IngestionPipelineTests
 
         await bed.Pipeline.IngestAsync(CollectionName, doc, storedContentHash: null);
 
-        await bed.Repo.Received(1).UpsertChunksAsync(
-            CollectionName, SourceId,
+        await bed.Repo.Received(1).UpsertSourceAsync(
+            CollectionName, SourceId, Arg.Any<string>(),
             Arg.Is<IReadOnlyList<ChunkWithEmbedding>>(
                 chunks => chunks.Any(c => c.Content.Contains("A photo of a cat"))),
             Arg.Any<CancellationToken>());

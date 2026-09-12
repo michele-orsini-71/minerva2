@@ -4,7 +4,7 @@ using Minerva.Models;
 
 namespace Minerva.Providers;
 
-public class ProviderFactory
+internal class ProviderFactory
 {
     private readonly EmbeddingProviderOptions _embedding;
     private readonly CredentialResolver? _embeddingResolver;

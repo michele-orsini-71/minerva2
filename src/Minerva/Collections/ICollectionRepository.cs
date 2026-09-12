@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Collections;
 
-public interface ICollectionRepository
+internal interface ICollectionRepository
 {
     Task<Collection?> GetAsync(string name, CancellationToken ct = default);
     Task<IReadOnlyList<Collection>> ListAsync(CancellationToken ct = default);

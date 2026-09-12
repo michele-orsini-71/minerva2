@@ -7,7 +7,7 @@ using NpgsqlTypes;
 
 namespace Minerva.Storage;
 
-public class PostgresCollectionRepository : ICollectionRepository
+internal class PostgresCollectionRepository : ICollectionRepository
 {
     private static readonly JsonSerializerOptions MetadataJsonOptions = new()
     {

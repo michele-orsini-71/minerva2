@@ -2,7 +2,7 @@ using Minerva.Models;
 
 namespace Minerva.Collections;
 
-public interface ICollectionService
+internal interface ICollectionService
 {
     Task<Collection> CreateAsync(
         string name,

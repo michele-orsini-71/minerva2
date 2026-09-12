@@ -18,7 +18,7 @@ internal interface IEmbeddingGenerationFacade
         IList<string> inputs, CancellationToken ct);
 }
 
-public sealed class OpenAICompatibleEmbeddingProvider
+internal sealed class OpenAICompatibleEmbeddingProvider
     : IEmbeddingGenerator<string, Embedding<float>>, IEmbeddingClient, IEmbeddingDimensionProvider
 {
     private readonly OpenAI.Embeddings.EmbeddingClient _client;

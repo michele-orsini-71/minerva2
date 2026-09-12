@@ -5,6 +5,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Minerva.Tests" />
     <InternalsVisibleTo Include="Minerva.IntegrationTests" />
+    <InternalsVisibleTo Include="Minerva.ChunkComparator" />
+    <!-- Lets NSubstitute (Castle DynamicProxy) mock internal interfaces in the test projects. -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Storage/Migrations/*.sql" />

@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Minerva.Providers;
 
-public sealed class RateLimiter : IDisposable
+internal sealed class RateLimiter : IDisposable
 {
     private readonly SemaphoreSlim _semaphore;
     private readonly int? _requestsPerMinute;
