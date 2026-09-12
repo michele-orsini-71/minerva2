@@ -117,6 +117,26 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         return content is null ? null : new SourceText(sourceId, content);
     }
 
+    public async Task<SourceInfo?> GetSourceInfoAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(collectionName))
+            throw new ArgumentException(
+                "Collection name must be a non-empty, non-whitespace string.",
+                nameof(collectionName));
+        if (string.IsNullOrWhiteSpace(sourceId))
+            throw new ArgumentException(
+                "Source id must be a non-empty, non-whitespace string.",
+                nameof(sourceId));
+
+        _ = await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
+
+        return await _sourceCatalog.GetSourceInfoAsync(collectionName, sourceId, ct);
+    }
+
     public async Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(
         string collectionName,
         string sourceId,

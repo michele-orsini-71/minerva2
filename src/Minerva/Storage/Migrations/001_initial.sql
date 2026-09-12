@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS collections (
 CREATE TABLE IF NOT EXISTS sources (
     collection_name TEXT NOT NULL REFERENCES collections(name) ON DELETE CASCADE,
     source_id TEXT NOT NULL,
+    title TEXT NOT NULL,
     content TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (collection_name, source_id)

@@ -24,6 +24,11 @@ public interface ISearchEngine
         string sourceId,
         CancellationToken ct = default);
 
+    Task<SourceInfo?> GetSourceInfoAsync(
+        string collectionName,
+        string sourceId,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(
         string collectionName,
         string sourceId,

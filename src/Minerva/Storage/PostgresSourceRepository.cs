@@ -17,23 +17,24 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
         _dataSource = dataSource;
     }
 
-    public async Task UpsertSourceAsync(string collectionName, string sourceId, string sourceText,
-        IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default)
+    public async Task UpsertSourceAsync(string collectionName, string sourceId, string title,
+        string sourceText, IReadOnlyList<ChunkWithEmbedding> chunks, CancellationToken ct = default)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
         // 0. Store the source text
         const string upsertSourceSql = """
-            INSERT INTO sources (collection_name, source_id, content)
-            VALUES (@coll, @src, @content)
+            INSERT INTO sources (collection_name, source_id, title, content)
+            VALUES (@coll, @src, @title, @content)
             ON CONFLICT (collection_name, source_id)
-            DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()
+            DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, updated_at = NOW()
             """;
         await using (var sourceCmd = new NpgsqlCommand(upsertSourceSql, conn, tx))
         {
             sourceCmd.Parameters.AddWithValue("coll", collectionName);
             sourceCmd.Parameters.AddWithValue("src", sourceId);
+            sourceCmd.Parameters.AddWithValue("title", title);
             sourceCmd.Parameters.AddWithValue("content", sourceText);
             await sourceCmd.ExecuteNonQueryAsync(ct);
         }
@@ -176,6 +177,33 @@ internal class PostgresSourceRepository : ISourceWriter, IChunkQuery, ISourceCat
 
         var result = await cmd.ExecuteScalarAsync(ct);
         return result as string;
+    }
+
+    public async Task<SourceInfo?> GetSourceInfoAsync(
+        string collectionName, string sourceId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT s.title, length(s.content),
+                   (SELECT COUNT(*) FROM chunks c
+                    WHERE c.collection_name = s.collection_name AND c.source_id = s.source_id)
+            FROM sources s
+            WHERE s.collection_name = @coll AND s.source_id = @src
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("coll", collectionName);
+        cmd.Parameters.AddWithValue("src", sourceId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct))
+            return null;
+
+        return new SourceInfo(
+            SourceId: sourceId,
+            Title: reader.GetString(0),
+            ChunkCount: (int)reader.GetInt64(2),
+            Characters: reader.GetInt32(1));
     }
 
     public async Task<IReadOnlyList<ChunkRecord>> GetChunkRangeAsync(

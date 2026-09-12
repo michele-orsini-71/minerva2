@@ -86,7 +86,7 @@ internal class IngestionPipeline
 
         // 7. Atomic upsert
         await _sourceWriter.UpsertSourceAsync(
-            collectionName, document.SourceId, text, chunksWithEmbeddings, ct);
+            collectionName, document.SourceId, document.Title, text, chunksWithEmbeddings, ct);
 
         _logger.LogInformation(
             "Ingested document {SourceId}: {ChunkCount} chunks ({Action})",
