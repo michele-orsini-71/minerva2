@@ -59,6 +59,8 @@ If step 4 or 5 fail, run
 
 - [delete-collection.sql](delete-collection.sql) — remove a collection by name.
   Replace `<collection>`. Destructive — double-check the name first.
+- [wipe database](wipe-database.sql) removes all collections, chunks, migration
+  and indexes, everything. Destructive — be sure of what are you doing
 
 ## Sample usages
 

@@ -116,4 +116,37 @@ internal sealed class MinervaSearchEngine : ISearchEngine
         var content = await _sourceCatalog.GetSourceTextAsync(collectionName, sourceId, ct);
         return content is null ? null : new SourceText(sourceId, content);
     }
+
+    public async Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(
+        string collectionName,
+        string sourceId,
+        int chunkIndex,
+        int window,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(collectionName))
+            throw new ArgumentException(
+                "Collection name must be a non-empty, non-whitespace string.",
+                nameof(collectionName));
+        if (string.IsNullOrWhiteSpace(sourceId))
+            throw new ArgumentException(
+                "Source id must be a non-empty, non-whitespace string.",
+                nameof(sourceId));
+        if (chunkIndex < 0)
+            throw new ArgumentException(
+                $"Chunk index must be non-negative (got {chunkIndex}).", nameof(chunkIndex));
+        if (window < 0)
+            throw new ArgumentException(
+                $"Window must be non-negative (got {window}).", nameof(window));
+
+        _ = await _collections.GetAsync(collectionName, ct)
+            ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");
+
+        var chunks = await _sourceCatalog.GetChunkRangeAsync(
+            collectionName, sourceId,
+            fromIndex: Math.Max(0, chunkIndex - window),
+            toIndex: chunkIndex + window,
+            ct);
+        return chunks.Select(c => new ChunkText(c.Id, c.ChunkIndex, c.Content)).ToList();
+    }
 }

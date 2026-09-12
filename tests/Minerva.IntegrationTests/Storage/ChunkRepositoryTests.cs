@@ -81,6 +81,41 @@ public class ChunkRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetChunkRange_ReturnsChunksInRange_OrderedByIndex()
+    {
+        var chunks = CreateTestChunks("doc-range", 5);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-range", "text", chunks);
+        // Same index range in another source must not leak in.
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-other", "text",
+            CreateTestChunks("doc-other", 5));
+
+        var range = await _chunkRepo.GetChunkRangeAsync(CollectionName, "doc-range", 1, 3);
+
+        Assert.Equal([1, 2, 3], range.Select(c => c.ChunkIndex));
+        Assert.All(range, c => Assert.Equal("doc-range", c.SourceId));
+        Assert.Equal(chunks[2].Content, range[1].Content);
+    }
+
+    [Fact]
+    public async Task GetChunkRange_ClipsToExistingIndexes()
+    {
+        var chunks = CreateTestChunks("doc-clip", 3);
+        await _chunkRepo.UpsertSourceAsync(CollectionName, "doc-clip", "text", chunks);
+
+        var range = await _chunkRepo.GetChunkRangeAsync(CollectionName, "doc-clip", 1, 10);
+
+        Assert.Equal([1, 2], range.Select(c => c.ChunkIndex));
+    }
+
+    [Fact]
+    public async Task GetChunkRange_ReturnsEmpty_WhenSourceMissing()
+    {
+        var range = await _chunkRepo.GetChunkRangeAsync(CollectionName, "nonexistent", 0, 2);
+
+        Assert.Empty(range);
+    }
+
+    [Fact]
     public async Task DeleteBySourceId_RemovesChunks()
     {
         var chunks = CreateTestChunks("doc-del", 2);

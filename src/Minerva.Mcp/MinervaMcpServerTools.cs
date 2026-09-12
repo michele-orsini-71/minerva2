@@ -53,6 +53,28 @@ public static class MinervaMcpServerTools
         return await engine.GetSourceAsync(collection, sourceId, ct)
             ?? throw new McpException($"Source '{sourceId}' not found in collection '{collection}'.");
     }
+
+    [McpServerTool(Name = "expand_chunk"), Description(
+        "Get a chunk together with its neighbours in the same source: chunks with index " +
+        "in [chunkIndex - window, chunkIndex + window], in document order. Adjacent chunks " +
+        "overlap slightly. Use it when a search hit is cut at its start or end.")]
+    public static async Task<IReadOnlyList<ChunkText>> ExpandChunk(
+        ISearchEngine engine,
+        [Description("Name of the collection.")] string collection,
+        [Description("Id of the source, as returned by search.")] string sourceId,
+        [Description("Index of the chunk to expand, as returned by search.")] int chunkIndex,
+        [Description("Number of neighbours on each side.")] int window = 1,
+        CancellationToken ct = default)
+    {
+        if (window < 1)
+            throw new McpException($"window must be at least 1 (got {window}).");
+
+        var chunks = await engine.GetChunkWindowAsync(collection, sourceId, chunkIndex, window, ct);
+        if (chunks.Count == 0)
+            throw new McpException(
+                $"No chunk found at index {chunkIndex} of source '{sourceId}' in collection '{collection}'.");
+        return chunks;
+    }
 }
 
 public sealed record SearchHit(

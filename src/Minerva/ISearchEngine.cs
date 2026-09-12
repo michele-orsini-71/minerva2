@@ -23,4 +23,11 @@ public interface ISearchEngine
         string collectionName,
         string sourceId,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(
+        string collectionName,
+        string sourceId,
+        int chunkIndex,
+        int window,
+        CancellationToken ct = default);
 }

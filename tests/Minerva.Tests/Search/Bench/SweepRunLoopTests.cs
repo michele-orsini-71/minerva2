@@ -30,6 +30,11 @@ public class SweepRunLoopTests
         public Task<SourceText?> GetSourceAsync(
             string collectionName, string sourceId, CancellationToken ct = default)
             => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(
+            string collectionName, string sourceId, int chunkIndex, int window,
+            CancellationToken ct = default)
+            => throw new NotImplementedException();
     }
 
     private static SearchResult Hit(string sourceId)
