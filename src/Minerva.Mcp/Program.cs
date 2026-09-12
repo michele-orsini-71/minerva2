@@ -1,9 +1,17 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Minerva;
+using Minerva.Utilities;
 using ModelContextProtocol;
+
+if (args.Contains("-v") || args.Contains("--version"))
+{
+    VersionInfo.PrintVersion(Console.Out, Assembly.GetExecutingAssembly());
+    return;
+}
 
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 {

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Minerva;
 using Minerva.Configuration;
 using Minerva.Exceptions;
+using Minerva.Utilities;
 using Minerva.MarkdownIndexer;
 using NReco.Logging.File;
 
@@ -11,7 +12,7 @@ try
 {
     if (args.Contains("-v") || args.Contains("--version"))
     {
-        PrintVersion(Console.Out);
+        VersionInfo.PrintVersion(Console.Out, Assembly.GetExecutingAssembly());
         return 0;
     }
 
@@ -124,9 +125,4 @@ static void EnsureLogFileWritable(string path)
         Directory.CreateDirectory(dir);
     }
     using var probe = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-}
-
-static void PrintVersion(TextWriter w)
-{
-    w.WriteLine($"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}");
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using Minerva.Utilities;
 
 namespace Minerva.Search.Cli;
 
@@ -136,7 +137,7 @@ internal sealed record SearchCliArgs(
     }
     public static void PrintVersion(TextWriter w)
     {
-        w.WriteLine($"{Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}");
+        VersionInfo.PrintVersion(w, Assembly.GetExecutingAssembly());
     }
 
     public static void PrintUsage(TextWriter w)
