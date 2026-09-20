@@ -158,10 +158,24 @@ def covering_ranks(results, top_k=50) -> pd.Series:
     return _grouped(df, ["query_id"])["rank"].max()
 
 def covering_rank_stats(results, top_k=50):
-    # a gold beyond top_k carries the sentinel top_k + 1: read it as "> top_k", not a real rank
     covering = covering_ranks(results, top_k)
-    return covering.groupby(["label", "collection", "alpha", "rerank_depth", "cascade_depth"]).agg(
-        median="median", p95=lambda s: s.quantile(0.95), max="max")
+    # "higher" keeps the percentiles integer: p90 = 4 reads as "90% of queries have every gold within top 4"
+    stats = covering.groupby(GROUP_KEYS).agg(
+        n="size",
+        p50=lambda s: s.quantile(0.50, interpolation="higher"),
+        p90=lambda s: s.quantile(0.90, interpolation="higher"),
+        p95=lambda s: s.quantile(0.95, interpolation="higher"),
+        max="max")
+    # a gold beyond top_k carries the sentinel top_k + 1: counted here, so it cannot pass for a rank in max
+    beyond = covering[covering > top_k].groupby(GROUP_KEYS).size()
+    stats["beyond"] = beyond.reindex(stats.index, fill_value=0)
+    return stats
+
+def late_golds(results, top_k=50, threshold=10):
+    # one row per gold source, not per query: tells which of a multi-gold query's sources is the late one
+    df = pd.DataFrame(gold_ranks(results, top_k))
+    late = df[df["rank"] > threshold].sort_values("rank", ascending=False)
+    return late[GROUP_KEYS + ["query_id", "gold", "rank"]]
 
 @dataclass(frozen=True)
 class AverageChunkRank:
