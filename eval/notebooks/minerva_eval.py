@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 class CellResult(BaseModel):
     # top_k: int
     hybrid_alpha: float
+    rerank_depth: int = 0  # 0 = reranker off
+    cascade_depth: int = 0  # 0 = reranker off
 
 class Metrics(BaseModel):
     recall_at_5: float
@@ -68,7 +70,7 @@ def summarize_run(run_dir: Path) -> dict:
         "timestamp": run["timestamp"],
         "top_k": run["resolved_sweep"]['top_k'],
         "candidate_pool_size": run["resolved_sweep"]["candidate_pool_size"],
-        "sweep": f"alpha={matrix['hybrid_alpha']}, reranker={matrix['enable_reranker']}",
+        "sweep": f"alpha={matrix['hybrid_alpha']}, reranker={matrix['enable_reranker']}, rerank_depth={matrix.get('rerank_depth')}, cascade_depth={matrix.get('cascade_depth')}",
         "queries": len({r.query_id for r in rows}),
         "rows": len(rows),
     }
@@ -78,12 +80,14 @@ def get_run_summary(roots: list[Path] | None = None):
 
 metric_cols = ["R@5", "R@10", "R@20", "MRR@10"]
 
-def metrics_heatmap(results: list[EvalResult], group_cols=("collection", "alpha")):
+def metrics_heatmap(results: list[EvalResult]):
     per_query = pd.DataFrame([
         {
             "label": r.label,
             "collection": r.collection,
             "alpha": r.cell.hybrid_alpha,
+            "rerank_depth": r.cell.rerank_depth,
+            "cascade_depth": r.cell.cascade_depth,
             "R@5": r.metrics.recall_at_5,
             "R@10": r.metrics.recall_at_10,
             "R@20": r.metrics.recall_at_20,
@@ -92,7 +96,7 @@ def metrics_heatmap(results: list[EvalResult], group_cols=("collection", "alpha"
         for r in results
     ])
 
-    groups = per_query.groupby(list(group_cols))
+    groups = _grouped(per_query)
     metrics = groups[metric_cols].mean().round(3)
     metrics["n"] = groups.size()
     return metrics.style.background_gradient(cmap="RdYlGn", subset=metric_cols)
@@ -128,6 +132,8 @@ class GoldRank:
     collection: str
     label: str
     alpha: float
+    rerank_depth: int | None
+    cascade_depth: int | None
     gold: str
     rank: int
 
@@ -136,20 +142,25 @@ def gold_ranks(results, top_k=50) -> list[GoldRank]:
     for r in results:
         ranks = best_rank_by_source(r)
         for g in r.gold_sources:
-            out.append(GoldRank(r.query_id, r.collection, r.label, r.cell.hybrid_alpha,
+            out.append(GoldRank(r.query_id, r.collection, r.label, r.cell.hybrid_alpha, r.cell.rerank_depth, r.cell.cascade_depth,
                                 g, ranks.get(g, top_k + 1)))
     return out
+
+GROUP_KEYS = ["label", "collection", "alpha", "rerank_depth", "cascade_depth"]
+
+def _grouped(df, extra=()):
+    return df.groupby(GROUP_KEYS + list(extra))
 
 def covering_ranks(results, top_k=50) -> pd.Series:
     # covering rank = smallest k whose top-k contains ALL the query's golds:
     # gold_ranks emits one row per gold source, so max over the query's group
     df = pd.DataFrame(gold_ranks(results, top_k))
-    return df.groupby(["label", "collection", "alpha", "query_id"])["rank"].max()
+    return _grouped(df, ["query_id"])["rank"].max()
 
 def covering_rank_stats(results, top_k=50):
     # a gold beyond top_k carries the sentinel top_k + 1: read it as "> top_k", not a real rank
     covering = covering_ranks(results, top_k)
-    return covering.groupby(["label", "collection", "alpha"]).agg(
+    return covering.groupby(["label", "collection", "alpha", "rerank_depth", "cascade_depth"]).agg(
         median="median", p95=lambda s: s.quantile(0.95), max="max")
 
 @dataclass(frozen=True)

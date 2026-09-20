@@ -78,7 +78,7 @@ static async Task<int> RunAuthorDatasetAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, cancellationToken) => await AuthorDatasetRunner.RunAsync(
+    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await AuthorDatasetRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
 }
 
@@ -104,8 +104,8 @@ static async Task<int> RunBenchAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, cancellationToken) => await SweepDatasetRunner.RunAsync(
-        engine, parsed.SweepPath, parsed.OutputDir, Console.Out, cancellationToken));
+    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await SweepDatasetRunner.RunAsync(
+        engine, parsed.SweepPath, parsed.OutputDir, minervaSearhOptions, Console.Out, cancellationToken));
 }
 
 static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
@@ -123,7 +123,7 @@ static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, cancellationToken) => await DatasetValidationRunner.RunAsync(
+    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await DatasetValidationRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
 }
 

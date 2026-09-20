@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-09-20T07:24:47Z",
+  "bench_version": "0.1.0+fc0da1e",
+  "dataset_path": "../../datasets/wp1283-v1.jsonl",
+  "collection": "wp1283-nollm",
+  "collectionDetails": {
+    "Name": "wp1283-nollm",
+    "Description": null,
+    "Provenance": {
+      "Invariants": {
+        "EmbeddingModel": "text-embedding-bge-m3",
+        "EmbeddingDimension": 1024,
+        "ChunkerType": 0,
+        "TargetChunkSize": 1200,
+        "ChunkOverlap": 200
+      },
+      "LastRun": {
+        "IngestorVersion": "0.1.0+5b9f72c",
+        "SchemaVersion": "001_initial"
+      }
+    },
+    "ClientProvenance": {
+      "kind": "minerva-markdown-indexer",
+      "data": {
+        "root-path": "./wikipedia-en-corpus",
+        "file-extensions": [
+          "md"
+        ],
+        "exclude-directories": []
+      }
+    },
+    "CreatedAt": "2026-09-12T11:47:54.932172+00:00",
+    "LastUpdatedAt": "2026-09-12T11:47:54.932172+00:00",
+    "EmbeddingModel": "text-embedding-bge-m3",
+    "EmbeddingDimension": 1024
+  },
+  "reranker_model": "gpustack/bge-reranker-v2-m3-GGUF:Q8_0",
+  "cascade_model": "Voodisss/Qwen3-Reranker-4B-GGUF-llama_cpp:Q8_0",
+  "embedding_model": "text-embedding-bge-m3",
+  "top_k": 50,
+  "candidate_pool_size": 100,
+  "resolved_sweep": {
+    "top_k": 50,
+    "candidate_pool_size": 100,
+    "dataset": "../../datasets/wp1283-v1.jsonl",
+    "collection": "wp1283-nollm",
+    "matrix": {
+      "enable_reranker": [
+        false
+      ],
+      "hybrid_alpha": [
+        0.3,
+        0.5,
+        0.7
+      ]
+    }
+  },
+  "cells": [
+    {
+      "enable_reranker": false,
+      "hybrid_alpha": 0.3
+    },
+    {
+      "enable_reranker": false,
+      "hybrid_alpha": 0.5
+    },
+    {
+      "enable_reranker": false,
+      "hybrid_alpha": 0.7
+    }
+  ],
+  "label": "baseline"
+}

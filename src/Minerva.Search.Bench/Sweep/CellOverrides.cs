@@ -11,6 +11,8 @@ public static class CellOverrides
         bool? enableReranker = null;
 
         double? hybridAlpha = null;
+        int? rerankDepth = null;
+        int? cascadeDepth = null;
 
         foreach (var (knob, value) in cell.Values)
         {
@@ -22,11 +24,18 @@ public static class CellOverrides
                 case "hybrid_alpha":
                     hybridAlpha = Convert.ToDouble(value);
                     break;
+                case "rerank_depth":
+                    rerankDepth = Convert.ToInt32(value);
+                    break;
+                case "cascade_depth":
+                    cascadeDepth = Convert.ToInt32(value);
+                    break;
                 default:
                     throw new ArgumentException($"Unsupported knob '{knob}'.", nameof(cell));
             }
         }
 
-        return new SearchOverrides { TopK = topK, HybridAlpha = hybridAlpha, EnableReranker = enableReranker, CandidatePoolSize = candidatePoolSize };
+        return new SearchOverrides { TopK = topK, HybridAlpha = hybridAlpha, EnableReranker = enableReranker, 
+            CandidatePoolSize = candidatePoolSize, RerankDepth = rerankDepth, CascadeDepth = cascadeDepth };
     }
 }

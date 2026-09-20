@@ -48,6 +48,8 @@ try
         CandidatePoolSize = parsed.CandidatePoolSize,
         ExpandContext = parsed.ExpandContext,
         EnableReranker = parsed.EnableReranker,
+        RerankDepth = parsed.RerankDepth,
+        CascadeDepth = parsed.CascadeDepth
     };
 
     var results = await engine.SearchAsync(

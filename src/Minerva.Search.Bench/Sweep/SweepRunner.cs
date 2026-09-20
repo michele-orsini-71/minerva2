@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using Minerva.Configuration;
 using Minerva.Search.Bench.Common;
 using Minerva.Search.Bench.Validation;
 
@@ -11,6 +12,7 @@ public static class SweepDatasetRunner
         ISearchEngine engine,
         string sweepPath,
         string outputDir,
+        MinervaSearchOptions minervaSearchOptions,
         TextWriter output,
         CancellationToken ct = default)
     {
@@ -81,7 +83,7 @@ public static class SweepDatasetRunner
             return 2;
         }
 
-        RunJsonWriter.Write(Path.Combine(leaf, "run.json"), timestamp, benchVersion, sweep, cells, collection);
+        RunJsonWriter.Write(Path.Combine(leaf, "run.json"), timestamp, benchVersion, sweep, cells, collection, minervaSearchOptions);
         MetricsCsvWriter.Write(
             Path.Combine(leaf, "metrics.csv"), sweep.Matrix.Keys.ToList(), results);
         DetailsJsonlWriter.Write(Path.Combine(leaf, "details.jsonl"), entries, results);

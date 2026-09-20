@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Minerva.Configuration;
 using Minerva.Models;
 
 namespace Minerva.Search.Bench.Sweep;
@@ -19,7 +20,8 @@ public static class RunJsonWriter
         string benchVersion,
         SweepConfig config,
         IReadOnlyList<Cell> cells,
-        Collection collection)
+        Collection collection,
+        MinervaSearchOptions minervaSearchOptions)
     {
         var manifest = new Dictionary<string, object?>()
         {
@@ -29,6 +31,9 @@ public static class RunJsonWriter
             { "dataset_path", config.Dataset },
             { "collection", config.Collection },
             { "collectionDetails", collection },
+            { "reranker_model", minervaSearchOptions.Reranker?.Model },
+            { "cascade_model", minervaSearchOptions.CascadeReranker?.Model },
+            { "embedding_model", minervaSearchOptions.Embedding.Model },
             { "top_k", config.TopK },
             { "candidate_pool_size", config.CandidatePoolSize },
             { "resolved_sweep", new

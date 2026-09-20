@@ -18,6 +18,8 @@ public class SearchPipelineTests
         ExpandContext = false,
         CandidatePoolSize = 50,
         EnableReranker = true,
+        RerankDepth = null,
+        CascadeDepth = null,
     };
 
     // The pipeline requires an IReranker; these tests don't exercise reranking,
@@ -192,5 +194,86 @@ public class SearchPipelineTests
         Assert.Equal(["x1", "x2", "x3"], disabled.Select(r => r.ChunkId).ToArray());
         // Enabled: the reranker runs and reverses the order.
         Assert.Equal(["x3", "x2", "x1"], enabled.Select(r => r.ChunkId).ToArray());
+    }
+
+    [Fact]
+    public async Task SearchAsync_RerankDepth_ReranksHeadAndAppendsRestInFusedOrder()
+    {
+        var repo = Substitute.For<IChunkQuery>();
+        repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new[] { MakeRecord("x1"), MakeRecord("x2"), MakeRecord("x3"), MakeRecord("x4"), MakeRecord("x5") });
+        repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<ChunkSearchRecord>());
+
+        var pipeline = new SearchPipeline(
+            MockEmbedder(),
+            new VectorSearch(repo),
+            new FullTextSearch(repo),
+            new ContextExpander(repo),
+            new ReversingReranker(),
+            NullLogger<SearchPipeline>.Instance);
+
+        var depth3 = await pipeline.SearchAsync("q", "c", DefaultOptions with { RerankDepth = 3 });
+        var unbounded = await pipeline.SearchAsync("q", "c", DefaultOptions with { RerankDepth = null });
+        var beyondEnd = await pipeline.SearchAsync("q", "c", DefaultOptions with { RerankDepth = 100 });
+
+        // Only the first 3 fused chunks reach the reranker; the rest keep fused order behind them.
+        Assert.Equal(["x3", "x2", "x1", "x4", "x5"], depth3.Select(r => r.ChunkId).ToArray());
+        // Null means "rerank everything".
+        Assert.Equal(["x5", "x4", "x3", "x2", "x1"], unbounded.Select(r => r.ChunkId).ToArray());
+        // A depth past the end of the fused list behaves like null, no exception.
+        Assert.Equal(["x5", "x4", "x3", "x2", "x1"], beyondEnd.Select(r => r.ChunkId).ToArray());
+    }
+
+    [Fact]
+    public async Task SearchAsync_CascadeDepth_RerunsHeadOfFirstStageAndKeepsItsTail()
+    {
+        var repo = Substitute.For<IChunkQuery>();
+        repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new[] { MakeRecord("x1"), MakeRecord("x2"), MakeRecord("x3"), MakeRecord("x4"), MakeRecord("x5") });
+        repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<ChunkSearchRecord>());
+
+        var pipeline = new SearchPipeline(
+            MockEmbedder(),
+            new VectorSearch(repo),
+            new FullTextSearch(repo),
+            new ContextExpander(repo),
+            new ReversingReranker(),
+            NullLogger<SearchPipeline>.Instance,
+            cascadeReranker: new ReversingReranker());
+
+        var cascade2 = await pipeline.SearchAsync("q", "c", DefaultOptions with { CascadeDepth = 2 });
+        var noCascade = await pipeline.SearchAsync("q", "c", DefaultOptions with { CascadeDepth = null });
+        var bothOff = await pipeline.SearchAsync("q", "c", DefaultOptions with { EnableReranker = false, CascadeDepth = 2 });
+
+        // First stage reverses everything (x5..x1); the cascade reverses only its first 2.
+        Assert.Equal(["x4", "x5", "x3", "x2", "x1"], cascade2.Select(r => r.ChunkId).ToArray());
+        // Null depth skips the second stage.
+        Assert.Equal(["x5", "x4", "x3", "x2", "x1"], noCascade.Select(r => r.ChunkId).ToArray());
+        // EnableReranker=false switches off both stages.
+        Assert.Equal(["x1", "x2", "x3", "x4", "x5"], bothOff.Select(r => r.ChunkId).ToArray());
+    }
+
+    [Fact]
+    public async Task SearchAsync_CascadeDepthWithoutCascadeReranker_RunsFirstStageOnly()
+    {
+        var repo = Substitute.For<IChunkQuery>();
+        repo.VectorSearchAsync(Arg.Any<string>(), Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new[] { MakeRecord("x1"), MakeRecord("x2"), MakeRecord("x3") });
+        repo.FullTextSearchAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<ChunkSearchRecord>());
+
+        var pipeline = new SearchPipeline(
+            MockEmbedder(),
+            new VectorSearch(repo),
+            new FullTextSearch(repo),
+            new ContextExpander(repo),
+            new ReversingReranker(),
+            NullLogger<SearchPipeline>.Instance);
+
+        var results = await pipeline.SearchAsync("q", "c", DefaultOptions with { CascadeDepth = 2 });
+
+        Assert.Equal(["x3", "x2", "x1"], results.Select(r => r.ChunkId).ToArray());
     }
 }

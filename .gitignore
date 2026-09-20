@@ -500,6 +500,7 @@ bin/
 bin-minerva-search/
 bin-minerva-markdown-indexer/
 bin-minerva-mcp/
+bin-minerva-bench/
 
 # C# Dev Kit language service cache
 *.lscache

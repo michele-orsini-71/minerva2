@@ -29,13 +29,31 @@ public static class MinervaSearchOptionsBinder
                 rawMinerva.Embedding, "Minerva.Embedding.", failures);
 
         RerankerProviderOptions? reranker = null;
+        RerankerProviderOptions? cascadeReranker = null;
         if (rawMinerva.Reranker is not null)
+        {
             reranker = RerankerProviderOptionsBinder.TryBuild(
                 rawMinerva.Reranker, "Minerva.Reranker.", failures);
+            if (rawMinerva.CascadeReranker is not null)
+            {
+                cascadeReranker = RerankerProviderOptionsBinder.TryBuild(
+                    rawMinerva.CascadeReranker, "Minerva.CascadeReranker.", failures);
+            }
+        }
+        else
+        {
+            if (rawMinerva.CascadeReranker is not null)
+            {
+                failures.Add(new OptionsFailure("Minerva.CascadeReranker",
+                "is defined while Reranker is not."));
+            }
+        }
 
         int? topK = null;
         double? hybridAlpha = null;
         int? candidatePoolSize = null;
+        int? rerankDepth = null;
+        int? cascadeRerankDepth = null;
         bool? expandContext = null;
         bool? enableReranker = null;
 
@@ -60,6 +78,39 @@ public static class MinervaSearchOptionsBinder
                     $"must be in [0, 1] (got {rawSearch.HybridAlpha})."));
             else
                 hybridAlpha = rawSearch.HybridAlpha;
+
+            if (rawSearch.EnableReranker is null)
+                failures.Add(new OptionsFailure("Search.EnableReranker", "is required."));
+            else
+                enableReranker = rawSearch.EnableReranker;
+
+            if (rawSearch.RerankDepth is not null)
+            {
+                if (rawSearch.RerankDepth <= 0)
+                {
+                    failures.Add(new OptionsFailure(
+                        "Search.RerankDepth",
+                        $"must be > 0 (got {rawSearch.RerankDepth})."));
+                }
+                else
+                {
+                    rerankDepth = rawSearch.RerankDepth;
+                }
+            }
+
+            if (rawSearch.CascadeDepth is not null)
+            {
+                if (rawSearch.CascadeDepth <= 0)
+                {
+                    failures.Add(new OptionsFailure(
+                        "Search.CascadeDepth",
+                        $"must be > 0 (got {rawSearch.CascadeDepth})."));
+                }
+                else
+                {
+                    cascadeRerankDepth = rawSearch.CascadeDepth;
+                }
+            }
 
             if (rawSearch.CandidatePoolSize is null)
             {
@@ -90,17 +141,9 @@ public static class MinervaSearchOptionsBinder
             else
                 expandContext = rawSearch.ExpandContext;
 
-            if (rawSearch.EnableReranker is null)
-                failures.Add(new OptionsFailure("Search.EnableReranker", "is required."));
-            else
-                enableReranker = rawSearch.EnableReranker;
         }
 
-        if (enableReranker == true && rawMinerva.Reranker is null)
-            failures.Add(new OptionsFailure(
-                "Search.EnableReranker",
-                "is true but the Minerva.Reranker section is missing. "
-                + "Provide the reranker BaseUrl and Model, or set EnableReranker to false."));
+        ValidateRerankerConsistency(failures, enableReranker, rerankDepth, cascadeRerankDepth, reranker, cascadeReranker);
 
         if (failures.Count > 0)
             throw new OptionsValidationException(failures);
@@ -110,12 +153,54 @@ public static class MinervaSearchOptionsBinder
             ConnectionString = rawMinerva.ConnectionString!,
             Embedding = embedding!,
             Reranker = reranker,
+            CascadeReranker = cascadeReranker,
             TopK = topK!.Value,
             HybridAlpha = hybridAlpha!.Value,
             CandidatePoolSize = candidatePoolSize!.Value,
             ExpandContext = expandContext!.Value,
+            RerankDepth = rerankDepth,
+            CascadeDepth = cascadeRerankDepth,
             EnableReranker = enableReranker!.Value,
         };
+    }
+
+    static void ValidateRerankerConsistency(List<OptionsFailure> failures, bool? enableReranker,
+        int? rerankerDepth, int? cascadeDepth, RerankerProviderOptions? reranker, RerankerProviderOptions? cascadeReranker)
+    {
+        if (cascadeDepth.HasValue)
+        {
+            if (cascadeReranker is null)
+            {
+                failures.Add(new OptionsFailure(
+                    "Search.CascadeDepth",
+                    "is defined but cascade reranker is not."));
+            }
+
+            if (rerankerDepth.HasValue)
+            {
+                if (cascadeDepth.Value >= rerankerDepth.Value)
+                {
+                    failures.Add(new OptionsFailure(
+                        "Search.CascadeDepth",
+                        "must be smaller than Search.RerankDepth"));
+                }
+            }
+        }
+
+        if (enableReranker == true && reranker is null)
+        {
+            failures.Add(new OptionsFailure(
+                "Search.EnableReranker",
+                "is true but the Minerva.Reranker section is missing. "
+                + "Provide the reranker BaseUrl and Model, or set EnableReranker to false."));
+        }
+
+        if (cascadeReranker is not null && cascadeDepth is null)
+        {
+            failures.Add(new OptionsFailure(
+                "Minerva.CascadeReranker",
+                "is defined but cascade depth is not."));
+        }
     }
 }
 
@@ -124,6 +209,7 @@ internal sealed class RawMinervaSearchOptions
     public string? ConnectionString { get; set; }
     public RawEmbeddingProviderOptions? Embedding { get; set; }
     public RawRerankerProviderOptions? Reranker { get; set; }
+    public RawRerankerProviderOptions? CascadeReranker { get; set; }
 }
 
 internal sealed class RawSearchSectionOptions
@@ -133,4 +219,6 @@ internal sealed class RawSearchSectionOptions
     public int? CandidatePoolSize { get; set; }
     public bool? ExpandContext { get; set; }
     public bool? EnableReranker { get; set; }
+    public int? RerankDepth { get; set; }
+    public int? CascadeDepth { get; set; }
 }

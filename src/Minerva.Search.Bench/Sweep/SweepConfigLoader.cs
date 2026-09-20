@@ -9,7 +9,7 @@ public sealed record SweepLoadResult(SweepConfig? Config, IReadOnlyList<string> 
 public static class SweepConfigLoader
 {
     private static readonly IReadOnlySet<string> AllowedKnobs =
-        new HashSet<string> { "enable_reranker", "hybrid_alpha" };
+        new HashSet<string> { "enable_reranker", "hybrid_alpha", "rerank_depth", "cascade_depth" };
 
     private static readonly TomlSerializerOptions TomlOptions =
         new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };

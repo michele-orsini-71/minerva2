@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minerva;
+using Minerva.Configuration;
 
 public static class BenchHost
 {
-    public delegate Task<int> BenchDelegate(ISearchEngine engine, CancellationToken cancellationToken);
+    public delegate Task<int> BenchDelegate(ISearchEngine engine, MinervaSearchOptions options, CancellationToken cancellationToken);
 
     public static async Task<int> RunAsync(BenchDelegate bench)
     {
@@ -22,10 +23,12 @@ public static class BenchHost
             b.AddSimpleConsole(o => { o.SingleLine = true; o.TimestampFormat = "HH:mm:ss "; });
         });
 
+        var minervaSearchOptions = MinervaSearchOptionsBinder.Bind(config);
+
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
         var engine = await MinervaSearchBuilder.CreateAsync(config, loggerFactory, cts.Token);
-        return await bench(engine, cts.Token);
+        return await bench(engine, minervaSearchOptions, cts.Token);
     }
 }

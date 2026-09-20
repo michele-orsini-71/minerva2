@@ -21,6 +21,7 @@ public class CellOverridesTests
         Assert.Equal(100, overrides.CandidatePoolSize);
         Assert.Null(overrides.HybridAlpha);
         Assert.Null(overrides.EnableReranker);
+        Assert.Null(overrides.RerankDepth);
     }
 
     [Fact]
@@ -37,6 +38,15 @@ public class CellOverridesTests
         var overrides = CellOverrides.Build(Cell(("hybrid_alpha", 0.5)), Config());
 
         Assert.Equal(0.5, overrides.HybridAlpha);
+    }
+
+    [Fact]
+    public void RerankDepth_MapsToInt_FromTomlLong()
+    {
+        // Tomlyn deserializes integer lists as long; the knob must survive the conversion.
+        var overrides = CellOverrides.Build(Cell(("rerank_depth", 30L)), Config());
+
+        Assert.Equal(30, overrides.RerankDepth);
     }
 
     [Fact]

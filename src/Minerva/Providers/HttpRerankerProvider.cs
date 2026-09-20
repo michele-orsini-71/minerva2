@@ -28,7 +28,7 @@ class HttpRerankerProvider : IRerankerClient
     internal HttpRerankerProvider(
         string modelId, Uri endpointUri, HttpMessageHandler handler, TimeSpan? retryBaseDelay)
     {
-        _http = new HttpClient(handler) { BaseAddress = endpointUri };
+        _http = new HttpClient(handler) { BaseAddress = endpointUri, Timeout = TimeSpan.FromMinutes(10) };
         _relisiencePipeline = BuildResiliencePipeline(retryBaseDelay ?? TimeSpan.FromSeconds(1));
         _modelId = modelId;
     }

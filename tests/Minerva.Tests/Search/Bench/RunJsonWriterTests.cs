@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minerva.Configuration;
 using Minerva.Models;
 using Minerva.Search.Bench.Sweep;
 using Minerva.Tests.TestSupport;
@@ -15,6 +16,21 @@ public class RunJsonWriterTests
     private static readonly Collection TestCollection = new(
         "personal-notes-v1", null, TestOptions.Provenance(),
         new ClientProvenance("test-client", new Dictionary<string, object>()));
+
+    private static readonly MinervaSearchOptions SearchOptions = new()
+    {
+        ConnectionString = "Host=localhost;Database=test",
+        Embedding = TestOptions.Embedding(),
+        Reranker = null,
+        CascadeReranker = null,
+        TopK = 50,
+        HybridAlpha = 0.5,
+        CandidatePoolSize = 100,
+        ExpandContext = false,
+        EnableReranker = false,
+        RerankDepth = null,
+        CascadeDepth = null,
+    };
 
     private static SweepConfig Config(string? label = null) => new(
         "eval/datasets/private/personal-notes-v1.jsonl",
@@ -35,7 +51,7 @@ public class RunJsonWriterTests
         var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
         try
         {
-            RunJsonWriter.Write(path, Timestamp, "0.1.0+test", config, cells, TestCollection);
+            RunJsonWriter.Write(path, Timestamp, "0.1.0+test", config, cells, TestCollection, SearchOptions);
             return JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
         }
         finally
@@ -97,7 +113,7 @@ public class RunJsonWriterTests
         var path = Path.Combine(Path.GetTempPath(), $"run-{Guid.NewGuid():N}.json");
         try
         {
-            RunJsonWriter.Write(path, Timestamp, "0.1.0+abc1234", config, cells, TestCollection);
+            RunJsonWriter.Write(path, Timestamp, "0.1.0+abc1234", config, cells, TestCollection, SearchOptions);
             var raw = File.ReadAllText(path);
 
             Assert.Contains("0.1.0+abc1234", raw);

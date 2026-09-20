@@ -1,5 +1,5 @@
 {"id":"Arthropod.md-1","query":"What is the largest animal phylum","gold_sources":["Arthropod.md"]}
-{"id":"Arthropod.md-2","query":"Find the bugs in the tree of life","gold_sources":["Arthropod.md"]}
+{"id":"Arthropod.md-2","query":"Which phylum do the animals commonly called bugs belong to?","gold_sources":["Arthropod.md"]}
 {"id":"Arthropod.md-3","query":"which pylum contains animals with exoskeleton?","gold_sources":["Arthropod.md"]}
 {"id":"London.md-1","query":"Find information about the capital of the United Kingdom","gold_sources":["London.md"]}
 {"id":"London.md-2","query":"Where is Buckingham Palace","gold_sources":["London.md"]}
@@ -10,7 +10,7 @@
 {"id":"The_Beatles.md-2","query":"Which english music band derived its name from the common name for Coleoptera?","gold_sources":["The_Beatles.md"]}
 {"id":"The_Beatles.md-3","query":"Which band has one of its founders  killed in New York City in the 80s?","gold_sources":["The_Beatles.md"]}
 {"id":"HIV_AIDS.md-1","query":"Human immunodeficiency by sexual transmission","gold_sources":["HIV.md", "HIV_AIDS.md"]}
-{"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md", "Virus.md"]}
+{"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md"]}
 {"id":"Yemeni_civil_war_(2014–present).md-1","query":"Shiite group backed by Iran in south arabia","gold_sources":["Yemeni_civil_war_(2014–present).md"]}
 {"id":"Wireless.md-1","query":"the generic term historically used for many kinds of connections between electronic devices that need no cables","gold_sources":["Wireless.md"]}
 {"id":"Tharman_Shanmugaratnam.md-1","query":"politician of south asian origin who became president of a Southeast Asian nation","gold_sources":["Tharman_Shanmugaratnam.md"]}

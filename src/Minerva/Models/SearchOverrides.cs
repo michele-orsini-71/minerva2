@@ -7,4 +7,6 @@ public sealed record SearchOverrides
     public int? CandidatePoolSize { get; init; }
     public bool? ExpandContext { get; init; }
     public bool? EnableReranker { get; init; }
+    public int? RerankDepth { get; init; }
+    public int? CascadeDepth { get; init; }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using Minerva.Collections;
+using Minerva.Configuration;
 using Minerva.Ingestion;
 using Minerva.IntegrationTests.Storage;
 using Minerva.IntegrationTests.TestSupport;
@@ -25,6 +26,7 @@ public class BenchRunE2ETests : IAsyncLifetime
     private readonly StorageTestFixture _fixture;
     private readonly ISearchEngine _search;
     private readonly IIngestEngine _ingest;
+    private readonly MinervaSearchOptions _minervaOptions;
 
     public BenchRunE2ETests(StorageTestFixture fixture)
     {
@@ -72,6 +74,29 @@ public class BenchRunE2ETests : IAsyncLifetime
             CandidatePoolSize = 25,
             ExpandContext = false,
             EnableReranker = true,
+            RerankDepth = null,
+            CascadeDepth = null,
+        };
+
+        _minervaOptions = new MinervaSearchOptions
+        {
+            ConnectionString = fixture.DataSource.ConnectionString,
+            Embedding = new EmbeddingProviderOptions
+            {
+                BaseUrl = "http://localhost:11434/v1",
+                Model = EmbeddingModel,
+                Concurrency = 1,
+                BatchSize = 4,
+            },
+            Reranker = null,
+            CascadeReranker = null,
+            TopK = searchDefaults.TopK,
+            HybridAlpha = searchDefaults.HybridAlpha,
+            CandidatePoolSize = searchDefaults.CandidatePoolSize,
+            ExpandContext = searchDefaults.ExpandContext,
+            EnableReranker = searchDefaults.EnableReranker,
+            RerankDepth = searchDefaults.RerankDepth,
+            CascadeDepth = searchDefaults.CascadeDepth,
         };
 
         _search = new MinervaSearchEngine(searchPipeline, collections, chunkRepository, searchDefaults);
@@ -120,7 +145,7 @@ public class BenchRunE2ETests : IAsyncLifetime
             Directory.CreateDirectory(outDir);
 
             using var sw = new StringWriter();
-            var exitCode = await SweepDatasetRunner.RunAsync(_search, sweepPath, outDir, sw);
+            var exitCode = await SweepDatasetRunner.RunAsync(_search, sweepPath, outDir, _minervaOptions, sw);
 
             Assert.Equal(0, exitCode);
 

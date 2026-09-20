@@ -7,4 +7,6 @@ public sealed record SearchOptions
     public required bool ExpandContext { get; init; }
     public required int CandidatePoolSize { get; init; }
     public required bool EnableReranker { get; init; }
+    public required int? RerankDepth { get; init; }
+    public required int? CascadeDepth { get; init; }
 }

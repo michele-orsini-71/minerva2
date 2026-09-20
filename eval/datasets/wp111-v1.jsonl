@@ -1,5 +1,5 @@
 {"id":"Arthropod.md-1","query":"What is the largest animal phylum","gold_sources":["Arthropod.md"]}
-{"id":"Arthropod.md-2","query":"Find the bugs in the tree of life","gold_sources":["Arthropod.md"]}
+{"id":"Arthropod.md-2","query":"Which phylum do the animals commonly called bugs belong to?","gold_sources":["Arthropod.md"]}
 {"id":"Arthropod.md-3","query":"which pylum contains animals with exoskeleton?","gold_sources":["Arthropod.md"]}
 {"id":"A_Fistful_of_Dollars.md-1","query":"a film about a rivalry between two families in the old Wild West","gold_sources":["A_Fistful_of_Dollars.md"]}
 {"id":"Saffron.md-1","query":"the spice for the famous rice recipe from Milan","gold_sources":["Saffron.md"]}
@@ -12,7 +12,7 @@
 {"id":"Antarctica.md-3","query":"what place on earth do scientists use to study how life could survive on europa?","gold_sources":["Antarctica.md"]}
 {"id":"Antarctica.md-4","query":"which continent is set aside as a natural reserve for peace and science where mining is banned?","gold_sources":["Antarctica.md"]}
 {"id":"Uranium_City.md-1","query":"a city that was explicitly founded to extract material for nuclear based technologies","gold_sources":["Uranium_City.md"]}
-{"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md", "Virus.md"]}
+{"id":"HIV.md-1","query":"RNA virus responsible for Human immunodeficiency","gold_sources":["HIV.md", "HIV_AIDS.md"]}
 {"id":"Virus.md-1","query":"eradicated or almost eradicated infectious disease of humans ","gold_sources":["Virus.md", "Dracunculus_medinensis.md"]}
 {"id":"Virus.md-2","query":"submicroscopic agents that are considered at the boundary of life","gold_sources":["Virus.md"]}
 {"id":"Voltmeter.md-1","query":"the meter you connect in parallel across a component, never in series","gold_sources":["Voltmeter.md"]}

@@ -375,6 +375,119 @@ public class MinervaSearchOptionsBinderTests
         Assert.Equal("nomic", options.Embedding.Model);
     }
 
+    [Fact]
+    public void Bind_CascadeRerankerWithCascadeDepth_BindsBothStages()
+    {
+        var options = MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+            CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 100, cascadeDepth: 20)));
+
+        Assert.NotNull(options.CascadeReranker);
+        Assert.Equal("http://localhost:9933", options.CascadeReranker!.BaseUrl);
+        Assert.Equal("qwen3-reranker", options.CascadeReranker.Model);
+        Assert.Equal(100, options.RerankDepth);
+        Assert.Equal(20, options.CascadeDepth);
+    }
+
+    [Fact]
+    public void Bind_CascadeDepthWithoutRerankDepth_IsAllowed()
+    {
+        // Null RerankDepth means the first stage scores the whole union; the cascade
+        // then takes its head. That is a valid, tested configuration.
+        var options = MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+            CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: null, cascadeDepth: 20)));
+
+        Assert.Null(options.RerankDepth);
+        Assert.Equal(20, options.CascadeDepth);
+    }
+
+    [Fact]
+    public void Bind_CascadeRerankerWithoutReranker_ReportsFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+                CascadeJsonWith(reranker: false, cascadeReranker: true, rerankDepth: null, cascadeDepth: 20))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Minerva.CascadeReranker");
+    }
+
+    [Fact]
+    public void Bind_CascadeRerankerWithoutCascadeDepth_ReportsFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+                CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 100, cascadeDepth: null))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Minerva.CascadeReranker");
+    }
+
+    [Fact]
+    public void Bind_CascadeDepthWithoutCascadeReranker_ReportsFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+                CascadeJsonWith(reranker: true, cascadeReranker: false, rerankDepth: 100, cascadeDepth: 20))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CascadeDepth");
+    }
+
+    [Fact]
+    public void Bind_CascadeDepthNotSmallerThanRerankDepth_ReportsFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+                CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 20, cascadeDepth: 20))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CascadeDepth");
+    }
+
+    [Fact]
+    public void Bind_NonPositiveCascadeDepth_ReportsRangeFailure()
+    {
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
+                CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 100, cascadeDepth: 0))));
+
+        Assert.Contains(ex.Failures, f => f.Path == "Search.CascadeDepth");
+    }
+
+    private static string CascadeJsonWith(bool reranker, bool cascadeReranker, int? rerankDepth, int? cascadeDepth)
+    {
+        var rerankerJson = reranker
+            ? """
+              ,
+                "Reranker": { "BaseUrl": "http://localhost:9932", "Model": "bge-reranker" }
+              """
+            : "";
+        var cascadeJson = cascadeReranker
+            ? """
+              ,
+                "CascadeReranker": { "BaseUrl": "http://localhost:9933", "Model": "qwen3-reranker" }
+              """
+            : "";
+        var rerankDepthJson = rerankDepth is null ? "" : $", \"RerankDepth\": {rerankDepth}";
+        var cascadeDepthJson = cascadeDepth is null ? "" : $", \"CascadeDepth\": {cascadeDepth}";
+        return $$"""
+            {
+              "Minerva": {
+                "ConnectionString": "Host=h;Database=d",
+                "Embedding": {
+                  "BaseUrl": "http://localhost:11434/v1",
+                  "Model": "nomic",
+                  "Concurrency": 1,
+                  "BatchSize": 4
+                }{{rerankerJson}}{{cascadeJson}}
+              },
+              "Search": {
+                "TopK": 10,
+                "HybridAlpha": 0.5,
+                "CandidatePoolSize": 50,
+                "ExpandContext": false,
+                "EnableReranker": true{{rerankDepthJson}}{{cascadeDepthJson}}
+              }
+            }
+            """;
+    }
+
     private static string SearchJsonWith(
         int topK = 10,
         double hybridAlpha = 0.5,

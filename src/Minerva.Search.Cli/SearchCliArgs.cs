@@ -13,6 +13,8 @@ internal sealed record SearchCliArgs(
     double? Alpha,
     bool? ExpandContext,
     bool? EnableReranker,
+    int? RerankDepth,
+    int? CascadeDepth,
     int? CandidatePoolSize,
     OutputFormat Format,
     bool Full,
@@ -33,6 +35,8 @@ internal sealed record SearchCliArgs(
         bool? expandContext = null;
         bool? enableReranker = null;
         int? candidatePoolSize = null;
+        int? rerankDepth = null;
+        int? cascadeDepth = null;
         var format = OutputFormat.Table;
         bool full = false;
         int snippetChars = 200;
@@ -41,7 +45,7 @@ internal sealed record SearchCliArgs(
         if (args.Contains("--version") || args.Contains("-v"))
         {
             versionAsked = true;
-            return new SearchCliArgs("", "", topK, alpha, expandContext, enableReranker, candidatePoolSize, format, full, snippetChars, versionAsked);
+            return new SearchCliArgs("", "", topK, alpha, expandContext, enableReranker, rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked);
         }
 
         for (int i = 0; i < args.Length; i++)
@@ -92,6 +96,20 @@ internal sealed record SearchCliArgs(
                     candidatePoolSize = v;
                     break;
                 }
+                case "--rerank-depth":
+                {
+                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) || v <= 0)
+                    { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
+                    rerankDepth = v;
+                    break;
+                }
+                case "--cascade-depth":
+                {
+                    if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) || v <= 0)
+                    { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
+                    cascadeDepth = v;
+                    break;
+                }
                 case "--format":
                     if (++i >= args.Length) { err.WriteLine($"Missing value for {a}"); return null; }
                     if (!Enum.TryParse<OutputFormat>(args[i], ignoreCase: true, out format))
@@ -133,7 +151,8 @@ internal sealed record SearchCliArgs(
             return null;
         }
 
-        return new SearchCliArgs(query, collection, topK, alpha, expandContext, enableReranker, candidatePoolSize, format, full, snippetChars, versionAsked);
+        return new SearchCliArgs(query, collection, topK, alpha, expandContext, enableReranker, 
+            rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked);
     }
     public static void PrintVersion(TextWriter w)
     {
@@ -147,8 +166,10 @@ internal sealed record SearchCliArgs(
               minerva-search <query> --collection <name>
                              [--top-k N] [--alpha A]
                              [--expand-context true|false] [--rerank true|false]
-                             [--candidate-pool-size N]
+                             [--candidate-pool-size N] [--rerank-depth N] [--cascade-depth N]
                              [--format table|json] [--full] [--snippet-chars 200]
+              minerva-search --version | -v
+              minerva-search --help | -h
 
             Options:
               -c, --collection NAME    Collection to search (required).
@@ -158,9 +179,16 @@ internal sealed record SearchCliArgs(
                   --rerank B           Overrides Search:EnableReranker from config (true|false).
                   --candidate-pool-size N
                                        Overrides Search:CandidatePoolSize from config.
+                  --rerank-depth N     Overrides Search:RerankDepth from config: how many fused
+                                       candidates the reranker scores. Unset = all of them.
+                  --cascade-depth N    Overrides Search:CascadeDepth from config: how many of the
+                                       reranked candidates the cascade reranker rescores.
+                                       Needs Minerva:CascadeReranker configured; unset = no cascade.
                   --format FMT         table | json. Default: table.
                   --full               Print full chunk content (overrides --snippet-chars).
                   --snippet-chars N    Snippet length when not --full. Default: 200.
+              -v, --version            Print the version and exit.
+              -h, --help               Print this help and exit.
 
             Exit codes: 0 = results found, 3 = zero results, 2 = bad args / startup, 1 = unhandled error.
             """);

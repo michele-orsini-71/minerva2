@@ -198,6 +198,27 @@ public class SweepConfigLoaderTests
     }
 
     [Fact]
+    public void RerankDepthKnob_IsAccepted()
+    {
+        var toml =
+            """
+            dataset = "d"
+            collection = "c"
+            top_k = 50
+            candidate_pool_size = 100
+
+            [matrix]
+            enable_reranker = [true]
+            rerank_depth = [20, 30]
+            """;
+
+        var result = Load(toml);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(2, result.Config!.Matrix["rerank_depth"].Count);
+    }
+
+    [Fact]
     public void UnknownKnob_ReportsError()
     {
         var toml =

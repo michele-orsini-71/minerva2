@@ -43,6 +43,8 @@ internal sealed class MinervaSearchEngine : ISearchEngine
                 overrides?.CandidatePoolSize ?? _defaults.CandidatePoolSize,
             ExpandContext = overrides?.ExpandContext ?? _defaults.ExpandContext,
             EnableReranker = overrides?.EnableReranker ?? _defaults.EnableReranker,
+            RerankDepth = overrides?.RerankDepth ?? _defaults.RerankDepth,
+            CascadeDepth = overrides?.CascadeDepth ?? _defaults.CascadeDepth
         };
 
         if (effective.TopK <= 0)

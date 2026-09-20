@@ -18,3 +18,8 @@ comparing them will show the improvements between the two search text methods.
   Rule: only compare runs made on the same collection ingestion; a delta
   under this floor is not a result.
 
+- 2026-09-12T16-33-27Z_wp1283-v1 - baseline on the 2026-09-12 re-ingestion of wp1283-nollm,
+  scored against the dataset before the 2026-09-17 gold changes (Arthropod.md-2 query rewritten,
+  Virus.md removed from HIV.md-1). Superseded by the first run made after those changes.
+  Compared with the 2026-09-10 run it gave the re-ingestion noise floor: 23 of 252 cells changed,
+  all by one or two positions.

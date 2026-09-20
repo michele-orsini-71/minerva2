@@ -26,11 +26,20 @@ public static class MinervaSearchBuilder
         var contextExpander = new ContextExpander(core.ChunkQuery);
         HttpRerankerProvider? rerankerProvider = null;
         Reranker? reranker = null;
+        HttpRerankerProvider? cascadeProvider = null;
+        Reranker? cascadeReranker = null;
         if (options.Reranker is not null)
         {
             rerankerProvider = new HttpRerankerProvider(
                 options.Reranker.Model, new Uri(options.Reranker.BaseUrl));
             reranker = new Reranker(rerankerProvider);
+        }
+
+        if (options.CascadeReranker is not null) 
+        {
+            cascadeProvider = new HttpRerankerProvider(
+                options.CascadeReranker.Model, new Uri(options.CascadeReranker.BaseUrl));
+            cascadeReranker = new Reranker(cascadeProvider);
         }
 
         var searchPipeline = new SearchPipeline(
@@ -39,7 +48,8 @@ public static class MinervaSearchBuilder
             fullTextSearch,
             contextExpander,
             reranker,
-            loggerFactory.CreateLogger<SearchPipeline>());
+            loggerFactory.CreateLogger<SearchPipeline>(),
+            cascadeReranker);
 
         var defaults = new SearchOptions
         {
@@ -48,6 +58,8 @@ public static class MinervaSearchBuilder
             CandidatePoolSize = options.CandidatePoolSize,
             ExpandContext = options.ExpandContext,
             EnableReranker = options.EnableReranker,
+            RerankDepth = options.RerankDepth,
+            CascadeDepth = options.CascadeDepth
         };
 
         // Phase 3: preflight — DB + embedding, plus reranker if configured.
@@ -55,6 +67,9 @@ public static class MinervaSearchBuilder
 
         if (rerankerProvider is not null && await rerankerProvider.PreflightAsync(ct) is { } rerankFailure)
             failures.Add(rerankFailure);
+
+        if (cascadeProvider is not null && await cascadeProvider.PreflightAsync(ct) is { } cascadeFailure)
+            failures.Add(cascadeFailure);
 
         if (failures.Count > 0)
             throw new MinervaStartupException(failures);

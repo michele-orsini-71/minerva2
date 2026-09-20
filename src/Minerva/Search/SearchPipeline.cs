@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using Minerva.Ingestion;
 using Minerva.Models;
@@ -12,6 +13,7 @@ class SearchPipeline
     private readonly ContextExpander _contextExpander;
     private readonly ILogger<SearchPipeline> _logger;
     private readonly IReranker? _reranker;
+    private readonly IReranker? _cascadeReranker;
 
     public SearchPipeline(
         IEmbeddingService embeddingService,
@@ -19,13 +21,15 @@ class SearchPipeline
         FullTextSearch fullTextSearch,
         ContextExpander contextExpander,
         IReranker? reranker,
-        ILogger<SearchPipeline> logger)
+        ILogger<SearchPipeline> logger,
+        IReranker? cascadeReranker = null)
     {
         _embeddingService = embeddingService;
         _vectorSearch = vectorSearch;
         _fullTextSearch = fullTextSearch;
         _contextExpander = contextExpander;
         _reranker = reranker;
+        _cascadeReranker = cascadeReranker;
         _logger = logger;
     }
 
@@ -72,7 +76,18 @@ class SearchPipeline
         {
             try
             {
-                ranked = await _reranker.Rank(query, fused, ct);
+                int depth = options.RerankDepth ?? fused.Count;
+                var candidates = fused.Take(depth).ToList();
+                var rest = fused.Skip(depth).ToList();
+
+                ranked = [.. await _reranker.Rank(query, candidates, ct), .. rest];
+
+                if (_cascadeReranker is not null && options.CascadeDepth is not null)
+                {
+                    var head =  ranked.Take(options.CascadeDepth.Value).ToList();
+                    var tail = ranked.Skip(options.CascadeDepth.Value).ToList();
+                    ranked = [.. await _cascadeReranker.Rank(query, head, ct), .. tail];
+                }
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {

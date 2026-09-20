@@ -70,6 +70,8 @@ public class BenchValidateDatasetE2ETests : IAsyncLifetime
             CandidatePoolSize = 25,
             ExpandContext = false,
             EnableReranker = true,
+            RerankDepth = null,
+            CascadeDepth = null,
         };
 
         _search = new MinervaSearchEngine(searchPipeline, collections, chunkRepository, searchDefaults);
