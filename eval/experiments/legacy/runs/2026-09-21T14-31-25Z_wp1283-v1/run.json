@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-09-21T14:31:25Z",
+  "bench_version": "legacy-driver/minerva 3.0.0",
+  "dataset_path": "/Users/michele/my-code/minerva2/eval/experiments/legacy/../../datasets/wp1283-v1.jsonl",
+  "collection": "wp1283-legacy",
+  "collectionDetails": {
+    "Name": "wp1283-legacy",
+    "Provenance": {
+      "Invariants": {
+        "EmbeddingModel": "text-embedding-bge-m3",
+        "EmbeddingDimension": 1024,
+        "ChunkerType": "minerva1 header + recursive",
+        "TargetChunkSize": 1200
+      }
+    }
+  },
+  "reranker_model": null,
+  "cascade_model": null,
+  "embedding_model": "text-embedding-bge-m3",
+  "top_k": 50,
+  "candidate_pool_size": 50,
+  "resolved_sweep": {
+    "top_k": 50,
+    "candidate_pool_size": 50,
+    "dataset": "/Users/michele/my-code/minerva2/eval/experiments/legacy/../../datasets/wp1283-v1.jsonl",
+    "collection": "wp1283-legacy",
+    "matrix": {
+      "enable_reranker": [
+        false
+      ],
+      "hybrid_alpha": [
+        1.0
+      ]
+    }
+  },
+  "cells": [
+    {
+      "enable_reranker": false,
+      "hybrid_alpha": 1.0
+    }
+  ],
+  "label": "minerva1"
+}
