@@ -1,0 +1,9 @@
+[project]
+name = "minerva-legacy-eval"
+version = "0.1.0"
+description = "Driver that benchmarks minerva v1 retrieval on the minerva2 eval datasets"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb==1.5.9",
+    "httpx>=0.27",
+]

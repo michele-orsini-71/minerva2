@@ -528,3 +528,5 @@ eval/corpus-builder/zim-cluster.done
 dev-docs
 eval/collections/minerva-markdown-indexer
 
+eval/experiments/legacy/chromadb_data
+eval/experiments/legacy/notes-wp1283.json
