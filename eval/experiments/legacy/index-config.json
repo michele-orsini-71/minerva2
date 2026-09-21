@@ -1,0 +1,16 @@
+{
+  "chromadb_path": "./chromadb_data",
+  "collection": {
+    "name": "wp1283-legacy",
+    "description": "Wikipedia articles forming the wp1283 evaluation corpus, indexed with minerva v1 chunking for retrieval comparison against the minerva2 baseline.",
+    "json_file": "./notes-wp1283.json",
+    "chunk_size": 1200,
+    "force_recreate": false,
+    "skip_ai_validation": true
+  },
+  "provider": {
+    "provider_type": "lmstudio",
+    "base_url": "http://localhost:1234/v1",
+    "embedding_model": "text-embedding-bge-m3"
+  }
+}
