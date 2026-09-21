@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Reflection;
-using Minerva.Utilities;
+using Minerva.Hosting;
 
 namespace Minerva.Search.Cli;
 

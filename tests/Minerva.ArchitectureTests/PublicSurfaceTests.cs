@@ -38,3 +38,26 @@ public class PublicSurfaceTests
         }
     }
 }
+
+// The core is the bottom of the dependency graph: hosts depend on Minerva.Hosting,
+// which depends on Minerva. A reference in the other direction would let host
+// boilerplate leak into search semantics.
+public class DependencyDirectionTests
+{
+    private static readonly Assembly Minerva = typeof(ISearchEngine).Assembly;
+
+    [Fact]
+    public void Core_DoesNotReferenceOtherMinervaAssemblies()
+    {
+        var minervaReferences = Minerva.GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(n => n.StartsWith("Minerva", StringComparison.Ordinal))
+            .OrderBy(n => n)
+            .ToList();
+
+        Assert.True(
+            minervaReferences.Count == 0,
+            "Minerva must not reference other Minerva assemblies, but references: "
+            + string.Join(", ", minervaReferences));
+    }
+}

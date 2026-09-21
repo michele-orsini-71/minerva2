@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Minerva\Minerva.csproj" />
+    <ProjectReference Include="..\Minerva.Hosting\Minerva.Hosting.csproj" />
   </ItemGroup>
 
 </Project>
