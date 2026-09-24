@@ -61,6 +61,13 @@ internal sealed class MinervaSearchEngine : ISearchEngine
             throw new ArgumentException(
                 $"CandidatePoolSize must be >= TopK (got {effective.CandidatePoolSize}, TopK = {effective.TopK}).",
                 nameof(overrides));
+        if (effective.CascadeDepth < 0)
+            throw new ArgumentException(
+                $"CascadeDepth must be >= 0 (got {effective.CascadeDepth}).", nameof(overrides));
+        if (effective.CascadeDepth > 0 && effective.CascadeDepth >= effective.RerankDepth)
+            throw new ArgumentException(
+                $"CascadeDepth must be < RerankDepth (got {effective.CascadeDepth}, RerankDepth = {effective.RerankDepth}).",
+                nameof(overrides));
 
         _ = await _collections.GetAsync(collectionName, ct)
             ?? throw new ConfigurationException($"Collection '{collectionName}' does not exist.");

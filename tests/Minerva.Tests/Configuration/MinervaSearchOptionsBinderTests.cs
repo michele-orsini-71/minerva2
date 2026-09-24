@@ -441,11 +441,11 @@ public class MinervaSearchOptionsBinderTests
     }
 
     [Fact]
-    public void Bind_NonPositiveCascadeDepth_ReportsRangeFailure()
+    public void Bind_NegativeCascadeDepth_ReportsRangeFailure()
     {
         var ex = Assert.Throws<OptionsValidationException>(
             () => MinervaSearchOptionsBinder.Bind(ConfigFromJson.Build(
-                CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 100, cascadeDepth: 0))));
+                CascadeJsonWith(reranker: true, cascadeReranker: true, rerankDepth: 100, cascadeDepth: -1))));
 
         Assert.Contains(ex.Failures, f => f.Path == "Search.CascadeDepth");
     }

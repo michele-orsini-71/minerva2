@@ -82,7 +82,7 @@ class SearchPipeline
 
                 ranked = [.. await _reranker.Rank(query, candidates, ct), .. rest];
 
-                if (_cascadeReranker is not null && options.CascadeDepth is not null)
+                if (_cascadeReranker is not null && options.CascadeDepth > 0)
                 {
                     var head =  ranked.Take(options.CascadeDepth.Value).ToList();
                     var tail = ranked.Skip(options.CascadeDepth.Value).ToList();

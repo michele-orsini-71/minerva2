@@ -100,11 +100,11 @@ public static class MinervaSearchOptionsBinder
 
             if (rawSearch.CascadeDepth is not null)
             {
-                if (rawSearch.CascadeDepth <= 0)
+                if (rawSearch.CascadeDepth < 0)
                 {
                     failures.Add(new OptionsFailure(
                         "Search.CascadeDepth",
-                        $"must be > 0 (got {rawSearch.CascadeDepth})."));
+                        $"must be >= 0 (got {rawSearch.CascadeDepth})."));
                 }
                 else
                 {
@@ -167,7 +167,7 @@ public static class MinervaSearchOptionsBinder
     static void ValidateRerankerConsistency(List<OptionsFailure> failures, bool? enableReranker,
         int? rerankerDepth, int? cascadeDepth, RerankerProviderOptions? reranker, RerankerProviderOptions? cascadeReranker)
     {
-        if (cascadeDepth.HasValue)
+        if (cascadeDepth > 0)
         {
             if (cascadeReranker is null)
             {
