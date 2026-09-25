@@ -55,7 +55,7 @@ public sealed class MarkdownIndexer
         try
         {
             var result = await _engine.IngestAsync(
-                _options.CollectionName, clientProvenance, EnumerateDocumentsAsync(ct), _options.AllowRecreateOnConfigMismatch, ct);
+                _options.CollectionName, clientProvenance, EnumerateDocumentsAsync(ct), _options.AllowRecreateOnConfigMismatch, _options.Description, ct);
 
             _logger.LogInformation(
                 "Sync: +{Added} ~{Updated} -{Deleted} ={Unchanged} !!{Failed} in {Elapsed}",

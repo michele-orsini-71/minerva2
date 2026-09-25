@@ -14,7 +14,7 @@ public class MinervaIngestEngineTests
     private const string CollectionName = "test-collection";
     private static readonly float[] SampleVector = [0.1f, 0.2f, 0.3f];
 
-    private sealed record TestBed(MinervaIngestEngine Engine, ISourceWriter Repo);
+    private sealed record TestBed(MinervaIngestEngine Engine, ISourceWriter Repo, ICollectionService Collections);
 
     // Real pipeline on top of substitutes; the embedder throws for documents whose
     // source id is in failingSourceIds, which is how a provider failure surfaces.
@@ -54,9 +54,11 @@ public class MinervaIngestEngineTests
             ChunkerType = ChunkerType.Custom,
         };
 
+        var collections = Substitute.For<ICollectionService>();
+
         var engine = new MinervaIngestEngine(
             pipeline,
-            Substitute.For<ICollectionService>(),
+            collections,
             repo,
             configuredEmbeddingModel: "test-embedder",
             Substitute.For<IEmbeddingDimensionProvider>(),
@@ -64,7 +66,7 @@ public class MinervaIngestEngineTests
             schemaVersion: "1",
             NullLogger<MinervaIngestEngine>.Instance);
 
-        return new TestBed(engine, repo);
+        return new TestBed(engine, repo, collections);
     }
 
     // Document text doubles as source id so the embedder can tell documents apart.
@@ -89,6 +91,19 @@ public class MinervaIngestEngineTests
 
     private static Task<IngestionResult> Ingest(TestBed bed, params string[] sourceIds) =>
         bed.Engine.IngestAsync(CollectionName, new ClientProvenance("test", []), Docs(sourceIds));
+
+    [Fact]
+    public async Task IngestAsync_NewCollection_IsCreatedWithDescription()
+    {
+        var bed = CreateEngine(failingSourceIds: new HashSet<string>());
+
+        await bed.Engine.IngestAsync(
+            CollectionName, new ClientProvenance("test", []), Docs("a"), description: "My notes");
+
+        await bed.Collections.Received(1).EnsureAsync(
+            CollectionName, Arg.Any<CollectionProvenance>(), Arg.Any<ClientProvenance>(),
+            "My notes", Arg.Any<CancellationToken>());
+    }
 
     [Fact]
     public async Task IngestAsync_ProviderFailure_SkipsDocumentAndContinues()

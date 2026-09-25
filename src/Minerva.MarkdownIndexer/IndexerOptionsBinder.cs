@@ -67,6 +67,10 @@ public static partial class IndexerOptionsBinder
                 "is required (true to allow reindexing a collection even if its source scope — root path, "
                 + "excluded directories or file extensions — no longer matches)."));
 
+        if (raw.Description is not null && string.IsNullOrWhiteSpace(raw.Description))
+            failures.Add(new OptionsFailure(
+                stagePrefix + "Description", "must not be blank; omit the key for no description."));
+
         if (failures.Count > before) return null;
 
         return new IndexerOptions
@@ -76,7 +80,8 @@ public static partial class IndexerOptionsBinder
             ExcludeDirectories = [.. raw.ExcludeDirectories!],
             FileExtensions = [.. raw.FileExtensions!],
             AllowRecreateOnConfigMismatch = raw.AllowRecreateOnConfigMismatch!.Value,
-            AllowSourceScopeChange = raw.AllowSourceScopeChange!.Value
+            AllowSourceScopeChange = raw.AllowSourceScopeChange!.Value,
+            Description = raw.Description
         };
     }
 
@@ -95,4 +100,5 @@ internal sealed class RawIndexerOptions
     public string[]? FileExtensions { get; set; }
     public bool? AllowRecreateOnConfigMismatch { get; set; }
     public bool? AllowSourceScopeChange { get; set; }
+    public string? Description { get; set; }
 }

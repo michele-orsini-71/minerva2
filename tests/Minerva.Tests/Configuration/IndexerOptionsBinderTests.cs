@@ -131,4 +131,46 @@ public class IndexerOptionsBinderTests
         Assert.Single(ex.Failures);
         Assert.Equal("FileExtensions[0]", ex.Failures[0].Path);
     }
+
+    [Fact]
+    public void Bind_Description_IsOptionalAndBound()
+    {
+        const string json = """
+            {
+              "RootPath": "/x",
+              "CollectionName": "ok",
+              "ExcludeDirectories": [],
+              "FileExtensions": ["md"],
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceScopeChange": false,
+              "Description": "My personal notes"
+            }
+            """;
+
+        var options = IndexerOptionsBinder.Bind(ConfigFromJson.Build(json));
+
+        Assert.Equal("My personal notes", options.Description);
+    }
+
+    [Fact]
+    public void Bind_BlankDescription_IsRejected()
+    {
+        const string json = """
+            {
+              "RootPath": "/x",
+              "CollectionName": "ok",
+              "ExcludeDirectories": [],
+              "FileExtensions": ["md"],
+              "AllowRecreateOnConfigMismatch": false,
+              "AllowSourceScopeChange": false,
+              "Description": "   "
+            }
+            """;
+
+        var ex = Assert.Throws<OptionsValidationException>(
+            () => IndexerOptionsBinder.Bind(ConfigFromJson.Build(json)));
+
+        Assert.Single(ex.Failures);
+        Assert.Equal("Description", ex.Failures[0].Path);
+    }
 }

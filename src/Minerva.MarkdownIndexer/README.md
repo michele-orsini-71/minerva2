@@ -56,6 +56,7 @@ Runs as a long-lived host — it does not exit until cancelled.
   "Indexer": {
     "RootPath": "/path/to/markdown/root",
     "CollectionName": "my-notes",
+    "Description": "My personal notes: projects, how-tos, reading notes",
     "FileExtensions": ["md"],
     "ExcludeDirectories": [".obsidian", ".trash", ".git"],
     "AllowRecreateOnConfigMismatch": false,
@@ -68,8 +69,10 @@ The `Minerva` section is the full core-library config (see
 [`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section
 configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
-Every `Indexer` key is required; the binder reports a clear error if any is
-missing. `FileExtensions` lists the file types to index as bare extensions such
+Every `Indexer` key except `Description` is required; the binder reports a
+clear error if any is missing. `Description` tells MCP clients what the
+collection contains, so they can pick it without being told its name; it is
+stored only when the collection is created. `FileExtensions` lists the file types to index as bare extensions such
 as `md` or `txt` (matching is case- and dot-insensitive, so `md`, `.md` and
 `.MD` are equivalent; a glob like `*.md` is rejected). `ExcludeDirectories`
 lists directory names skipped anywhere in the tree — `.obsidian`, `.trash`,

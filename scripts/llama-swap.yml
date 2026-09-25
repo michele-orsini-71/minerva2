@@ -1,0 +1,36 @@
+globalTTL: 900
+
+models:
+  "bge-reranker":
+    cmd: |
+      /opt/homebrew/bin/llama-server
+      -hf gpustack/bge-reranker-v2-m3-GGUF:Q8_0
+      --reranking -b 2048 -ub 2048 -ngl 99
+      --alias bge-reranker
+      --offline
+      --port ${PORT}
+  "qwen3-reranker-4b":
+    cmd: |
+      /opt/homebrew/bin/llama-server
+      -hf Voodisss/Qwen3-Reranker-4B-GGUF-llama_cpp:Q8_0
+      --reranking  -c 4096 -b 2048 -ub 2048
+      --alias qwen3-reranker-4b
+      --offline
+      --port ${PORT}
+  "text-embedding-bge-m3":
+    cmd: |
+      /opt/homebrew/bin/llama-server
+      -hf gpustack/bge-m3-GGUF:Q8_0
+      --embeddings -b 2048 -ub 2048
+      --alias text-embedding-bge-m3
+      --offline
+      --port ${PORT}
+
+routing:
+  router:
+    use: group
+    settings:
+      groups:
+        "minerva":
+          swap: false
+          members: ["bge-reranker", "qwen3-reranker-4b", "text-embedding-bge-m3"]

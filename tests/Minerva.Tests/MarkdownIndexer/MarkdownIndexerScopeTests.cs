@@ -224,6 +224,7 @@ public class MarkdownIndexerScopeTests
             ClientProvenance clientProvenance,
             IAsyncEnumerable<Document> documents,
             bool allowRecreateOnConfigMismatch = false,
+            string? description = null,
             CancellationToken ct = default)
         {
             Ingested = true;

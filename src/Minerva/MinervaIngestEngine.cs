@@ -46,11 +46,12 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         ClientProvenance clientProvenance,
         IAsyncEnumerable<Document> documents,
         bool allowRecreateOnConfigMismatch = false,
+        string? description = null,
         CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
 
-        await PrepareCollectionAsync(collectionName, clientProvenance, allowRecreateOnConfigMismatch, ct);
+        await PrepareCollectionAsync(collectionName, clientProvenance, allowRecreateOnConfigMismatch, description, ct);
 
         var existing = await _sourceWriter.GetSourceIdsAndHashesAsync(collectionName, ct);
         var seen = new HashSet<string>();
@@ -107,14 +108,14 @@ internal sealed class MinervaIngestEngine : IIngestEngine
         return await _collections.GetAsync(collectionName, ct);
     }
     
-    private async Task PrepareCollectionAsync(string collectionName, ClientProvenance clientProvenance, bool allowRecreateOnConfigMismatch, CancellationToken ct)
+    private async Task PrepareCollectionAsync(string collectionName, ClientProvenance clientProvenance, bool allowRecreateOnConfigMismatch, string? description, CancellationToken ct)
     {
         var provenance = await BuildProvenanceAsync(ct);
         var existing = await _collections.GetAsync(collectionName, ct);
 
         if (existing is null)
         {
-            await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description: null, ct);
+            await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description, ct);
             return;
         }
 
@@ -129,7 +130,7 @@ internal sealed class MinervaIngestEngine : IIngestEngine
             "Collection '{Collection}' config mismatch and AllowRecreateOnConfigMismatch=true; dropping all data and recreating. Drifted: {Drifted}",
             collectionName, string.Join(", ", drifts.Select(d => d.Field)));
         await _collections.DeleteAsync(collectionName, ct);
-        await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description: null, ct);
+        await _collections.EnsureAsync(collectionName, provenance, clientProvenance, description, ct);
     }
 
     private static List<InvariantDrift> DiffInvariants(

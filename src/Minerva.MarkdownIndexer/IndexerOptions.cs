@@ -8,4 +8,5 @@ public sealed record IndexerOptions
     public required IReadOnlyList<string> FileExtensions { get; init; }
     public required bool AllowRecreateOnConfigMismatch { get; init; }
     public required bool AllowSourceScopeChange { get; init; }
+    public string? Description { get; init; }
 }

@@ -9,6 +9,7 @@ public interface IIngestEngine
         ClientProvenance clientProvenance,
         IAsyncEnumerable<Document> documents,
         bool allowRecreateOnConfigMismatch = false,
+        string? description = null,
         CancellationToken ct = default);
 
     Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
