@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Minerva;
-using Minerva.Hosting;
+using Minerva.Utils;
 using ModelContextProtocol;
 
 if (args.Contains("-v") || args.Contains("--version"))

@@ -25,7 +25,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Search.Bench", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Mcp", "src\Minerva.Mcp\Minerva.Mcp.csproj", "{4B135E7F-0EFF-4810-9443-03ECFBD26E0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Hosting", "src\Minerva.Hosting\Minerva.Hosting.csproj", "{EC12C933-A37C-4529-8A63-8753703D5AD5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minerva.Utils", "src\Minerva.Utils\Minerva.Utils.csproj", "{EC12C933-A37C-4529-8A63-8753703D5AD5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

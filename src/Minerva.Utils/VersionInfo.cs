@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Minerva.Hosting;
+namespace Minerva.Utils;
 
 public static class VersionInfo
 {

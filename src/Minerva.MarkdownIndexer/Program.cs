@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Minerva;
 using Minerva.Configuration;
 using Minerva.Exceptions;
-using Minerva.Hosting;
+using Minerva.Utils;
 using Minerva.MarkdownIndexer;
 using NReco.Logging.File;
 

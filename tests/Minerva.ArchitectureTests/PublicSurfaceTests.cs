@@ -39,7 +39,7 @@ public class PublicSurfaceTests
     }
 }
 
-// The core is the bottom of the dependency graph: hosts depend on Minerva.Hosting,
+// The core is the bottom of the dependency graph: hosts depend on Minerva.Utils,
 // which depends on Minerva. A reference in the other direction would let host
 // boilerplate leak into search semantics.
 public class DependencyDirectionTests
