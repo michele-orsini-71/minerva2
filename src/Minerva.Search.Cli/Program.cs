@@ -5,6 +5,7 @@ using Minerva.Configuration;
 using Minerva.Exceptions;
 using Minerva.Models;
 using Minerva.Search.Cli;
+using Minerva.Utils;
 
 try
 {
@@ -21,11 +22,8 @@ try
         return 0;
     } 
 
-    var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
     var config = new ConfigurationBuilder()
-        .SetBasePath(AppContext.BaseDirectory)
-        .AddJsonFile("appsettings.json", optional: false)
-        .AddJsonFile($"appsettings.{env}.json", optional: true)
+        .AddMinervaConfigFiles(parsed.ConfigPath)
         .AddEnvironmentVariables()
         .Build();
 
@@ -70,6 +68,11 @@ catch (MinervaStartupException ex)
     return 2;
 }
 catch (ConfigurationException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
+}
+catch (FileNotFoundException ex)
 {
     Console.Error.WriteLine(ex.Message);
     return 2;

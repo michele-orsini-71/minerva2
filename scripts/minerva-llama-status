@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+LABEL=com.your-label.llama-swap
+
+launchctl print "gui/$(id -u)/$LABEL" | grep state
+curl -s localhost:9930/v1/models
+echo

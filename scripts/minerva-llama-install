@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Loads the llama-swap agent from ~/Library/LaunchAgents; rerun it after editing the plist.
+set -euo pipefail
+LABEL=com.your-label.llama-swap
+
+launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/$LABEL.plist"

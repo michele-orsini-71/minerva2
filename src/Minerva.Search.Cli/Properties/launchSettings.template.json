@@ -5,7 +5,7 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"
       },
-      "commandLineArgs": "\"<your query>\" --collection <collection-name> --top-k 5"
+      "commandLineArgs": "\"your-query\" --collection your-collection-name --top-k 5 --config appsettings.json"
     }
   }
 }

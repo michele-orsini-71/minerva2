@@ -19,7 +19,8 @@ internal sealed record SearchCliArgs(
     OutputFormat Format,
     bool Full,
     int SnippetChars,
-    bool version)
+    bool version,
+    string? ConfigPath)
 {
     public static SearchCliArgs? Parse(string[] args, TextWriter err)
     {
@@ -41,11 +42,12 @@ internal sealed record SearchCliArgs(
         bool full = false;
         int snippetChars = 200;
         bool versionAsked = false;
+        string? configPath = null;
 
         if (args.Contains("--version") || args.Contains("-v"))
         {
             versionAsked = true;
-            return new SearchCliArgs("", "", topK, alpha, expandContext, enableReranker, rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked);
+            return new SearchCliArgs("", "", topK, alpha, expandContext, enableReranker, rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked, configPath);
         }
 
         for (int i = 0; i < args.Length; i++)
@@ -122,6 +124,11 @@ internal sealed record SearchCliArgs(
                     if (++i >= args.Length || !int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out snippetChars) || snippetChars <= 0)
                     { err.WriteLine($"Invalid value for {a} (expected positive integer)"); return null; }
                     break;
+                case "--config":
+                    if (++i >= args.Length) { err.WriteLine($"Missing value for {a}"); return null; }
+                    if (configPath is not null) { err.WriteLine($"{a} can only be specified once."); return null; }
+                    configPath = args[i];
+                    break;
                 case "--version":
 
                 default:
@@ -152,7 +159,7 @@ internal sealed record SearchCliArgs(
         }
 
         return new SearchCliArgs(query, collection, topK, alpha, expandContext, enableReranker, 
-            rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked);
+            rerankDepth, cascadeDepth, candidatePoolSize, format, full, snippetChars, versionAsked, configPath);
     }
     public static void PrintVersion(TextWriter w)
     {
@@ -168,6 +175,7 @@ internal sealed record SearchCliArgs(
                              [--expand-context true|false] [--rerank true|false]
                              [--candidate-pool-size N] [--rerank-depth N] [--cascade-depth N]
                              [--format table|json] [--full] [--snippet-chars 200]
+                             [--config PATH]
               minerva-search --version | -v
               minerva-search --help | -h
 
@@ -187,6 +195,9 @@ internal sealed record SearchCliArgs(
                   --format FMT         table | json. Default: table.
                   --full               Print full chunk content (overrides --snippet-chars).
                   --snippet-chars N    Snippet length when not --full. Default: 200.
+                  --config PATH        Config file. Default: ~/.config/minerva/minerva-search.json.
+                                       With DOTNET_ENVIRONMENT=ENV, <name>.ENV.json next to it
+                                       is layered on top.
               -v, --version            Print the version and exit.
               -h, --help               Print this help and exit.
 

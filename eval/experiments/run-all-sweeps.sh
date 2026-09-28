@@ -70,7 +70,7 @@ for row in "${SWEEPS[@]}"; do
   done <<<"$endpoints"
 
   echo "== $name  $(date +%H:%M:%S)"
-  "$BENCH" run --sweep "$sweep" --out "$out" 2>&1 | tee "$LOGS/$name.log"
+  "$BENCH" run --sweep "$sweep" --out "$out" --config "$CONFIG_DIR/appsettings.json" 2>&1 | tee "$LOGS/$name.log"
 done
 
 echo "== all sweeps done  $(date +%H:%M:%S)"

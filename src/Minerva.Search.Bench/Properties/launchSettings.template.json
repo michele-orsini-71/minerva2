@@ -6,7 +6,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "run --sweep eval/experiments/<experiment>/<config>.toml --out eval/experiments/<experiment>/runs"
+      "commandLineArgs": "run --sweep eval/experiments/your-experiment/your-config.toml --out eval/experiments/your-experiment/runs --config src/Minerva.Search.Bench/appsettings.json"
     },
     "Minerva.Search.Bench authoring": {
       "commandName": "Project",
@@ -14,7 +14,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "author-dataset eval/datasets/<your-dataset>.jsonl --collection <collection-name>"
+      "commandLineArgs": "author-dataset eval/datasets/your-dataset.jsonl --collection your-collection-name --config src/Minerva.Search.Bench/appsettings.json"
     },
     "Minerva.Search.Bench validating": {
       "commandName": "Project",
@@ -22,7 +22,7 @@
         "DOTNET_ENVIRONMENT": "debug"
       },
       "workingDirectory": "$(ProjectDir)../..",
-      "commandLineArgs": "validate-dataset eval/datasets/<your-dataset>.jsonl --collection <collection-name>"
+      "commandLineArgs": "validate-dataset eval/datasets/your-dataset.jsonl --collection your-collection-name --config src/Minerva.Search.Bench/appsettings.json"
     }
   }
 }

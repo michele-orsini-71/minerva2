@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# llama-swap reads its yml only at startup; restart it after editing the yml.
+set -euo pipefail
+LABEL=com.your-label.llama-swap
+
+launchctl kickstart -k "gui/$(id -u)/$LABEL"

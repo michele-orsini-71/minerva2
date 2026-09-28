@@ -8,6 +8,20 @@ using Minerva.Search.Bench.Validation;
 
 try
 {
+    // --config applies to every verb, so it is taken out before the verb parsers see the args.
+    string? configPath = null;
+    var configIndex = Array.IndexOf(args, "--config");
+    if (configIndex >= 0)
+    {
+        if (configIndex + 1 >= args.Length)
+        {
+            Console.Error.WriteLine("Missing value for --config");
+            return 2;
+        }
+        configPath = args[configIndex + 1];
+        args = [.. args[..configIndex], .. args[(configIndex + 2)..]];
+    }
+
     if (args.Length == 0 || args[0] is "-h" or "--help")
     {
         PrintTopLevelUsage(Console.Out);
@@ -26,11 +40,11 @@ try
     switch (verb)
     {
         case "validate-dataset":
-            return await RunValidateDatasetAsync(verbArgs);
+            return await RunValidateDatasetAsync(verbArgs, configPath);
         case "author-dataset":
-            return await RunAuthorDatasetAsync(verbArgs);
+            return await RunAuthorDatasetAsync(verbArgs, configPath);
         case "run":
-            return await RunBenchAsync(verbArgs);
+            return await RunBenchAsync(verbArgs, configPath);
         default:
             Console.Error.WriteLine($"Unknown verb: {verb}");
             PrintTopLevelUsage(Console.Error);
@@ -52,6 +66,11 @@ catch (ConfigurationException ex)
     Console.Error.WriteLine(ex.Message);
     return 2;
 }
+catch (FileNotFoundException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
+}
 catch (OperationCanceledException)
 {
     return 0;
@@ -62,7 +81,7 @@ catch (Exception ex)
     return 1;
 }
 
-static async Task<int> RunAuthorDatasetAsync(string[] verbArgs)
+static async Task<int> RunAuthorDatasetAsync(string[] verbArgs, string? configPath)
 {
     var parsed = AuthorDatasetArgs.Parse(verbArgs, Console.Error);
     if (parsed is null)
@@ -78,11 +97,11 @@ static async Task<int> RunAuthorDatasetAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await AuthorDatasetRunner.RunAsync(
+    return await BenchHost.RunAsync(configPath, async (engine, minervaSearhOptions, cancellationToken) => await AuthorDatasetRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
 }
 
-static async Task<int> RunBenchAsync(string[] verbArgs)
+static async Task<int> RunBenchAsync(string[] verbArgs, string? configPath)
 {
     var parsed = RunBenchArgs.Parse(verbArgs, Console.Error);
     if (parsed is null)
@@ -104,11 +123,11 @@ static async Task<int> RunBenchAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await SweepDatasetRunner.RunAsync(
+    return await BenchHost.RunAsync(configPath, async (engine, minervaSearhOptions, cancellationToken) => await SweepDatasetRunner.RunAsync(
         engine, parsed.SweepPath, parsed.OutputDir, minervaSearhOptions, Console.Out, cancellationToken));
 }
 
-static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
+static async Task<int> RunValidateDatasetAsync(string[] verbArgs, string? configPath)
 {
     var parsed = ValidateDatasetArgs.Parse(verbArgs, Console.Error);
     if (parsed is null)
@@ -123,7 +142,7 @@ static async Task<int> RunValidateDatasetAsync(string[] verbArgs)
         return 2;
     }
 
-    return await BenchHost.RunAsync(async (engine, minervaSearhOptions, cancellationToken) => await DatasetValidationRunner.RunAsync(
+    return await BenchHost.RunAsync(configPath, async (engine, minervaSearhOptions, cancellationToken) => await DatasetValidationRunner.RunAsync(
         engine, parsed.DatasetPath, parsed.Collection, Console.Out, cancellationToken));
 }
 
@@ -136,7 +155,10 @@ static void PrintTopLevelUsage(TextWriter w)
 {
     w.WriteLine("""
         Usage:
-          minerva-bench <verb> [verb-specific args]
+          minerva-bench <verb> [verb-specific args] [--config PATH]
+
+        --config PATH   Config file. Default: ~/.config/minerva/minerva-bench.json.
+                        With DOTNET_ENVIRONMENT=ENV, <name>.ENV.json next to it is layered on top.
 
         Verbs:
           validate-dataset    Validate a JSONL eval dataset against an indexed collection.

@@ -2,15 +2,16 @@
   "profiles": {
     "Minerva.MarkdownIndexer": {
       "commandName": "Project",
+      "commandLineArgs": "--config appsettings.json",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "debug"
       }
     },
-    "<environment-name>": {
+    "your-environment-name": {
       "commandName": "Project",
-      "commandLineArgs": "",
+      "commandLineArgs": "--config appsettings.json",
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "<environment-name>"
+        "DOTNET_ENVIRONMENT": "your-environment-name"
       }
     }
   }

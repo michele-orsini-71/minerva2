@@ -2,18 +2,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minerva;
 using Minerva.Configuration;
+using Minerva.Utils;
 
 public static class BenchHost
 {
     public delegate Task<int> BenchDelegate(ISearchEngine engine, MinervaSearchOptions options, CancellationToken cancellationToken);
 
-    public static async Task<int> RunAsync(BenchDelegate bench)
+    public static async Task<int> RunAsync(string? configPath, BenchDelegate bench)
     {
-        var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
         var config = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false)
-            .AddJsonFile($"appsettings.{env}.json", optional: true)
+            .AddMinervaConfigFiles(configPath)
             .AddEnvironmentVariables()
             .Build();
 

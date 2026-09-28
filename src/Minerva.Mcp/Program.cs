@@ -13,10 +13,19 @@ if (args.Contains("-v") || args.Contains("--version"))
     return;
 }
 
+// The config path must be known before the real configuration is built.
+var configPath = new ConfigurationBuilder().AddCommandLine(args).Build()["config"];
+
+// Defaults off: they would read appsettings.json from the current directory,
+// which MCP clients choose.
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 {
-    ContentRootPath = AppContext.BaseDirectory,
+    DisableDefaults = true,
 });
+builder.Configuration
+    .AddMinervaConfigFiles(configPath)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args);
 
 
 builder.Services.AddMcpServer()

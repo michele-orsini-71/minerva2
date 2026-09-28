@@ -16,11 +16,10 @@ try
         return 0;
     }
 
-    var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+    // The config path must be known before the real configuration is built.
+    var configPath = new ConfigurationBuilder().AddCommandLine(args).Build()["config"];
     var config = new ConfigurationBuilder()
-        .SetBasePath(Directory.GetCurrentDirectory())
-        .AddJsonFile("appsettings.json", optional: false)
-        .AddJsonFile($"appsettings.{env}.json", optional: true)
+        .AddMinervaConfigFiles(configPath)
         .AddEnvironmentVariables()
         .AddCommandLine(args)
         .Build();
@@ -86,6 +85,11 @@ catch (OptionsValidationException ex)
     return 2;
 }
 catch (MinervaStartupException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    return 2;
+}
+catch (FileNotFoundException ex)
 {
     Console.Error.WriteLine(ex.Message);
     return 2;
