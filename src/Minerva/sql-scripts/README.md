@@ -29,7 +29,7 @@ Connect as a PostgreSQL superuser (e.g. `postgres`) and run:
    extension: this step must run as a superuser (the `minerva` role cannot),
    and the extension binary must already be installed on the server with
    `pg_search` listed in `shared_preload_libraries` — see
-   [installation.md](../../../docs/reference/installation.md).
+   [installation.md](../../../docs/installation.md).
 7. [verify-pgsearch-extension.sql](verify-pgsearch-extension.sql) — confirm
    `pg_search` is installed.
 
@@ -52,8 +52,7 @@ If step 4 or 5 fail, run
   breakdown.sql](Per-collection%20size%20and%20column%20breakdown.sql) — total
   bytes per column (content, embedding) grouped by
   collection. The BM25 index is table-wide, not a column; measure it via
-  `pg_stat_user_indexes` (see
-  [storage-footprint.md](../../../docs/measurements/storage-footprint.md)).
+  `pg_stat_user_indexes`.
 
 ## Maintenance
 

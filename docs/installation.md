@@ -106,7 +106,7 @@ brew services start postgresql@18
 Since pg_search v0.25, `pgvector` must be installed before it.
 
 Then create the role, the database and the extensions, as a superuser, with
-the scripts in [src/Minerva/sql-scripts](../../src/Minerva/sql-scripts/)
+the scripts in [src/Minerva/sql-scripts](../src/Minerva/sql-scripts/)
 (order and details in its README, section Bootstrap):
 
 1. `create-minerva-role.sql` (replace `<password>`);

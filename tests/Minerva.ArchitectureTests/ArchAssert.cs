@@ -15,6 +15,6 @@ internal static class ArchAssert
         Assert.Fail(
             $"Architecture rule violated: {ruleExplanation}\n" +
             $"Failing types:\n{failing}\n" +
-            "See docs/architecture.md for the layer model.");
+            "See tests/Minerva.ArchitectureTests/README.md for the layer model.");
     }
 }

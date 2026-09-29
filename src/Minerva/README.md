@@ -1,76 +1,93 @@
 # Minerva
 
-Core library. Provides a unified embedding, storage, and retrieval engine backed
-by PostgreSQL + pgvector.
+Core library. Provides embedding, storage, and retrieval backed by PostgreSQL
+with the `pgvector` and `pg_search` extensions.
 
 The library is **client-agnostic**: it has no knowledge of Obsidian, Claude,
-markdown, or any specific data source. Clients (see `Minerva.MarkdownWatcher`)
-feed it `Document` objects and query it via `SearchAsync`.
+markdown, or any specific data source. Clients (see `Minerva.MarkdownIndexer`)
+feed it `Document` objects through `IIngestEngine` and query it through
+`ISearchEngine`.
 
 ## What it does
 
-- **Ingestion**: chunk a document, embed each chunk, upsert into PostgreSQL
-  with content-hash deduplication.
-- **Hybrid search**: dense vector similarity + BM25 full-text search, merged
-  via Reciprocal Rank Fusion, with an optional cross-encoder reranker over the
-  fused candidate pool and optional surrounding-context expansion.
-- **Multi-collection**: each collection has its own embedding model and vector
-  dimension; searches can span multiple collections.
-- **Incremental updates**: re-ingesting a document with the same `SourceId`
-  diffs by chunk hash — unchanged chunks are left alone.
+- **Ingestion**: chunk each document, embed each chunk, and store chunks,
+  vectors and metadata in one transaction per document. A document whose
+  content hash is unchanged is skipped; a changed document has all its chunks
+  replaced; documents no longer supplied by the client are removed.
+- **Hybrid search**: dense vector similarity + BM25 keyword search, merged
+  via Reciprocal Rank Fusion (`HybridAlpha` weights the two legs). An optional
+  cross-encoder reranker rescores the top `RerankDepth` fused candidates, and
+  an optional cascade reranker rescores the top `CascadeDepth` of that list.
+  If the reranker fails, search falls back to the fused ranking.
+- **Collections**: each collection is bound to one embedding model and vector
+  dimension, and records its build configuration (provenance). Ingesting with a
+  different configuration is refused unless recreation is explicitly allowed.
+- **Source access**: fetch the full text of a source, its metadata, or a window
+  of chunks around a search hit.
 
 ## Public API
 
-`MinervaEngine` is the facade:
+Two engines, each created by a builder that binds and validates its options,
+checks the database and model endpoints, and initializes the schema:
 
 ```csharp
-Task<IngestionResult> IngestAsync(string collection, Document doc, CancellationToken ct);
-Task RemoveAsync(string collection, string sourceId, CancellationToken ct);
-Task<IReadOnlyList<SearchResult>> SearchAsync(
-    string query,
-    IReadOnlyList<string> collections,
-    SearchOptions? options,
-    CancellationToken ct);
-ICollectionService Collections { get; }   // CreateAsync, GetAsync, DeleteAsync, ListAsync
+IIngestEngine ingest = await MinervaIngestBuilder.CreateAsync(config.GetSection("Minerva"), loggerFactory, ct);
+ISearchEngine search = await MinervaSearchBuilder.CreateAsync(config, loggerFactory, ct);
 ```
+
+`IIngestEngine`:
+
+```csharp
+Task<IngestionResult> IngestAsync(string collectionName, ClientProvenance clientProvenance,
+    IAsyncEnumerable<Document> documents, bool allowRecreateOnConfigMismatch = false,
+    string? description = null, CancellationToken ct = default);
+Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
+```
+
+`IngestAsync` syncs the collection with the full set of documents it receives,
+so the client passes every document on each run. The collection is created on
+first use.
+
+`ISearchEngine`:
+
+```csharp
+Task<IReadOnlyList<SearchResult>> SearchAsync(string query, string collectionName,
+    SearchOverrides? overrides = null, CancellationToken ct = default);
+Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default);
+Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
+Task<bool> SourceIdExistsAsync(string collectionName, string sourceId, CancellationToken ct = default);
+Task<SourceText?> GetSourceAsync(string collectionName, string sourceId, CancellationToken ct = default);
+Task<SourceInfo?> GetSourceInfoAsync(string collectionName, string sourceId, CancellationToken ct = default);
+Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(string collectionName, string sourceId,
+    int chunkIndex, int window, CancellationToken ct = default);
+```
+
+`SearchOverrides` has the same fields as the `Search` configuration section
+(below), all optional; a field left `null` uses the configured value.
 
 Key models (`Minerva.Models`):
 
 - `Document(SourceId, Title, Text, Metadata?, Attachments?)`
-- `SearchOptions(TopK, HybridAlpha, ExpandContext, CandidatePoolSize, EnableReranker)`
-- - `SearchResult(ChunkId, SourceId, CollectionName, Content, Score, Metadata?, ContextBefore?, ContextAfter?)` <!-- markdownlint-disable-line MD013 -->
-- `IngestionResult(Added, Updated, Deleted, Unchanged)`
-
-## Usage
-
-```csharp
-using Minerva.DI;
-
-var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddMinerva(options =>
-    builder.Configuration.GetSection("Minerva").Bind(options));
-
-var host = builder.Build();
-var engine = host.Services.GetRequiredService<IMinervaEngine>();
-
-await engine.Collections.CreateAsync("my-notes", "embedding-bge-m3", dimension: 768);
-await engine.IngestAsync("my-notes", new Document("note-1", "Hello", "World"));
-
-var hits = await engine.SearchAsync("world", ["my-notes"], new SearchOptions(TopK: 5));
-```
-
-`AddMinerva` registers everything, including a `MinervaStartupService` hosted
-service that runs schema initialization on startup.
+- `SearchResult(ChunkId, SourceId, ChunkIndex, CollectionName, Content, Score, Metadata?, ContextBefore?, ContextAfter?)` <!-- markdownlint-disable-line MD013 -->
+- `IngestionResult(Added, Updated, Deleted, Unchanged, Elapsed, Failed)`
+- `ClientProvenance(kind, data)` — the client's own build settings, stored with
+  the collection; values must be scalars or flat arrays of scalars.
 
 ## Configuration
+
+Every field is required unless marked optional; there are no defaults. The
+binders in `Configuration/` validate every field and report all failures at
+once.
+
+Ingestion reads the `Minerva` section:
 
 ```json
 {
   "Minerva": {
-    "ConnectionString": "Host=localhost;Database=minerva;Username=...;Password=...",
+    "ConnectionString": "Host=localhost;Database=minerva;Username=minerva;Password=...",
     "Embedding": {
-      "BaseUrl": "http://localhost:11434/v1",
-      "Model": "embedding-bge-m3",
+      "BaseUrl": "http://localhost:9930/v1",
+      "Model": "text-embedding-bge-m3",
       "Concurrency": 1,
       "BatchSize": 1
     },
@@ -83,53 +100,61 @@ service that runs schema initialization on startup.
 }
 ```
 
-- API keys may be inlined or referenced via `env:VAR_NAME` (resolved by
-  `CredentialResolver`).
-- The embedding provider is any OpenAI-compatible HTTP endpoint.
+Search reads the `Minerva` section (without `Chunking`, with the rerankers) and
+the `Search` section:
 
-### Configuration reference
+```json
+{
+  "Minerva": {
+    "ConnectionString": "Host=localhost;Database=minerva;Username=minerva;Password=...",
+    "Embedding": { "BaseUrl": "http://localhost:9930/v1", "Model": "text-embedding-bge-m3", "Concurrency": 1, "BatchSize": 1 },
+    "Reranker": { "BaseUrl": "http://localhost:9930", "Model": "bge-reranker" },
+    "CascadeReranker": { "BaseUrl": "http://localhost:9930", "Model": "qwen3-reranker-4b" }
+  },
+  "Search": {
+    "TopK": 10,
+    "HybridAlpha": 0.7,
+    "CandidatePoolSize": 100,
+    "ExpandContext": false,
+    "EnableReranker": true,
+    "RerankDepth": 100,
+    "CascadeDepth": 20
+  }
+}
+```
 
-Defaults are defined in `Configuration/MinervaOptions.cs` — that file is the
-source of truth.
+| Field | Meaning |
+| --- | --- |
+| `Embedding.ApiKey` | optional; inline or `env:VAR_NAME` (resolved by `CredentialResolver`) |
+| `Embedding.RequestsPerMinute` | optional; unlimited when absent |
+| `Embedding.Concurrency`, `BatchSize` | parallel requests and chunks per request; `1` for local servers |
+| `Chunking.ChunkOverlap` | characters shared by adjacent chunks; must be `< TargetChunkSize` |
+| `Chunking.ChunkerType` | `Custom` (markdown-aware) or `SemanticKernel` |
+| `Reranker`, `CascadeReranker` | optional; omit to disable that stage; `CascadeReranker` requires `Reranker` |
+| `Search.HybridAlpha` | weight of the dense leg in the fusion, `0..1` |
+| `Search.CandidatePoolSize` | candidates taken from each leg before fusion |
+| `Search.ExpandContext` | attach the neighbouring chunks to each result |
+| `Search.RerankDepth` | optional; fused candidates sent to the reranker; all when absent |
+| `Search.CascadeDepth` | optional; top reranked results sent to the cascade reranker; `0` or absent skips it |
 
-**`Minerva`** (`MinervaOptions`)
-
-| Field | Type | Default | Required? |
-| ------------------ | -------------------------- | ------- | --------------------------------------------------------------- |
-| `ConnectionString` | string | — | **required** |
-| `Embedding` | `EmbeddingProviderOptions` | — | **required** (fields below) |
-| `Chunking` | `ChunkingOptions` | — | **required** (fields below) |
-
-**`Embedding`** (`EmbeddingProviderOptions`)
-
-| Field | Type | Default | Required? |
-| ------------------- | ------- | ------------------ | --------------------------------------------- |
-| `BaseUrl` | string | — | **required** (enforced by `required` keyword) |
-| `Model` | string | — | **required** (enforced by `required` keyword) |
-| `ApiKey` | string? | `null` | optional (supports `env:VAR_NAME`) |
-| `RequestsPerMinute` | int? | `null` (unlimited) | optional |
-| `Concurrency` | int | `1` | optional |
-| `BatchSize` | int | `1` | optional |
-
-**`Chunking`** (`ChunkingOptions`)
-
-| Field | Type | Default | Required? |
-| ----------------- | --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `TargetChunkSize` | int | — | **required** (target size for individual chunks, in chars) |
-| `ChunkOverlap` | int | — | **required** (overlap between adjacent chunks, in chars; must be `< TargetChunkSize`) |
-| `ChunkerType` | enum | — | **required** (`Custom` or `SemanticKernel`) |
+Embedding and reranker endpoints are any OpenAI-compatible server
+(`/v1/embeddings`) and any server with a `/rerank` endpoint, e.g. llama.cpp.
 
 ## Internal layout
 
+The folders follow the Clean Architecture rings described in
+[`tests/Minerva.ArchitectureTests/README.md`](../../tests/Minerva.ArchitectureTests/README.md).
+
 | Folder | Responsibility |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| `Collections/` | `CollectionManager`, `Collection` entity |
-| `Configuration/` | `MinervaOptions`, `CredentialResolver` |
-| `DI/` | `AddMinerva()` extension, `MinervaStartupService` |
-| `Exceptions/` | Typed exceptions (`ConfigurationException`, etc.) |
-| `Ingestion/` | `IngestionPipeline`, `DocumentChunker`, `EmbeddingService` |
-| `Models/` | Public records (`Document`, `SearchResult`, …) |
-| `Providers/` | OpenAI-compatible embedding client, `RateLimiter`, `ProviderFactory` |
-| `Search/` | `VectorSearch`, `FullTextSearch`, `Reranker`, `ContextExpander`, `SearchPipeline` (RRF fusion) |
-| `Storage/` | `SchemaInitializer`, `PostgresCollectionRepository`, `PostgresSourceRepository` |
-| `Utilities/` | Cross-cutting helpers |
+| --- | --- |
+| (root) | `IIngestEngine`, `ISearchEngine`, their builders and implementations |
+| `Collections/` | `CollectionManager` and the collection ports |
+| `Configuration/` | Options records and their binders |
+| `Exceptions/` | Typed exceptions |
+| `Ingestion/` | `IngestionPipeline`, chunkers, `EmbeddingService`, attachment integration |
+| `Models/` | Public records (`Document`, `SearchResult`, options, provenance, …) |
+| `Providers/` | OpenAI-compatible embedding client, HTTP reranker client, `RateLimiter` |
+| `Search/` | `SearchPipeline`, `VectorSearch`, `FullTextSearch`, `RankFusion`, `Reranker`, `ContextExpander` |
+| `Storage/` | Postgres repositories, `SchemaInitializer`, migrations, `DatabasePreflight` |
+| `Utilities/` | Hash helpers |
+| `sql-scripts/` | Bootstrap and diagnostic SQL — see its README |

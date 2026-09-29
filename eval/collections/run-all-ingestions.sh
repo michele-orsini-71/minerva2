@@ -7,9 +7,9 @@ RUN=./minerva-markdown-indexer
 # All ingestions are incremental: rerunning skips already-completed documents.
 
 # 1. Mini corpus — ~5 min
-# DOTNET_ENVIRONMENT=wp111-nollm $RUN
+# DOTNET_ENVIRONMENT=wp111-nollm $RUN --config appsettings.json
 
 # 2. Full corpus — ~2.5 h
-# DOTNET_ENVIRONMENT=wp1283-nollm $RUN
+# DOTNET_ENVIRONMENT=wp1283-nollm $RUN --config appsettings.json
 
 

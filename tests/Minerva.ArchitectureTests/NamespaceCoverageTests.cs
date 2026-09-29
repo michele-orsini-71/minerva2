@@ -48,7 +48,7 @@ public class NamespaceCoverageTests
                 "Found top-level Minerva.* namespace(s) not classified into a Clean Architecture layer:\n  - "
                 + string.Join("\n  - ", unclassified)
                 + "\nAdd each one to NamespaceCoverageTests.ClassifiedNamespaces AND add the matching "
-                + "dependency rules to LayerDependencyTests. See docs/architecture.md for the layer model.");
+                + "dependency rules to LayerDependencyTests. See tests/Minerva.ArchitectureTests/README.md for the layer model.");
         }
 
         var stale = ClassifiedNamespaces.Keys

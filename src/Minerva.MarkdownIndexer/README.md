@@ -1,8 +1,8 @@
 # Minerva.MarkdownIndexer
 
-A filesystem watcher that keeps a Minerva collection in sync with a directory of
-markdown files. The first real client of the [Minerva](../Minerva/README.md)
-library.
+A command-line tool that syncs a Minerva collection with a directory of
+markdown files, then exits. The first real client of the
+[Minerva](../Minerva/README.md) library.
 
 Works for:
 
@@ -17,16 +17,16 @@ top.
 
 ## What it does
 
-On startup:
+Each run:
 
 1. Ensures the target Minerva collection exists (auto-creates it, probing the
    embedder for its vector dimension).
-2. Scans the root directory and ingests every matching file.
-3. Starts a `FileSystemWatcher` with debouncing; thereafter each
-   create/change/delete/rename is reflected in the collection.
+2. Scans the root directory and passes every matching file to Minerva.
+3. Minerva adds new files, re-embeds changed ones, skips unchanged ones (same
+   content hash), and removes the ones no longer on disk.
+4. Logs a summary (`+added ~updated -deleted =unchanged !!failed`) and exits.
 
-Re-ingestion is cheap because Minerva dedupes by chunk content hash — unchanged
-chunks are skipped.
+Run it again whenever the files change; later runs process only changed files.
 
 Frontmatter is parsed and passed through as document `Metadata`. Markdown images
 (`![alt](path)`) are extracted into `AttachmentDescription`s using the alt text
@@ -35,22 +35,31 @@ as the description.
 ## Usage
 
 ```bash
-dotnet run --project src/Minerva.MarkdownIndexer
+dotnet run --project src/Minerva.MarkdownIndexer -- --config path/to/config.json
 ```
 
-Runs as a long-lived host — it does not exit until cancelled.
+Exit codes: `0` success or cancelled, `1` unexpected error, `2` invalid
+configuration or failed startup checks, `3` some documents failed (rerun to
+retry them), `4` stopped after repeated model-server errors (rerun to continue).
 
 ## Configuration
 
-`appsettings.json`:
+The config file (`appsettings.json` in this folder is the example):
 
 ```json
 {
   "Minerva": {
     "ConnectionString": "Host=localhost;Database=minerva;Username=minerva;Password=minerva",
     "Embedding": {
-      "BaseUrl": "http://localhost:11434/v1",
-      "Model": "embedding-bge-m3"
+      "BaseUrl": "http://localhost:9930/v1",
+      "Model": "text-embedding-bge-m3",
+      "Concurrency": 1,
+      "BatchSize": 1
+    },
+    "Chunking": {
+      "TargetChunkSize": 1200,
+      "ChunkOverlap": 200,
+      "ChunkerType": "Custom"
     }
   },
   "Indexer": {
@@ -70,9 +79,12 @@ The `Minerva` section is the full core-library config (see
 configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
 Every `Indexer` key except `Description` is required; the binder reports a
-clear error if any is missing. `Description` tells MCP clients what the
-collection contains, so they can pick it without being told its name; it is
-stored only when the collection is created. `FileExtensions` lists the file types to index as bare extensions such
+clear error if any is missing. The optional `Logging:File:Path` key also writes
+the log to a file (`~/` and `{Date}` are expanded).
+
+`Description` tells MCP clients what the collection contains, so they can pick
+it without being told its name; it is stored only when the collection is
+created. `FileExtensions` lists the file types to index as bare extensions such
 as `md` or `txt` (matching is case- and dot-insensitive, so `md`, `.md` and
 `.MD` are equivalent; a glob like `*.md` is rejected). `ExcludeDirectories`
 lists directory names skipped anywhere in the tree — `.obsidian`, `.trash`,
@@ -83,65 +95,48 @@ extensions — changed, which otherwise blocks to avoid mass insert or deletion.
 
 ## Building a standalone binary
 
-`build-minerva-markdown-indexer-cli.sh` (in scripts folder) publishes a self-contained
-binary to `bin-minerva-markdown-indexer/`:
-
-```bash
-./build-minerva-markdown-indexer-cli.sh
-```
-
-Output:
-
-- `bin-minerva-markdown-indexer/minerva-markdown-indexer` — the executable
-- `bin-minerva-markdown-indexer/appsettings.json` — copied from the project
-  (`CopyToOutputDirectory=PreserveNewest` in the csproj keeps it current)
-
-Run it with:
-
-```bash
-./bin-minerva-markdown-indexer/minerva-markdown-indexer
-```
+[`docs/installation.md`](../../docs/installation.md) publishes the executable
+to `~/bin/minerva-markdown-indexer`. For a local build,
+`scripts/build-minerva-markdown-indexer-cli.sh` publishes it to
+`bin-minerva-markdown-indexer/`.
 
 For long-running ingestions, detach it from the terminal:
 
 ```bash
-nohup ./bin-minerva-markdown-indexer/minerva-markdown-indexer > logs/run.log 2>&1 &
+nohup minerva-markdown-indexer > indexer.out 2>&1 &
 ```
 
 ## Overriding configuration
 
-`Program.cs` builds configuration in this order (later sources override
-earlier):
+Configuration is built in this order (later sources override earlier):
 
-1. `appsettings.json` (required)
-2. `appsettings.{DOTNET_ENVIRONMENT}.json` (optional, defaults to `Production`)
+1. The config file: `--config <path>`, otherwise
+   `~/.config/minerva/minerva-markdown-indexer.json` (required). The current
+   directory is never used.
+2. `<config file name>.<DOTNET_ENVIRONMENT>.json` in the same folder, when
+   `DOTNET_ENVIRONMENT` is set (optional).
 3. Environment variables
 4. Command-line args
 
-### Named profile files (recommended for experiments)
+### Named profile files (recommended for one collection each)
 
-Drop additional files next to the binary:
+Put overlay files next to the config file:
 
 ```text
-bin-minerva-markdown-indexer/
-  minerva-markdown-indexer
-  appsettings.json              # base / defaults
-  appsettings.experiment-a.json # only the keys to override
-  appsettings.experiment-b.json
+~/.config/minerva/
+  minerva-markdown-indexer.json            # base / defaults
+  minerva-markdown-indexer.my-notes.json   # only the keys to override
+  minerva-markdown-indexer.work-docs.json
 ```
 
 Launch with the matching environment name:
 
 ```bash
-DOTNET_ENVIRONMENT=experiment-a ./bin-minerva-markdown-indexer/minerva-markdown-indexer
+DOTNET_ENVIRONMENT=my-notes minerva-markdown-indexer
 ```
 
-The profile is merged on top of `appsettings.json`, so it only needs the keys
-that differ. Add new profile files to `src/Minerva.MarkdownIndexer/`; the
-`appsettings*.json` glob in the csproj copies them on each build.
-
-The files have to sit next to `minerva-markdown-indexer` — they are loaded from
-`AppContext.BaseDirectory`.
+The overlay is merged on top of the base file, so it only needs the keys that
+differ.
 
 ### Environment variables (one-off tweaks)
 
@@ -150,13 +145,13 @@ Use `__` (double underscore) as the section separator:
 ```bash
 Indexer__RootPath=/path/to/notes \
 Indexer__CollectionName=experiment-a \
-./bin-minerva-markdown-indexer/minerva-markdown-indexer
+minerva-markdown-indexer
 ```
 
 ### Command-line args
 
 ```bash
-./bin-minerva-markdown-indexer/minerva-markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
+minerva-markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
 ```
 
 ## Files
@@ -164,7 +159,8 @@ Indexer__CollectionName=experiment-a \
 | File | Role |
 | --------------------------- | ------------------------------------------------------------------------------------ |
 | `Program.cs` | Entry point — builds config, constructs the engine + indexer, runs one ingest pass |
-| `IndexerOptions.cs` | Config record bound to the `Indexer` section |
+| `IndexerOptions.cs` | Config record for the `Indexer` section |
+| `IndexerOptionsBinder.cs` | Binds and validates the `Indexer` section |
 | `MarkdownScanner.cs` | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
 | `MarkdownIndexer.cs` | Drives a single scan-and-ingest pass against `IMinervaEngine` |
 | `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer` |

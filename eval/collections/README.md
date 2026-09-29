@@ -1,16 +1,20 @@
 # Eval collections
 
-This folder builds the collections used by the eval sweeps. Each collection has a
-`run-*.sh` script and an `appsettings.*.json` overlay:
+This folder builds the collections used by the eval sweeps:
 
 - `appsettings.json` — shared base config: connection string, embedding endpoint,
-  chunking, and the corpus root (`./wikipedia-en-corpus`).
-- `appsettings.<collection>.json` — per-collection overlay: collection name and log file.
-- `run-<collection>.sh` — runs the indexer with `DOTNET_ENVIRONMENT=<collection>` so the
-  matching overlay is loaded.
+  chunking, and indexer settings common to all collections.
+- `appsettings.<collection>.json` — per-collection overlay: collection name,
+  corpus root and log file.
+- `run-all-ingestions.sh` — one command per collection, cheapest first, using a
+  frozen published binary copied into this folder. Uncomment the collections to
+  rebuild.
 
-The scripts `cd` into this folder first; the indexer loads config from the working
-directory, so all paths here are relative to this folder.
+Run the indexer from this folder with `--config appsettings.json` and
+`DOTNET_ENVIRONMENT=<collection>`, which loads the matching overlay. Without
+`--config` the indexer reads `~/.config/minerva/minerva-markdown-indexer.json`,
+your personal config. The paths inside the config files are relative to the
+working directory, so it must be this folder.
 
 These appsettings files are **live config**, versioned on purpose: they are the record of
 how each eval collection was built. The `appsettings*.json` files inside

@@ -12,6 +12,47 @@ the public surface may change at any time.
 
 ## [Unreleased]
 
+### Added
+
+- Cross-encoder reranker over the fused candidates (`Minerva.Reranker`,
+  `Search.EnableReranker`, `Search.RerankDepth`), and an optional cascade
+  reranker over the top of the reranked list (`Minerva.CascadeReranker`,
+  `Search.CascadeDepth`; `0` turns it off). A reranker failure falls back to
+  the fused ranking.
+- MCP server (`Minerva.Mcp`, executable `minerva-mcp`) with the tools
+  `list_collections`, `search`, `get_source`, `get_source_info` and
+  `expand_chunk`.
+- `sources` table: one row per ingested document, holding its content hash
+  and full text, used by `get_source` and `get_source_info`.
+- Collection `Description`, set by the indexer and read by MCP clients to
+  choose a collection.
+- Startup checks for the `pg_search` extension and for the pg_search 0.25.5
+  bitmap intersection bug.
+- Retry and bail-out when the model server is unavailable during ingestion;
+  the indexer exits with a distinct code so the run can be resumed.
+- `docs/installation.md`: full setup on macOS with llama-swap serving the
+  models on demand.
+- Evaluation: Success@K metric, `wp1283` Wikipedia corpus with distractor
+  articles, experiment sweeps and analysis notebooks, comparison with the
+  Python Minerva v1.
+
+### Changed
+
+- The keyword leg of hybrid search uses BM25 via ParadeDB `pg_search`
+  instead of PostgreSQL built-in full-text search.
+- Schema migrations squashed into `001_initial`; databases created by 0.1.0
+  must be recreated and re-indexed.
+- Every executable reads its config from `~/.config/minerva/<executable>.json`
+  or `--config <path>`, plus an optional `<name>.<DOTNET_ENVIRONMENT>.json`
+  overlay; it no longer reads config files next to the binary.
+- Search results carry `ChunkIndex`.
+
+### Removed
+
+- Contextual chunk prefixes (LLM-generated context before embedding): no
+  retrieval gain measured on the full corpus, at a cost of 55-60 hours of
+  ingestion.
+
 ## [0.1.0] - 2026-06-18
 
 First tagged version. Marks the point where the evaluation harness and

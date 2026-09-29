@@ -1,38 +1,48 @@
 # Minerva
 
-A C# / .NET 10 RAG engine backed by PostgreSQL + pgvector, with hybrid search
-(dense vectors + full-text with rank fusion), optional contextual preprocessing,
-and multiple collections.
+A C# / .NET 10 RAG engine for personal notes, backed by PostgreSQL. Search is
+hybrid: dense vectors (`pgvector`) and BM25 keyword search (ParadeDB
+`pg_search`) are merged with Reciprocal Rank Fusion, then rescored by a
+cross-encoder reranker. All models run locally behind OpenAI-compatible
+endpoints; collections are exposed to AI assistants through an MCP server.
 
-This repo is a monorepo: the core library lives in `src/Minerva/`, and client
+This repo is a monorepo: the core library lives in `src/Minerva/`, and the
 applications that consume it live as sibling projects under `src/`.
 
 ## Layout
 
 ```text
 src/
-  Minerva/                    Core library — engine, storage, ingestion, search, providers
-  Minerva.MarkdownWatcher/    Filesystem watcher client that ingests markdown files
+  Minerva/                    Core library — ingestion, search, storage, providers
+  Minerva.MarkdownIndexer/    CLI: indexes a directory of markdown files into a collection
+  Minerva.Search.Cli/         CLI: searches a collection (minerva-search)
+  Minerva.Mcp/                MCP server exposing search to AI assistants (minerva-mcp)
+  Minerva.Search.Bench/       Evaluation harness: runs retrieval benchmarks (minerva-bench)
+  Minerva.Utils/              Helpers shared by the executables (config files, --version)
 tests/
   Minerva.Tests/              Unit tests
-  Minerva.IntegrationTests/   Integration tests (require PostgreSQL + pgvector)
-scripts/
-  run-integration-tests.sh    Spin up a test DB and run integration tests
+  Minerva.IntegrationTests/   Integration tests (require PostgreSQL + extensions)
+  Minerva.ArchitectureTests/  Clean Architecture layering rules
+tools/
+  Minerva.ChunkComparator/    Development tool: compares chunker outputs
+eval/                         Eval corpora, datasets, collections and experiments
+scripts/                      Build scripts, llama-swap service files
 ```
 
-See the per-project READMEs for details:
-- [`src/Minerva/README.md`](src/Minerva/README.md) — core library reference
-- [`src/Minerva.MarkdownWatcher/README.md`](src/Minerva.MarkdownWatcher/README.md)
-  — markdown watcher client
+Per-project READMEs:
 
-## Prerequisites
+- [`src/Minerva/README.md`](src/Minerva/README.md) — core library
+- [`src/Minerva.MarkdownIndexer/README.md`](src/Minerva.MarkdownIndexer/README.md)
+  — markdown indexer
+- [`tests/Minerva.ArchitectureTests/README.md`](tests/Minerva.ArchitectureTests/README.md)
+  — layer model and dependency rules
+- [`eval/README.md`](eval/README.md) — evaluation setup
 
-- .NET SDK 10.0.101+ (pinned via `global.json`)
-- PostgreSQL 16+ with the `pgvector` extension (for running the library, not for
-  unit tests)
-- An OpenAI-compatible embedding endpoint (Ollama, OpenAI, Together, etc.)
-- Optional: an OpenAI-compatible chat endpoint if summarization or
-  contextualization is enabled
+## Installation
+
+[`docs/installation.md`](docs/installation.md) sets up the whole stack on a
+Mac: PostgreSQL with `pgvector` and `pg_search`, llama-swap serving the
+embedding and reranker models, the executables, and the MCP clients.
 
 ## Build & test
 
@@ -49,9 +59,8 @@ picks up automatically. To override (e.g. different local credentials, or in
 CI), set the env var in your shell — a process-level env var takes precedence
 over `.runsettings`.
 
-To bootstrap the test database (creates `minerva_test` with `pgvector`
-installed), run `./scripts/run-integration-tests.sh` once after starting
-Postgres.
+To bootstrap the test database, run `./scripts/run-integration-tests.sh` once
+after starting Postgres.
 
 ## Editor debug profiles
 
@@ -66,11 +75,5 @@ cp src/Minerva.Search.Bench/Properties/launchSettings.template.json \
    src/Minerva.Search.Bench/Properties/launchSettings.json
 ```
 
-The copy is automatically ignored, so private values stay local.
-
-## Roadmap
-
-The library is client-agnostic. The markdown watcher is the first client; future
-clients planned include an MCP server (`Minerva.Mcp`), a Claude conversation
-archiver, and an Obsidian-specific extension (`Minerva.Obsidian`) for wikilinks,
-embeds, tags, and dataview.
+The same applies to `appsettings.debug.template.json`, copied to the
+git-ignored `appsettings.debug.json`.

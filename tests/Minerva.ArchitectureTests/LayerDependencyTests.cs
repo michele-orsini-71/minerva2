@@ -3,7 +3,7 @@ using NetArchTest.Rules;
 
 namespace Minerva.ArchitectureTests;
 
-// Clean Architecture layer model (see docs/architecture.md):
+// Clean Architecture layer model (see tests/Minerva.ArchitectureTests/README.md):
 //   ENTITIES   : Minerva.Models, Minerva.Exceptions, Minerva.Utilities
 //   USE_CASES  : Minerva (root), Minerva.Collections, Minerva.Ingestion, Minerva.Search
 //   ADAPTERS   : Minerva.Storage, Minerva.Providers
