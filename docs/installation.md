@@ -142,7 +142,8 @@ llama-swap on `localhost:9930`, and the indexer already logs to
 How the tools find their config: each one reads
 `~/.config/minerva/<executable name>.json`, or the file given with
 `--config <path>`. When `DOTNET_ENVIRONMENT=<env>` is set, it also reads
-`<file name>.<env>.json` from the same folder, on top of the first file.
+`<file name>.<env>.json` from the same folder, on top of the first file; if
+that file is missing, the tool stops with an error.
 Environment variables and command-line values override both files. The
 current directory is never used.
 

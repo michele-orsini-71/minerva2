@@ -6,7 +6,8 @@ namespace Minerva.Utils;
 // Every tool finds its config the same way, so the binaries can live side by side
 // in one folder and run from any directory: the explicit path, otherwise
 // ~/.config/minerva/<executable name>.json; then <base name>.<DOTNET_ENVIRONMENT>.json
-// next to it, when the variable is set.
+// next to it, when the variable is set. A missing overlay is an error: a mistyped
+// environment name would otherwise run silently on the base config alone.
 public static class ConfigFiles
 {
     public static IConfigurationBuilder AddMinervaConfigFiles(this IConfigurationBuilder builder, string? configPath)
@@ -24,7 +25,12 @@ public static class ConfigFiles
             var overlay = Path.Combine(
                 Path.GetDirectoryName(basePath)!,
                 $"{Path.GetFileNameWithoutExtension(basePath)}.{env}.json");
-            builder.AddJsonFile(overlay, optional: true);
+            if (!File.Exists(overlay))
+            {
+                throw new FileNotFoundException(
+                    $"Config overlay not found: {overlay} (selected by DOTNET_ENVIRONMENT={env})", overlay);
+            }
+            builder.AddJsonFile(overlay, optional: false);
         }
         return builder;
     }

@@ -44,7 +44,8 @@ the public surface may change at any time.
   must be recreated and re-indexed.
 - Every executable reads its config from `~/.config/minerva/<executable>.json`
   or `--config <path>`, plus an optional `<name>.<DOTNET_ENVIRONMENT>.json`
-  overlay; it no longer reads config files next to the binary.
+  overlay; it no longer reads config files next to the binary. When
+  `DOTNET_ENVIRONMENT` is set, a missing overlay is an error.
 - Search results carry `ChunkIndex`.
 
 ### Removed
