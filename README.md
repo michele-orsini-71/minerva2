@@ -47,7 +47,7 @@ Per-project READMEs:
 
 ## Results
 
-[`eval/notebooks/runs_comparer.ipynb`](eval/notebooks/runs_comparer.ipynb) is
+[`eval/notebooks/runs_comparer.ipynb` (rendered on nbviewer)](https://nbviewer.org/github/michele-orsini-71/minerva2/blob/main/eval/notebooks/runs_comparer.ipynb) is
 committed with its outputs: it compares legacy Minerva with Minerva, with and
 without the reranker, without having to build the corpus and run the evals.
 
