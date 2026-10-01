@@ -3,14 +3,16 @@
 All notable changes to Minerva (.NET, `minerva2`) are recorded here.
 
 The format is based on [Keep a Changelog][kac]; this project follows
-[Semantic Versioning][semver]. Versions advance independently of the Python
-`minerva` (v3) — see the project naming note. While the major version is `0`,
+[Semantic Versioning][semver]. Versions advance independently of the legacy
+`minerva` (v3). While the major version is `0`,
 the public surface may change at any time.
 
 [kac]: https://keepachangelog.com/en/1.1.0/
 [semver]: https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-10-01
 
 ### Added
 
