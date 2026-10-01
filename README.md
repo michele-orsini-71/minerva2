@@ -1,12 +1,19 @@
 # Minerva
 
-A C# / .NET 10 RAG engine for personal notes, backed by PostgreSQL. Search is
-hybrid: dense vectors (`pgvector`) and BM25 keyword search (ParadeDB
-`pg_search`) are merged with Reciprocal Rank Fusion, then rescored by a
-cross-encoder reranker. All models run locally behind OpenAI-compatible
-endpoints; collections are exposed to AI assistants through an MCP server.
+Minerva is a RAG engine for personal notes, based on a PostgreSQL
+ database, built to run locally, without accessing the internet.
+It is built on C# / .NET 10.
+Semantic (`pgvector`) and keyword (ParadeDB `pg_search`) searches are merged with
+ Reciprocal Rank Fusion and then rescored by a cross-encoder reranker.
+All models are downloaded and run locally behind OpenAI-compatible
+endpoints; indexed files are grouped in collections and then exposed to AI
+assistants through an MCP server.
 
-This repo is a monorepo: the core library lives in `src/Minerva/`, and the
+Minerva is the successor of
+[legacy Minerva](https://github.com/michele-orsini-71/minerva), the original
+Python implementation.
+
+This is a monorepo: the core library lives in `src/Minerva/`, and the
 applications that consume it live as sibling projects under `src/`.
 
 ## Layout
@@ -38,11 +45,21 @@ Per-project READMEs:
   — layer model and dependency rules
 - [`eval/README.md`](eval/README.md) — evaluation setup
 
+## Results
+
+[`eval/notebooks/runs_comparer.ipynb`](eval/notebooks/runs_comparer.ipynb) is
+committed with its outputs: it compares legacy Minerva with Minerva, with and
+without the reranker, without having to build the corpus and run the evals.
+
 ## Installation
 
-[`docs/installation.md`](docs/installation.md) sets up the whole stack on a
-Mac: PostgreSQL with `pgvector` and `pg_search`, llama-swap serving the
-embedding and reranker models, the executables, and the MCP clients.
+Follow the instructions in [`docs/installation.md`](docs/installation.md) to set
+up the whole stack on a Mac:
+
+- PostgreSQL with `pgvector` and `pg_search`
+- llama-swap serving the embedding and reranker models
+- the executables
+- the MCP clients
 
 ## Build & test
 

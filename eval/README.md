@@ -1,23 +1,60 @@
 # Eval
 
-- `datasets/` — gold datasets (jsonl) and the corpus manifests (`*.corpus.txt`)
-- `corpus-builder/` — builds a wikipedia corpus from a zim file; one config per
-  corpus (`corpus-builder/corpus-wp1283.json`, `corpus-builder/corpus-wp111.json`)
-- `collections/` — indexes the corpora into the eval collections (see its README)
-- `experiments/` — sweep TOMLs and their runs, including the comparison with
-  Minerva v1 in `legacy/` (see its README)
-- `notebooks/` — analysis notebooks, the shared library they use
-  (`minerva_eval.py`) and their Python env
-- `scripts/` — small helpers (`smoke.py`)
+All tools and scripts to prepare evaluation pipelines are here.
+To run the evaluation pipelines use Minerva.Search.Bench.
+Evals are based on two corpora, both extracted from a Wikipedia zim file.
+The small corpus is a subset of the bigger one and has been created for
+fast checks:
 
-Two corpora share the same layout: `wp1283` (full, 1283 articles) and `wp111`
-(111 articles, fast loop). Collections are named `{corpus}-nollm`; the suffix
-dates from the contextualization experiment and is kept so existing runs stay
-comparable.
+- wp1283:  1283 articles
+- wp111: 111 articles
+
+The "nollm" suffix in collection names comes from the contextualization experiment
+(it means: no LLM, so no contextualization on this collection) and has been
+kept so existing runs stay comparable.
+
+## Subfolders description
+
+### datasets
+
+Evaluations: jsonl files that contain queries and gold sources
+Corpus manifests: `*.corpus.txt` lists of files to build the new corpus, used by
+the corpus builder
+
+### corpus-builder
+
+Python script to build a Wikipedia corpus from a zim file; config files for
+wp1283 and wp111 are versioned in the same folder
+
+### collections
+
+Contains configuration files to run Minerva.MarkdownIndexer and ingest/index
+the corpus markdown files into collections needed for running the evals
+ (see collections README)
+
+### experiments
+
+Sweep files to run Minerva.Search.Bench; they output runs folders to be analyzed
+with Jupyter notebooks.
+Includes the comparison with legacy Minerva in `legacy/`.
+
+### notebooks
+
+Analysis notebooks along with the shared library they use
+  (`minerva_eval.py`) and their Python env.
+
+`runs_comparer.ipynb` is committed with its outputs (executed on 2026-10-01),
+so the results can be read without running the evals. It compares the
+versioned runs:
+
+- `legacy`: legacy Minerva (semantic search only)
+- `baseline`: Minerva hybrid search (vector + BM25), without reranker; in other
+  words, very similar to legacy Minerva enhanced with keyword search
+- `reranker`: Minerva hybrid search followed by the cross-encoder reranker
 
 ## Everyday loop
 
-Search code changed (no corpus/index changes needed):
+If the search code changed, no corpus/index changes are needed, just rerun the sweep:
 
 ```sh
 # run the sweeps, from the experiment folder
@@ -29,12 +66,13 @@ dotnet run --project ../../../src/Minerva.Search.Bench -- run --sweep wp1283-nol
 uv run --project ../../notebooks jupyter lab
 ```
 
-`run-all-sweeps.sh` runs every durable sweep in sequence, after checking that
+`run-all-sweeps.sh` runs every sweep in sequence, after checking that
 the configured rerankers answer.
 
 If the indexing code or chunking config changed, re-index first, from `collections/`.
-Pass `--config appsettings.json`: without it the tools read
-`~/.config/minerva/<executable>.json`, your personal config. The paths inside
+Be sure to pass `--config appsettings.json`, otherwise Minerva.MarkdownIndexer will
+read `~/.config/minerva/<executable>.json` instead.
+The paths inside
 the config are relative, so the working directory must be `collections/`:
 
 ```sh

@@ -1,19 +1,24 @@
 # Minerva.MarkdownIndexer
 
-A command-line tool that syncs a Minerva collection with a directory of
-markdown files, then exits. The first real client of the
-[Minerva](../Minerva/README.md) library.
+Minerva.MarkdownIndexer is a command-line tool that indexes a directory of
+Markdown files into a Minerva collection.
+If the collection already exists, it synchronizes its records with the file
+hierarchy, adding missing ones and removing entries that have no corresponding
+Markdown files anymore.
 
-Works for:
+It is the first real client of the [Minerva](../Minerva/README.md) library.
+
+It works for:
 
 - Obsidian vaults
 - Repository `docs/` folders
 - Static-site sources (Jekyll, Hugo, Astro, Quartz, …)
 - Any directory of `.md` files with optional YAML frontmatter
 
-Obsidian-specific features (wikilinks, embeds, tags, dataview) are **out of
-scope** — those would belong in a future `Minerva.Obsidian` extension layered on
-top.
+The indexer reads the text of each file. It does not follow links, resolve
+references to other files, or interpret syntax that a specific editor adds on
+top of Markdown (for example Obsidian wikilinks, embeds, tags or Dataview
+queries). That syntax is indexed as plain text.
 
 ## What it does
 
@@ -78,8 +83,9 @@ The `Minerva` section is the full core-library config (see
 [`src/Minerva/README.md`](../Minerva/README.md)); the `Indexer` section
 configures this client (bound to [`IndexerOptions`](IndexerOptions.cs)).
 
-Every `Indexer` key except `Description` is required; the binder reports a
-clear error if any is missing. The optional `Logging:File:Path` key also writes
+Every `Indexer` key except `Description` is required; an initial parameter
+validation phase will report a clear error if any is missing.
+Setting the optional `Logging:File:Path` key also writes
 the log to a file (`~/` and `{Date}` are expanded).
 
 `Description` tells MCP clients what the collection contains, so they can pick
@@ -91,24 +97,18 @@ lists directory names skipped anywhere in the tree — `.obsidian`, `.trash`,
 `.git` are the common cases. `AllowRecreateOnConfigMismatch` permits dropping a
 collection whose build configuration changed; `AllowSourceScopeChange` permits
 reindexing when the source scope — root path, excluded directories or file
-extensions — changed, which otherwise blocks to avoid mass insert or deletion.
+extensions — changed, which is otherwise blocked to avoid mass insertion or deletion.
 
 ## Building a standalone binary
 
-[`docs/installation.md`](../../docs/installation.md) publishes the executable
-to `~/bin/minerva-markdown-indexer`. For a local build,
-`scripts/build-minerva-markdown-indexer-cli.sh` publishes it to
+[`docs/installation.md`](../../docs/installation.md) explains how to build the
+executable into `~/bin/minerva-markdown-indexer`. For a local build,
+`scripts/build-minerva-markdown-indexer-cli.sh` writes it to
 `bin-minerva-markdown-indexer/`.
-
-For long-running ingestions, detach it from the terminal:
-
-```bash
-nohup minerva-markdown-indexer > indexer.out 2>&1 &
-```
 
 ## Overriding configuration
 
-Configuration is built in this order (later sources override earlier):
+Configuration is built in this order (later sources override earlier ones):
 
 1. The config file: `--config <path>`, otherwise
    `~/.config/minerva/minerva-markdown-indexer.json` (required). The current
@@ -118,7 +118,7 @@ Configuration is built in this order (later sources override earlier):
 3. Environment variables
 4. Command-line args
 
-### Named profile files (recommended for one collection each)
+### Named profile files (one file per collection)
 
 Put overlay files next to the config file:
 
@@ -153,14 +153,3 @@ minerva-markdown-indexer
 ```bash
 minerva-markdown-indexer --Indexer:RootPath=/path/to/notes --Indexer:CollectionName=experiment-a
 ```
-
-## Files
-
-| File | Role |
-| --------------------------- | ------------------------------------------------------------------------------------ |
-| `Program.cs` | Entry point — builds config, constructs the engine + indexer, runs one ingest pass |
-| `IndexerOptions.cs` | Config record for the `Indexer` section |
-| `IndexerOptionsBinder.cs` | Binds and validates the `Indexer` section |
-| `MarkdownScanner.cs` | Enumerates files, parses frontmatter, extracts image attachments, derives `SourceId` |
-| `MarkdownIndexer.cs` | Drives a single scan-and-ingest pass against `IMinervaEngine` |
-| `MarkdownIndexerBuilder.cs` | Validation + preflight + construction of `MarkdownIndexer` |

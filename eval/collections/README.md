@@ -13,13 +13,14 @@ This folder builds the collections used by the eval sweeps:
 Run the indexer from this folder with `--config appsettings.json` and
 `DOTNET_ENVIRONMENT=<collection>`, which loads the matching overlay. Without
 `--config` the indexer reads `~/.config/minerva/minerva-markdown-indexer.json`,
-your personal config. The paths inside the config files are relative to the
-working directory, so it must be this folder.
+your personal config (see [docs/installation.md](../../docs/installation.md)).
+The paths inside the config files are relative to the working directory, so it
+must be this folder.
 
-These appsettings files are **live config**, versioned on purpose: they are the record of
-how each eval collection was built. The `appsettings*.json` files inside
+These appsettings files are **live config**, versioned on purpose: they are the
+record of how each eval collection was built. The `appsettings*.json` files inside
 `src/Minerva.MarkdownIndexer` are examples (plus the debug profile used by
 `launchSettings.json`) and are not used by eval runs.
 
-The corpus in `wikipedia-en-corpus/` is built by `../corpus-builder` from the manifest in
-`../datasets`. Both `wikipedia-en-corpus/` and `logs/` are gitignored.
+The corpus in `wikipedia-en-corpus/` is built by `../corpus-builder` from the
+manifest in `../datasets`. Both `wikipedia-en-corpus/` and `logs/` are gitignored.

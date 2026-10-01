@@ -6,8 +6,8 @@ One folder per experiment. Each contains:
 - `runs/` — resultsets produced by the bench (`run.json`, `metrics.csv`, `details.jsonl`)
 
 `legacy/` is different: it holds Python scripts that index the same corpus with
-Minerva v1 and write its results in the same `runs/` format, so the two can be
-compared.
+legacy Minerva and write its results in the same `runs/` format, so the two can
+be compared.
 
 The analysis notebooks live in `../notebooks` (`runs_comparer.ipynb`,
 `query_quality.ipynb`), with their logic in the shared library

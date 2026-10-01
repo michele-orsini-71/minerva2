@@ -34,50 +34,19 @@ checks the database and model endpoints, and initializes the schema:
 IIngestEngine ingest = await MinervaIngestBuilder.CreateAsync(config.GetSection("Minerva"), loggerFactory, ct);
 ISearchEngine search = await MinervaSearchBuilder.CreateAsync(config, loggerFactory, ct);
 ```
+See IIngestEngine.cs, ISearchEngine.cs and Models/ for the full API.
 
-`IIngestEngine`:
-
-```csharp
-Task<IngestionResult> IngestAsync(string collectionName, ClientProvenance clientProvenance,
-    IAsyncEnumerable<Document> documents, bool allowRecreateOnConfigMismatch = false,
-    string? description = null, CancellationToken ct = default);
-Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
-```
-
-`IngestAsync` syncs the collection with the full set of documents it receives,
+Ingestion syncs the collection with the full set of documents it receives,
 so the client passes every document on each run. The collection is created on
 first use.
 
-`ISearchEngine`:
-
-```csharp
-Task<IReadOnlyList<SearchResult>> SearchAsync(string query, string collectionName,
-    SearchOverrides? overrides = null, CancellationToken ct = default);
-Task<IReadOnlyList<Collection>> QueryListCollectionsAsync(CancellationToken ct = default);
-Task<Collection?> QueryCollectionInfoAsync(string collectionName, CancellationToken ct = default);
-Task<bool> SourceIdExistsAsync(string collectionName, string sourceId, CancellationToken ct = default);
-Task<SourceText?> GetSourceAsync(string collectionName, string sourceId, CancellationToken ct = default);
-Task<SourceInfo?> GetSourceInfoAsync(string collectionName, string sourceId, CancellationToken ct = default);
-Task<IReadOnlyList<ChunkText>> GetChunkWindowAsync(string collectionName, string sourceId,
-    int chunkIndex, int window, CancellationToken ct = default);
-```
-
-`SearchOverrides` has the same fields as the `Search` configuration section
-(below), all optional; a field left `null` uses the configured value.
-
-Key models (`Minerva.Models`):
-
-- `Document(SourceId, Title, Text, Metadata?, Attachments?)`
-- `SearchResult(ChunkId, SourceId, ChunkIndex, CollectionName, Content, Score, Metadata?, ContextBefore?, ContextAfter?)` <!-- markdownlint-disable-line MD013 -->
-- `IngestionResult(Added, Updated, Deleted, Unchanged, Elapsed, Failed)`
-- `ClientProvenance(kind, data)` — the client's own build settings, stored with
-  the collection; values must be scalars or flat arrays of scalars.
+Search has overrides for the `Search` configuration section (see below), they
+ are all optional; a field left `null` uses the configured value.
 
 ## Configuration
 
-Every field is required unless marked optional; there are no defaults. The
-binders in `Configuration/` validate every field and report all failures at
-once.
+Each search call can override any field of the `Search` section (see below);
+a field left `null` uses the configured value.
 
 Ingestion reads the `Minerva` section:
 

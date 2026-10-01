@@ -1,5 +1,7 @@
 # Installation
 
+
+
 How to set up Minerva on a Mac so that an MCP client (Claude Desktop, LM
 Studio) can search your Markdown notes. The result:
 
