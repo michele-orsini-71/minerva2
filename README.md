@@ -94,3 +94,28 @@ cp src/Minerva.Search.Bench/Properties/launchSettings.template.json \
 
 The same applies to `appsettings.debug.template.json`, copied to the
 git-ignored `appsettings.debug.json`.
+
+## License
+
+MIT License — see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+Minerva builds upon these open-source projects:
+
+- [PostgreSQL](https://www.postgresql.org/) — database
+- [pgvector](https://github.com/pgvector/pgvector) — vector similarity search
+- [ParadeDB `pg_search`](https://github.com/paradedb/paradedb) — BM25 keyword search
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) and
+  [llama-swap](https://github.com/mostlygeek/llama-swap) — local model serving
+- [Npgsql](https://www.npgsql.org/) — PostgreSQL driver for .NET
+- [MCP C# SDK](https://github.com/modelcontextprotocol/csharp-sdk) — MCP server
+  framework
+- [Markdig](https://github.com/xoofx/markdig) — markdown parsing
+
+## About the Name
+
+Minerva is named after the Roman goddess of wisdom, knowledge, and strategic
+warfare — fitting for a system that helps manage and retrieve knowledge.
+This project is dedicated to the memory of my mother, Nadia Minerva (Sept 30th,
+1947 - Oct 17th, 2025).
