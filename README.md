@@ -12,6 +12,9 @@ assistants through an MCP server.
 Minerva is the successor of
 [legacy Minerva](https://github.com/michele-orsini-71/minerva), the original
 Python implementation.
+The full story of how it was built, from the first
+Python version to this one, is told in
+[Minerva: implementation history](https://michele-orsini-71.github.io/posts/minerva-rag-system-implementation-history/).
 
 This is a monorepo: the core library lives in `src/Minerva/`, and the
 applications that consume it live as sibling projects under `src/`.
